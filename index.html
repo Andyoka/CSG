@@ -2,98 +2,73 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Cold Storage Monitoring System</title>
+    <title>Cold Storage Multi-Page Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background-color: #eef2f7; }
-        .header { background: #1a73e8; color: white; padding: 15px 20px; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center; }
-        .container { background: white; border-radius: 0 0 8px 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); padding: 20px; }
-        .controls { margin-bottom: 20px; display: flex; gap: 10px; }
-        input[type="text"] { padding: 10px; width: 300px; border: 1px solid #ddd; border-radius: 4px; }
-        .table-wrapper { overflow-x: auto; max-height: 600px; overflow-y: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 11px; }
-        th { background: #f8f9fa; color: #333; position: sticky; top: 0; z-index: 10; padding: 12px; border: 1px solid #dee2e6; text-transform: uppercase; }
-        td { padding: 8px; border: 1px solid #dee2e6; white-space: nowrap; }
-        tr:hover { background-color: #f1f7ff; }
-        .loader { text-align: center; padding: 50px; font-weight: bold; color: #1a73e8; }
-        .badge { background: #e8f0fe; color: #1a73e8; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
+        /* CSS: PENGATURAN WARNA & TAMPILAN */
+        body { font-family: sans-serif; margin: 0; background: #f4f7f9; }
+        .sidebar { width: 200px; height: 100vh; background: #2c3e50; color: white; position: fixed; padding: 20px; }
+        .main-content { margin-left: 240px; padding: 20px; }
+        .nav-btn { display: block; width: 100%; padding: 10px; margin-bottom: 10px; cursor: pointer; background: #34495e; color: white; border: none; text-align: left; border-radius: 5px; }
+        .nav-btn:hover { background: #1abc9c; }
+        .page { display: none; } /* Semua halaman sembunyi dulu */
+        .active { display: block; } /* Hanya halaman aktif yang muncul */
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <h2 style="margin:0;">❄️ Cold Storage Real-Time Monitoring</h2>
-    <div id="data-count" class="badge">0 Baris Data</div>
+<div class="sidebar">
+    <h3>MENU</h3>
+    <button class="nav-btn" onclick="showPage('page1')">🌡️ Slide 1: Suhu</button>
+    <button class="nav-btn" onclick="showPage('page2')">⚙️ Slide 2: Tekanan</button>
+    <button class="nav-btn" onclick="showPage('page3')">📄 Slide 3: Log Data</button>
 </div>
 
-<div class="container">
-    <div class="controls">
-        <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Cari ID Mesin atau Tanggal...">
+<div class="main-content">
+    <div id="page1" class="page active">
+        <h2>Monitoring Suhu (Slide 1)</h2>
+        <div class="grid-container">
+            <div class="card"><canvas id="chartSuhu1"></canvas></div>
+            <div class="card"><canvas id="chartSuhu2"></canvas></div>
+            <div class="card"><canvas id="chartSuhu3"></canvas></div>
+            <div class="card"><canvas id="chartSuhu4"></canvas></div>
+            <div class="card"><canvas id="chartSuhu5"></canvas></div>
+        </div>
     </div>
 
-    <div id="loading" class="loader">⚙️ Menghubungkan ke API Apps Script...</div>
+    <div id="page2" class="page">
+        <h2>Monitoring Tekanan (Slide 2)</h2>
+        <div class="grid-container">
+            <div class="card"><canvas id="chartPress1"></canvas></div>
+            <div class="card"><canvas id="chartPress2"></canvas></div>
+            <div class="card"><canvas id="chartPress3"></canvas></div>
+            <div class="card"><canvas id="chartPress4"></canvas></div>
+            <div class="card"><canvas id="chartPress5"></canvas></div>
+        </div>
+    </div>
 
-    <div class="table-wrapper">
-        <table id="dataTable" style="display:none;">
-            <thead><tr id="tableHeader"></tr></thead>
-            <tbody id="tableBody"></tbody>
-        </table>
+    <div id="page3" class="page">
+        <h2>Log Data Lengkap (Slide 3)</h2>
+        <div class="card" id="tabel-container">
+            Sedang memuat tabel...
+        </div>
     </div>
 </div>
 
 <script>
-    const URL_API = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
-
-    async function fetchData() {
-        try {
-            const response = await fetch(URL_API);
-            const data = await response.json();
-            
-            if (data && data.length > 0) {
-                renderTable(data);
-                document.getElementById('data-count').innerText = data.length + " Baris Data";
-            } else {
-                document.getElementById('loading').innerText = "⚠️ Data tidak ditemukan atau Sheets kosong.";
-            }
-        } catch (error) {
-            document.getElementById('loading').innerHTML = "❌ Koneksi Gagal: <br>" + error.message;
-        }
+    // JAVASCRIPT: LOGIKA PINDAH HALAMAN
+    function showPage(pageId) {
+        // Sembunyikan semua halaman
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        // Munculkan halaman yang dipilih
+        document.getElementById(pageId).classList.add('active');
     }
 
-    function renderTable(data) {
-        const headerRow = document.getElementById('tableHeader');
-        const bodyRows = document.getElementById('tableBody');
-        const keys = Object.keys(data[0]);
-
-        // Buat Header
-        headerRow.innerHTML = keys.map(k => `<th>${k.replace(/_/g, ' ')}</th>`).join('');
-
-        // Buat Baris
-        bodyRows.innerHTML = data.map(item => {
-            return `<tr>${keys.map(k => {
-                let val = item[k] || "-";
-                // Bersihkan tampilan tanggal
-                if(typeof val === 'string' && val.includes('T00:00:00')) val = val.split('T')[0];
-                return `<td>${val}</td>`;
-            }).join('')}</tr>`;
-        }).join('');
-
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('dataTable').style.display = 'table';
-    }
-
-    function filterTable() {
-        let input = document.getElementById("searchInput");
-        let filter = input.value.toUpperCase();
-        let table = document.getElementById("dataTable");
-        let tr = table.getElementsByTagName("tr");
-
-        for (let i = 1; i < tr.length; i++) {
-            let rowText = tr[i].textContent.toUpperCase();
-            tr[i].style.display = rowText.indexOf(filter) > -1 ? "" : "none";
-        }
-    }
-
-    fetchData();
+    // Nanti kita akan isi bagian ini untuk menarik data dari Apps Script 
+    // dan menggambar 10 grafik secara otomatis.
+    console.log("Sistem Siap!");
 </script>
 
 </body>
