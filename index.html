@@ -5,30 +5,73 @@
     <title>Monitoring Cold Storage</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* CSS: PENGATURAN WARNA & TAMPILAN */
-        body { font-family: sans-serif; margin: 0; background: #f4f7f9; }
-        .sidebar { width: 200px; height: 100vh; background: #2c3e50; color: white; position: fixed; padding: 20px; }
-        .main-content { margin-left: 240px; padding: 20px; }
-        .nav-btn { display: block; width: 100%; padding: 10px; margin-bottom: 10px; cursor: pointer; background: #34495e; color: white; border: none; text-align: left; border-radius: 5px; }
+        /* CSS: PENGATURAN TAMPILAN */
+        body { font-family: sans-serif; margin: 0; background: #f4f7f9; transition: 0.3s; }
+        
+        /* Sidebar dengan transisi halus */
+        .sidebar { 
+            width: 240px; 
+            height: 100vh; 
+            background: #2c3e50; 
+            color: white; 
+            position: fixed; 
+            padding: 20px; 
+            transition: 0.3s;
+            overflow: hidden;
+            z-index: 1000;
+        }
+
+        /* Gaya Sidebar saat tertutup */
+        .sidebar.closed { width: 0; padding: 0; }
+
+        .main-content { margin-left: 280px; padding: 20px; transition: 0.3s; }
+        .main-content.full { margin-left: 40px; }
+
+        /* Tombol Toggle Panah */
+        .toggle-btn {
+            position: fixed;
+            left: 20px;
+            bottom: 20px;
+            background: #1abc9c;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            z-index: 1001;
+            font-size: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .nav-btn { 
+            display: block; width: 100%; padding: 12px; margin-bottom: 10px; 
+            cursor: pointer; background: #34495e; color: white; 
+            border: none; text-align: left; border-radius: 5px; 
+            white-space: nowrap; 
+        }
         .nav-btn:hover { background: #1abc9c; }
-        .page { display: none; } /* Semua halaman sembunyi dulu */
-        .active { display: block; } /* Hanya halaman aktif yang muncul */
+        .page { display: none; }
+        .active { display: block; }
         .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
         .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
     </style>
 </head>
 <body>
 
-<div class="sidebar">
-    <h3>MENU</h3>
+<button class="toggle-btn" onclick="toggleSidebar()" id="btnPanah">◀</button>
+
+<div class="sidebar" id="mySidebar">
+    <h3 style="white-space: nowrap;">MENU MONITORING</h3>
+    <hr>
     <button class="nav-btn" onclick="showPage('page1')">🌡️ Slide 1: Suhu</button>
     <button class="nav-btn" onclick="showPage('page2')">⚙️ Slide 2: Tekanan</button>
     <button class="nav-btn" onclick="showPage('page3')">📄 Slide 3: Log Data</button>
 </div>
 
-<div class="main-content">
+<div class="main-content" id="mainArea">
     <div id="page1" class="page active">
-        <h2>Monitoring Suhu (Slide 1)</h2>
+        <h2>Monitoring Temperature (Slide 1)</h2>
         <div class="grid-container">
             <div class="card"><canvas id="chartSuhu1"></canvas></div>
             <div class="card"><canvas id="chartSuhu2"></canvas></div>
@@ -42,49 +85,55 @@
         <h2>Monitoring Tekanan (Slide 2)</h2>
         <div class="grid-container">
             <div class="card"><canvas id="chartPress1"></canvas></div>
-            <div class="card"><canvas id="chartPress2"></canvas></div>
-            <div class="card"><canvas id="chartPress3"></canvas></div>
-            <div class="card"><canvas id="chartPress4"></canvas></div>
-            <div class="card"><canvas id="chartPress5"></canvas></div>
         </div>
     </div>
 
     <div id="page3" class="page">
         <h2>Log Data Lengkap (Slide 3)</h2>
-        <div class="card" id="tabel-container">
-            Sedang memuat tabel...
-        </div>
+        <div class="card" id="tabel-container">Sedang memuat tabel...</div>
     </div>
+</div>
+
 <script>
-    // 1. LOGIKA PINDAH HALAMAN (SLIDE)
+    // 1. LOGIKA BUKA TUTUP SIDEBAR
+    function toggleSidebar() {
+        const sidebar = document.getElementById("mySidebar");
+        const main = document.getElementById("mainArea");
+        const btn = document.getElementById("btnPanah");
+
+        sidebar.classList.toggle("closed");
+        main.classList.toggle("full");
+
+        // Ganti arah panah
+        if (sidebar.classList.contains("closed")) {
+            btn.innerHTML = "▶";
+            btn.style.left = "10px";
+        } else {
+            btn.innerHTML = "◀";
+            btn.style.left = "20px";
+        }
+    }
+
+    // 2. LOGIKA PINDAH HALAMAN
     function showPage(pageId) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(pageId).classList.add('active');
     }
 
-    // 2. PENGATURAN DATA DARI GOOGLE SHEETS
-    // Masukkan URL Web App Apps Script kamu di bawah ini
-    const urlAppsScript = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
+    // 3. PENGATURAN DATA DARI GOOGLE SHEETS
+    const urlAppsScript = "ISI_URL_WEB_APP_KAMU_DISINI";
 
     async function muatData() {
         try {
-            console.log("Sedang mengambil data dari tab Temperature...");
             const respon = await fetch(urlAppsScript);
             const data = await respon.json();
-            
-            // Cek hasil data di Console Browser (F12)
             console.log("Data Berhasil Diterima:", data);
-
-            // Nanti fungsi untuk menggambar 10 grafik akan ditaruh di sini
-            
         } catch (error) {
-            console.error("Waduh, gagal ambil data:", error);
+            console.error("Gagal ambil data:", error);
         }
     }
 
-    // Jalankan pengambilan data otomatis saat web dibuka
     muatData();
-</script>
 </script>
 
 </body>
