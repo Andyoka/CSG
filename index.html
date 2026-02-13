@@ -5,73 +5,88 @@
     <title>Monitoring Cold Storage</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* CSS: PENGATURAN TAMPILAN */
-        body { font-family: sans-serif; margin: 0; background: #f4f7f9; transition: 0.3s; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f4f7f9; }
         
-        /* Sidebar dengan transisi halus */
+        /* Sidebar */
         .sidebar { 
-            width: 240px; 
+            width: 250px; 
             height: 100vh; 
             background: #2c3e50; 
             color: white; 
             position: fixed; 
-            padding: 20px; 
+            left: 0;
+            top: 0;
             transition: 0.3s;
-            overflow: hidden;
             z-index: 1000;
+            padding-top: 60px; /* Ruang untuk tombol di atas */
         }
 
-        /* Gaya Sidebar saat tertutup */
-        .sidebar.closed { width: 0; padding: 0; }
+        .sidebar.closed { left: -250px; }
 
-        .main-content { margin-left: 280px; padding: 20px; transition: 0.3s; }
-        .main-content.full { margin-left: 40px; }
-
-        /* Tombol Toggle Panah */
-        .toggle-btn {
+        /* Header / Top Bar */
+        .top-bar {
             position: fixed;
-            left: 20px;
-            bottom: 20px;
-            background: #1abc9c;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             z-index: 1001;
-            font-size: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
         }
+
+        /* Tombol 3 Garis */
+        .menu-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #2c3e50;
+        }
+
+        /* Area Utama */
+        .main-content { 
+            margin-left: 250px; 
+            padding: 70px 20px 20px 20px; 
+            transition: 0.3s; 
+        }
+        .main-content.full { margin-left: 0; }
 
         .nav-btn { 
-            display: block; width: 100%; padding: 12px; margin-bottom: 10px; 
-            cursor: pointer; background: #34495e; color: white; 
+            display: block; width: 90%; padding: 12px; margin: 5px auto;
+            cursor: pointer; background: transparent; color: #ecf0f1; 
             border: none; text-align: left; border-radius: 5px; 
-            white-space: nowrap; 
+            font-size: 16px;
         }
-        .nav-btn:hover { background: #1abc9c; }
+        .nav-btn:hover { background: #34495e; color: #1abc9c; }
+
         .page { display: none; }
         .active { display: block; }
         .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-        .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        
+        h2 { color: #2c3e50; margin-top: 0; }
     </style>
 </head>
 <body>
 
-<button class="toggle-btn" onclick="toggleSidebar()" id="btnPanah">◀</button>
+<div class="top-bar">
+    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+    <span style="margin-left: 15px; font-weight: bold; color: #2c3e50;">Monitoring Cold Storage</span>
+</div>
 
 <div class="sidebar" id="mySidebar">
-    <h3 style="white-space: nowrap;">MENU MONITORING</h3>
-    <hr>
-    <button class="nav-btn" onclick="showPage('page1')">🌡️ Slide 1: Suhu</button>
-    <button class="nav-btn" onclick="showPage('page2')">⚙️ Slide 2: Tekanan</button>
+    <button class="nav-btn" onclick="showPage('page1')">🌡️ Slide 1: Temperature</button>
+    <button class="nav-btn" onclick="showPage('page2')">⚙️ Slide 2: Pressure</button>
     <button class="nav-btn" onclick="showPage('page3')">📄 Slide 3: Log Data</button>
 </div>
 
 <div class="main-content" id="mainArea">
     <div id="page1" class="page active">
-        <h2>Monitoring Temperature (Slide 1)</h2>
+        <h2>Temperature Overview</h2>
         <div class="grid-container">
             <div class="card"><canvas id="chartSuhu1"></canvas></div>
             <div class="card"><canvas id="chartSuhu2"></canvas></div>
@@ -82,45 +97,37 @@
     </div>
 
     <div id="page2" class="page">
-        <h2>Monitoring Tekanan (Slide 2)</h2>
+        <h2>Pressure Overview</h2>
         <div class="grid-container">
             <div class="card"><canvas id="chartPress1"></canvas></div>
         </div>
     </div>
 
     <div id="page3" class="page">
-        <h2>Log Data Lengkap (Slide 3)</h2>
-        <div class="card" id="tabel-container">Sedang memuat tabel...</div>
+        <h2>Data Logs</h2>
+        <div class="card" id="tabel-container">Memproses data dari tab Temperature...</div>
     </div>
 </div>
 
 <script>
-    // 1. LOGIKA BUKA TUTUP SIDEBAR
+    // 1. LOGIKA BUKA TUTUP SIDEBAR (HAMBURGER)
     function toggleSidebar() {
         const sidebar = document.getElementById("mySidebar");
         const main = document.getElementById("mainArea");
-        const btn = document.getElementById("btnPanah");
-
         sidebar.classList.toggle("closed");
         main.classList.toggle("full");
-
-        // Ganti arah panah
-        if (sidebar.classList.contains("closed")) {
-            btn.innerHTML = "▶";
-            btn.style.left = "10px";
-        } else {
-            btn.innerHTML = "◀";
-            btn.style.left = "20px";
-        }
     }
 
     // 2. LOGIKA PINDAH HALAMAN
     function showPage(pageId) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(pageId).classList.add('active');
+        
+        // Opsional: Tutup sidebar otomatis di HP setelah pilih menu
+        if (window.innerWidth < 768) toggleSidebar();
     }
 
-    // 3. PENGATURAN DATA DARI GOOGLE SHEETS
+    // 3. AMBIL DATA DARI GOOGLE SHEETS
     const urlAppsScript = "ISI_URL_WEB_APP_KAMU_DISINI";
 
     async function muatData() {
