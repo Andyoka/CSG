@@ -86,15 +86,22 @@
 
 <div class="main-content" id="mainArea">
     <div id="page1" class="page active">
-        <h2>Temperature Overview</h2>
-        <div class="grid-container">
-            <div class="card"><canvas id="chartSuhu1"></canvas></div>
-            <div class="card"><canvas id="chartSuhu2"></canvas></div>
-            <div class="card"><canvas id="chartSuhu3"></canvas></div>
-            <div class="card"><canvas id="chartSuhu4"></canvas></div>
-            <div class="card"><canvas id="chartSuhu5"></canvas></div>
+    <h2>Temperature Overview</h2>
+    <div class="grid-container">
+        <div class="card"><h4>Status Overview</h4><p>Sistem Normal</p></div>
+    </div>
+
+    <div style="margin-top: 30px;">
+        <div class="card" style="margin-bottom: 20px;">
+            <h3>Grafik Suhu CS1 (Ruang 1, 2, 3, 4 & Anteroom)</h3>
+            <canvas id="chartCS1"></canvas>
+        </div>
+        <div class="card">
+            <h3>Grafik Suhu CS2 (Ruang A, B, C & Anteroom)</h3>
+            <canvas id="chartCS2"></canvas>
         </div>
     </div>
+</div>
 
     <div id="page2" class="page">
         <h2>Pressure Overview</h2>
@@ -128,19 +135,74 @@
     }
 
     // 3. AMBIL DATA DARI GOOGLE SHEETS
-    const urlAppsScript = "ISI_URL_WEB_APP_KAMU_DISINI";
+    const urlAppsScript = "https://script.google.com/macros/library/d/1o4ZYMMe7hVKGMK024ztSw2i4rlpKJfXYqvYPva63Y3pPll5ThijQ9pXh/1";
 
-    async function muatData() {
-        try {
-            const respon = await fetch(urlAppsScript);
-            const data = await respon.json();
-            console.log("Data Berhasil Diterima:", data);
-        } catch (error) {
-            console.error("Gagal ambil data:", error);
-        }
+async function muatData() {
+    try {
+        const respon = await fetch(urlAppsScript);
+        const data = await respon.json();
+        
+        // Hapus baris pertama (header)
+        const rows = data.slice(1).filter(row => row[0] !== ""); 
+
+        // Ambil Label Waktu (Kolom B - Jam)
+        const labels = rows.map(row => row[1]); 
+
+        // --- PROSES DATA CS1 (Kolom N sampai R/T) ---
+        // N=13, O=14, P=15, Q=16, R=17 (Anteroom)
+        renderChart("chartCS1", labels, [
+            { label: 'Ruang 1', data: rows.map(row => row[13]), color: '#ff6384' },
+            { label: 'Ruang 2', data: rows.map(row => row[14]), color: '#36a2eb' },
+            { label: 'Ruang 3', data: rows.map(row => row[15]), color: '#ffce56' },
+            { label: 'Ruang 4', data: rows.map(row => row[16]), color: '#4bc0c0' },
+            { label: 'Anteroom', data: rows.map(row => row[17]), color: '#9966ff' }
+        ]);
+
+        // --- PROSES DATA CS2 (Kolom U sampai X/Z) ---
+        // U=20, V=21, W=22, X=23 (Anteroom)
+        renderChart("chartCS2", labels, [
+            { label: 'Ruang A', data: rows.map(row => row[20]), color: '#e67e22' },
+            { label: 'Ruang B', data: rows.map(row => row[21]), color: '#2ecc71' },
+            { label: 'Ruang C', data: rows.map(row => row[22]), color: '#9b59b6' },
+            { label: 'Anteroom', data: rows.map(row => row[23]), color: '#34495e' }
+        ]);
+
+    } catch (error) {
+        console.error("Gagal memproses grafik:", error);
     }
+}
 
-    muatData();
+function renderChart(canvasId, labels, datasets) {
+    new Chart(document.getElementById(canvasId), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: datasets.map(ds => ({
+                label: ds.label,
+                data: ds.data,
+                borderColor: ds.color,
+                backgroundColor: ds.color + '22',
+                fill: false,
+                tension: 0.3
+            }))
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom' } },
+            scales: { y: { beginAtZero: false } }
+        }
+    });
+}
+
+muatData();
+function toggleSidebar() {
+    document.getElementById("mySidebar").classList.toggle("closed");
+    document.getElementById("mainArea").classList.toggle("full");
+}
+function showPage(pageId) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(pageId).classList.add('active');
+}
 </script>
 
 </body>
