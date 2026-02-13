@@ -142,41 +142,38 @@ async function muatData() {
         const respon = await fetch(urlAppsScript);
         const data = await respon.json();
         
-        // Ambil data mulai dari baris kedua (lewati header)
-        // Dan pastikan kolom pertama (Tanggal) tidak kosong
-        const rows = data.slice(1).filter(row => row[0] !== ""); 
+        if (data.length <= 1) {
+            document.getElementById("tabel-container").innerHTML = "Data 2 hari terakhir tidak ditemukan.";
+            return;
+        }
 
-        // Label waktu diambil dari Kolom B (Indeks 1)
+        const rows = data.slice(1); // Data yang sudah difilter dari Apps Script
+
+        // Label: Gabungan Tanggal & Jam (Kolom A & B)
         const labels = rows.map(row => {
-            // Jika kolom jam berupa objek tanggal dari Sheets, kita ambil jam-menitnya saja
-            if (row[1] instanceof Date) {
-                return row[1].toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            }
-            return row[1]; 
-        }); 
+            let tgl = new Date(row[0]).toLocaleDateString('id-ID', {day:'2-digit', month:'short'});
+            let jam = row[1]; 
+            return tgl + " " + jam;
+        });
 
-        // --- GRAFIK CS1 ---
-        renderChart("chartCS1", labels, [
-            { label: 'Ruang 1', data: rows.map(row => row[15]), color: '#ff6384' }, // Kolom P
-            { label: 'Ruang 2', data: rows.map(row => row[16]), color: '#36a2eb' }, // Kolom Q
-            { label: 'Ruang 3', data: rows.map(row => row[17]), color: '#ffce56' }, // Kolom R
-            { label: 'Ruang 4', data: rows.map(row => row[18]), color: '#4bc0c0' }, // Kolom S
-            { label: 'Anteroom', data: rows.map(row => row[19]), color: '#9966ff' } // Kolom T
-        ]);
-
-        // --- GRAFIK CS2 ---
-        renderChart("chartCS2", labels, [
-            { label: 'Ruang A', data: rows.map(row => row[22]), color: '#e67e22' }, // Kolom W
-            { label: 'Ruang B', data: rows.map(row => row[23]), color: '#2ecc71' }, // Kolom X
-            { label: 'Ruang C', data: rows.map(row => row[24]), color: '#9b59b6' }, // Kolom Y
-            { label: 'Anteroom', data: rows.map(row => row[25]), color: '#34495e' } // Kolom Z
+        // Tampilkan 1 Grafik Gabungan
+        renderChart("chartGabungan", labels, [
+            // CS1
+            { label: 'CS1-R1', data: rows.map(row => row[15]), color: '#ff6384' },
+            { label: 'CS1-Ant', data: rows.map(row => row[19]), color: '#9966ff' },
+            // CS2
+            { label: 'CS2-RA', data: rows.map(row => row[22]), color: '#e67e22' },
+            { label: 'CS2-Ant', data: rows.map(row => row[25]), color: '#34495e' }
         ]);
 
     } catch (error) {
-        console.error("Gagal memproses grafik:", error);
-        document.getElementById("tabel-container").innerHTML = "Gagal memuat data. Pastikan URL Apps Script benar dan sudah di-Deploy.";
+        console.error("Error:", error);
     }
 }
+
+// Update HTML-nya agar hanya ada satu tempat grafik besar
+// Cari <div id="page1"> dan pastikan ada canvas ini:
+// <canvas id="chartGabungan"></canvas>
 
 function renderChart(canvasId, labels, datasets) {
     new Chart(document.getElementById(canvasId), {
