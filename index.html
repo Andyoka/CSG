@@ -6,68 +6,18 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f4f7f9; }
-        
-        /* Sidebar */
-        .sidebar { 
-            width: 250px; 
-            height: 100vh; 
-            background: #2c3e50; 
-            color: white; 
-            position: fixed; 
-            left: 0;
-            top: 0;
-            transition: 0.3s;
-            z-index: 1000;
-            padding-top: 60px; /* Ruang untuk tombol di atas */
-        }
-
+        .sidebar { width: 250px; height: 100vh; background: #2c3e50; color: white; position: fixed; left: 0; top: 0; transition: 0.3s; z-index: 1000; padding-top: 60px; }
         .sidebar.closed { left: -250px; }
-
-        /* Header / Top Bar */
-        .top-bar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 50px;
-            background: #fff;
-            display: flex;
-            align-items: center;
-            padding: 0 15px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            z-index: 1001;
-        }
-
-        /* Tombol 3 Garis */
-        .menu-btn {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: #2c3e50;
-        }
-
-        /* Area Utama */
-        .main-content { 
-            margin-left: 250px; 
-            padding: 70px 20px 20px 20px; 
-            transition: 0.3s; 
-        }
+        .top-bar { position: fixed; top: 0; left: 0; right: 0; height: 50px; background: #fff; display: flex; align-items: center; padding: 0 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1001; }
+        .menu-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #2c3e50; }
+        .main-content { margin-left: 250px; padding: 70px 20px 20px 20px; transition: 0.3s; }
         .main-content.full { margin-left: 0; }
-
-        .nav-btn { 
-            display: block; width: 90%; padding: 12px; margin: 5px auto;
-            cursor: pointer; background: transparent; color: #ecf0f1; 
-            border: none; text-align: left; border-radius: 5px; 
-            font-size: 16px;
-        }
+        .nav-btn { display: block; width: 90%; padding: 12px; margin: 5px auto; cursor: pointer; background: transparent; color: #ecf0f1; border: none; text-align: left; border-radius: 5px; font-size: 16px; }
         .nav-btn:hover { background: #34495e; color: #1abc9c; }
-
         .page { display: none; }
         .active { display: block; }
         .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
         .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        
         h2 { color: #2c3e50; margin-top: 0; }
     </style>
 </head>
@@ -86,28 +36,22 @@
 
 <div class="main-content" id="mainArea">
     <div id="page1" class="page active">
-    <h2>Temperature Overview</h2>
-    <div class="grid-container">
-        <div class="card"><h4>Status Overview</h4><p>Sistem Normal</p></div>
-    </div>
+        <h2>Temperature Overview (2 Hari Terakhir)</h2>
+        <div class="grid-container">
+            <div class="card"><h4>Status Overview</h4><p>Sistem Normal</p></div>
+        </div>
 
-    <div style="margin-top: 30px;">
-        <div class="card" style="margin-bottom: 20px;">
-            <h3>Grafik Suhu CS1 (Ruang 1, 2, 3, 4 & Anteroom)</h3>
-            <canvas id="chartCS1"></canvas>
-        </div>
-        <div class="card">
-            <h3>Grafik Suhu CS2 (Ruang A, B, C & Anteroom)</h3>
-            <canvas id="chartCS2"></canvas>
+        <div style="margin-top: 30px;">
+            <div class="card">
+                <h3>Grafik Perbandingan Suhu CS1 & CS2</h3>
+                <canvas id="chartGabungan"></canvas> 
+            </div>
         </div>
     </div>
-</div>
 
     <div id="page2" class="page">
         <h2>Pressure Overview</h2>
-        <div class="grid-container">
-            <div class="card"><canvas id="chartPress1"></canvas></div>
-        </div>
+        <div class="card"><canvas id="chartPress1"></canvas></div>
     </div>
 
     <div id="page3" class="page">
@@ -117,95 +61,84 @@
 </div>
 
 <script>
-    // 1. LOGIKA BUKA TUTUP SIDEBAR (HAMBURGER)
+    // 1. UI LOGIC
     function toggleSidebar() {
-        const sidebar = document.getElementById("mySidebar");
-        const main = document.getElementById("mainArea");
-        sidebar.classList.toggle("closed");
-        main.classList.toggle("full");
+        document.getElementById("mySidebar").classList.toggle("closed");
+        document.getElementById("mainArea").classList.toggle("full");
     }
 
-    // 2. LOGIKA PINDAH HALAMAN
     function showPage(pageId) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(pageId).classList.add('active');
-        
-        // Opsional: Tutup sidebar otomatis di HP setelah pilih menu
         if (window.innerWidth < 768) toggleSidebar();
     }
 
-    // 3. AMBIL DATA DARI GOOGLE SHEETS
+    // 2. DATA LOGIC
     const urlAppsScript = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
 
-async function muatData() {
-    try {
-        const respon = await fetch(urlAppsScript);
-        const data = await respon.json();
-        
-        if (data.length <= 1) {
-            document.getElementById("tabel-container").innerHTML = "Data 2 hari terakhir tidak ditemukan.";
-            return;
+    async function muatData() {
+        try {
+            const respon = await fetch(urlAppsScript);
+            const data = await respon.json();
+            
+            if (data.length <= 1) {
+                document.getElementById("tabel-container").innerHTML = "Data tidak ditemukan.";
+                return;
+            }
+
+            const rows = data.slice(1); 
+
+            // Label Tanggal + Jam
+            const labels = rows.map(row => {
+                let tgl = new Date(row[0]).toLocaleDateString('id-ID', {day:'2-digit', month:'short'});
+                return tgl + " " + row[1];
+            });
+
+            // Kirim data ke fungsi pembuat grafik
+            renderChart("chartGabungan", labels, [
+                { label: 'CS1-R1', data: rows.map(row => row[15]), color: '#ff6384' },
+                { label: 'CS1-Ant', data: rows.map(row => row[19]), color: '#9966ff' },
+                { label: 'CS2-RA', data: rows.map(row => row[22]), color: '#e67e22' },
+                { label: 'CS2-Ant', data: rows.map(row => row[25]), color: '#34495e' }
+            ]);
+
+            document.getElementById("tabel-container").innerHTML = "Data berhasil dimuat.";
+
+        } catch (error) {
+            console.error("Error:", error);
+            document.getElementById("tabel-container").innerHTML = "Error koneksi.";
         }
-
-        const rows = data.slice(1); // Data yang sudah difilter dari Apps Script
-
-        // Label: Gabungan Tanggal & Jam (Kolom A & B)
-        const labels = rows.map(row => {
-            let tgl = new Date(row[0]).toLocaleDateString('id-ID', {day:'2-digit', month:'short'});
-            let jam = row[1]; 
-            return tgl + " " + jam;
-        });
-
-        // Tampilkan 1 Grafik Gabungan
-        renderChart("chartGabungan", labels, [
-            // CS1
-            { label: 'CS1-R1', data: rows.map(row => row[15]), color: '#ff6384' },
-            { label: 'CS1-Ant', data: rows.map(row => row[19]), color: '#9966ff' },
-            // CS2
-            { label: 'CS2-RA', data: rows.map(row => row[22]), color: '#e67e22' },
-            { label: 'CS2-Ant', data: rows.map(row => row[25]), color: '#34495e' }
-        ]);
-
-    } catch (error) {
-        console.error("Error:", error);
     }
-}
 
-// Update HTML-nya agar hanya ada satu tempat grafik besar
-// Cari <div id="page1"> dan pastikan ada canvas ini:
-// <canvas id="chartGabungan"></canvas>
+    function renderChart(canvasId, labels, datasets) {
+        const ctx = document.getElementById(canvasId);
+        if(!ctx) return; // Mencegah error jika canvas tidak ada
 
-function renderChart(canvasId, labels, datasets) {
-    new Chart(document.getElementById(canvasId), {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: datasets.map(ds => ({
-                label: ds.label,
-                data: ds.data,
-                borderColor: ds.color,
-                backgroundColor: ds.color + '22',
-                fill: false,
-                tension: 0.3
-            }))
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { position: 'bottom' } },
-            scales: { y: { beginAtZero: false } }
-        }
-    });
-}
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: datasets.map(ds => ({
+                    label: ds.label,
+                    data: ds.data,
+                    borderColor: ds.color,
+                    backgroundColor: ds.color + '22',
+                    fill: false,
+                    tension: 0.3,
+                    pointRadius: 2
+                }))
+            },
+            options: {
+                responsive: true,
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { position: 'bottom' } },
+                scales: { y: { beginAtZero: false } }
+            }
+        });
+    }
 
-muatData();
-function toggleSidebar() {
-    document.getElementById("mySidebar").classList.toggle("closed");
-    document.getElementById("mainArea").classList.toggle("full");
-}
-function showPage(pageId) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById(pageId).classList.add('active');
-}
+    // Jalankan saat load
+    muatData();
 </script>
 
 </body>
