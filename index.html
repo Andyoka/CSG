@@ -55,20 +55,36 @@
             Sedang memuat tabel...
         </div>
     </div>
-</div>
-
 <script>
-    // JAVASCRIPT: LOGIKA PINDAH HALAMAN
+    // 1. LOGIKA PINDAH HALAMAN (SLIDE)
     function showPage(pageId) {
-        // Sembunyikan semua halaman
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        // Munculkan halaman yang dipilih
         document.getElementById(pageId).classList.add('active');
     }
 
-    // Nanti kita akan isi bagian ini untuk menarik data dari Apps Script 
-    // dan menggambar 10 grafik secara otomatis.
-    console.log("Sistem Siap!");
+    // 2. PENGATURAN DATA DARI GOOGLE SHEETS
+    // Masukkan URL Web App Apps Script kamu di bawah ini
+    const urlAppsScript = "ISI_URL_WEB_APP_KAMU_DISINI";
+
+    async function muatData() {
+        try {
+            console.log("Sedang mengambil data dari tab Temperature...");
+            const respon = await fetch(urlAppsScript);
+            const data = await respon.json();
+            
+            // Cek hasil data di Console Browser (F12)
+            console.log("Data Berhasil Diterima:", data);
+
+            // Nanti fungsi untuk menggambar 10 grafik akan ditaruh di sini
+            
+        } catch (error) {
+            console.error("Waduh, gagal ambil data:", error);
+        }
+    }
+
+    // Jalankan pengambilan data otomatis saat web dibuka
+    muatData();
+</script>
 </script>
 
 </body>
