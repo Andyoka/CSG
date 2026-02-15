@@ -2,53 +2,117 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Diagnosa Data Cold Storage</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS1 - Solusi Final</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #0f0; line-height: 1.5; }
-        .box { border: 1px solid #333; padding: 15px; border-radius: 8px; background: #000; overflow-x: auto; }
-        .error { color: #ff4757; font-weight: bold; }
-        .success { color: #2ed573; font-weight: bold; }
+        :root { --primary: #2c3e50; --accent: #1abc9c; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f4f7f9; }
+        .top-bar { position: fixed; top: 0; width: 100%; height: 60px; background: white; display: flex; align-items: center; padding: 0 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1000; }
+        .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 240px; background: var(--primary); color: white; padding-top: 80px; transition: 0.3s; z-index: 999; }
+        .main { margin-left: 240px; padding: 80px 20px 20px; transition: 0.3s; }
+        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        #status-box { background: #1a1a1a; color: #0f0; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 11px; margin-bottom: 15px; }
+        @media (max-width: 768px) { .sidebar { left: -240px; } .main { margin-left: 0; } }
     </style>
 </head>
 <body>
 
-    <h2>🔍 Diagnosa Data Google Sheets</h2>
-    <div id="status">Menghubungkan ke Web App...</div>
-    <hr>
-    <h3>Isi 3 Baris Terakhir dari Sheet Anda:</h3>
-    <div id="data-view" class="box">Menunggu data...</div>
+<div class="top-bar">
+    <strong>❄️ MONITORING COLD STORAGE CS1</strong>
+</div>
+
+<div class="sidebar">
+    <div style="padding: 10px 25px; font-size: 12px; color: #7f8c8d;">MENU UTAMA</div>
+    <a href="#" style="display:block; padding:15px 25px; color:white; text-decoration:none; background:#34495e; border-left:4px solid var(--accent);">🌡️ Suhu CS1</a>
+</div>
+
+<div class="main">
+    <div id="status-box">Menghubungkan ke database...</div>
+    <div class="card">
+        <h3>Grafik Suhu (Ruang 1, 2, 3, 4 & Ante)</h3>
+        <div style="height: 450px;"><canvas id="chartFinal"></canvas></div>
+    </div>
+</div>
 
 <script>
-    // GANTI URL INI DENGAN URL DEPLOYMENT TERBARU ANDA
     const API_URL = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
+    let chart;
 
-    async function checkData() {
-        const status = document.getElementById('status');
-        const view = document.getElementById('data-view');
-
+    async function loadData() {
+        const logger = document.getElementById('status-box');
         try {
-            const res = await fetch(API_URL);
-            const data = await res.json();
-
+            const r = await fetch(API_URL);
+            const data = await r.json();
+            
             if (!data || data.length === 0) {
-                status.innerHTML = "<span class='error'>GAGAL: Server merespon, tapi datanya KOSONG [].</span>";
+                logger.innerText = "Data kosong.";
                 return;
             }
 
-            status.innerHTML = "<span class='success'>BERHASIL: Terkoneksi! Total " + data.length + " baris ditemukan.</span>";
-            
-            // Ambil 3 baris terakhir untuk dicek strukturnya
-            const sample = data.slice(-3);
-            view.innerText = JSON.stringify(sample, null, 2);
+            // Data Anda sudah urut, kita ambil 50 data terakhir
+            const latestData = data.slice(-50);
+
+            // Perbaikan Label Jam (Memotong format ISO String)
+            const labels = latestData.map(item => {
+                let d = new Date(item["temperature_line/jam"]);
+                return d.getHours().toString().padStart(2, '0') + ":" + d.getMinutes().toString().padStart(2, '0');
+            });
+
+            // AMBIL DATA BERDASARKAN KEY (NAMA LABEL)
+            const r1 = latestData.map(item => item["temperature_line/ruang1"]);
+            const r2 = latestData.map(item => item["temperature_line/ruang2"]);
+            const r3 = latestData.map(item => item["temperature_line/ruang3"]);
+            const r4 = latestData.map(item => item["temperature_line/ruang4"]);
+            const ante = latestData.map(item => item["temperature_line/ante"]);
+
+            logger.innerText = "Data Berhasil Dimuat! Update Terakhir Ruang 1: " + r1[r1.length-1] + "°C";
+
+            const datasets = [
+                { label: 'Ruang 1', data: r1, borderColor: '#e74c3c' },
+                { label: 'Ruang 2', data: r2, borderColor: '#3498db' },
+                { label: 'Ruang 3', data: r3, borderColor: '#f1c40f' },
+                { label: 'Ruang 4', data: r4, borderColor: '#9b59b6' },
+                { label: 'Anteroom', data: ante, borderColor: '#2ecc71' }
+            ].map(ds => ({
+                ...ds,
+                fill: false,
+                tension: 0.3,
+                pointRadius: 2
+            }));
+
+            updateChart(labels, datasets);
 
         } catch (e) {
-            status.innerHTML = "<span class='error'>ERROR KONEKSI: " + e.message + "</span><br><br>" +
-                               "1. Pastikan URL sudah benar.<br>" +
-                               "2. Pastikan Deployment di Google Script diatur ke 'Anyone'.";
+            logger.innerText = "Error: " + e.message;
         }
     }
 
-    checkData();
+    function updateChart(labels, datasets) {
+        const ctx = document.getElementById('chartFinal').getContext('2d');
+        if (chart) chart.destroy();
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: { labels, datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { 
+                        suggestedMin: -25, 
+                        suggestedMax: 10,
+                        title: { display: true, text: 'Suhu (°C)' }
+                    }
+                },
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+
+    loadData();
+    setInterval(loadData, 60000); // Auto update 1 menit
 </script>
 </body>
 </html>
