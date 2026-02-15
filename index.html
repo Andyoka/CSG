@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CS1 - 300 Baris Terbaru (Fixed)</title>
+    <title>CS1 - Auto-Fix Line</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2c3e50; --accent: #1abc9c; }
@@ -12,25 +12,19 @@
         .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 240px; background: var(--primary); color: white; padding-top: 80px; z-index: 999; }
         .main { margin-left: 240px; padding: 80px 20px 20px; }
         .card { background: white; border-radius: 12px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        #status-box { background: #1a1a1a; color: #0f0; padding: 12px; font-family: monospace; font-size: 11px; margin-bottom: 20px; border-radius: 8px; border: 1px solid #333; }
+        #status-box { background: #1a1a1a; color: #0f0; padding: 12px; font-family: monospace; font-size: 11px; margin-bottom: 20px; border-radius: 8px; border: 1px solid #444; }
         @media (max-width: 768px) { .sidebar { display: none; } .main { margin-left: 0; } }
     </style>
 </head>
 <body>
 
-<div class="top-bar">
-    <strong>❄️ CS1 MONITORING - STABLE VIEW</strong>
-</div>
-
-<div class="sidebar">
-    <div style="padding: 10px 25px; font-size: 11px; color: #7f8c8d;">NAVIGASI</div>
-    <a href="#" style="display:block; padding:15px 25px; color:white; text-decoration:none; background:#34495e;">🌡️ Suhu CS1</a>
-</div>
+<div class="top-bar"><strong>❄️ MONITORING CS1 - AUTO SYNC</strong></div>
+<div class="sidebar"><a href="#" style="display:block; padding:15px 25px; color:white; text-decoration:none; background:#34495e;">🌡️ Suhu CS1</a></div>
 
 <div class="main">
-    <div id="status-box">Menarik data terbaru dari baris atas...</div>
+    <div id="status-box">Mencari kecocokan data...</div>
     <div class="card">
-        <h3 style="margin-top:0; color:#34495e;">Grafik Suhu (300 Data Terakhir)</h3>
+        <h3 style="margin-top:0; color:#34495e;">Grafik Suhu (Real-Time)</h3>
         <div style="height: 450px;"><canvas id="chartCS1"></canvas></div>
     </div>
 </div>
@@ -39,14 +33,16 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
     let chart;
 
+    // Fungsi pintar mencari data meskipun nama header sedikit berbeda
+    function findVal(obj, keyName) {
+        const key = Object.keys(obj).find(k => k.toLowerCase().includes(keyName.toLowerCase()));
+        return key ? obj[key] : null;
+    }
+
     function formatLabel(tglStr, jamStr) {
-        try {
-            const d = new Date(tglStr);
-            const j = new Date(jamStr);
-            const bln = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
-            if(isNaN(d.getTime())) return "Invalid Date";
-            return `${d.getDate()} ${bln[d.getMonth()]} ${j.getHours().toString().padStart(2, '0')}:${j.getMinutes().toString().padStart(2, '0')}`;
-        } catch(e) { return "Err"; }
+        const d = new Date(tglStr); const j = new Date(jamStr);
+        const bln = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+        return isNaN(d.getTime()) ? "Err" : `${d.getDate()} ${bln[d.getMonth()]} ${j.getHours().toString().padStart(2, '0')}:${j.getMinutes().toString().padStart(2, '0')}`;
     }
 
     async function loadData() {
@@ -54,27 +50,21 @@
         try {
             const r = await fetch(API_URL);
             const data = await r.json();
+            if (!data || data.length === 0) return;
+
+            // Ambil 300 data teratas (Terbaru) lalu balik urutan
+            let batch = data.slice(0, 300).reverse();
+
+            const labels = batch.map(item => formatLabel(findVal(item, "tanggal"), findVal(item, "jam")));
             
-            if (!data || data.length === 0) {
-                logger.innerText = "Error: Data dari API kosong.";
-                return;
-            }
+            // Mencari data Ruang 1-4 & Ante tanpa peduli huruf besar/kecil
+            const r1 = batch.map(item => findVal(item, "ruang1"));
+            const r2 = batch.map(item => findVal(item, "ruang2"));
+            const r3 = batch.map(item => findVal(item, "ruang3"));
+            const r4 = batch.map(item => findVal(item, "ruang4"));
+            const ante = batch.map(item => findVal(item, "ante"));
 
-            // KARENA DATA TERBARU DI ATAS:
-            // 1. Ambil 300 baris pertama (terbaru)
-            let latestBatch = data.slice(0, 300);
-
-            // 2. Balik urutannya agar grafik mengalir dari kiri (lama) ke kanan (baru)
-            latestBatch.reverse();
-
-            const labels = latestBatch.map(item => formatLabel(item["temperature_line/tanggal"], item["temperature_line/jam"]));
-            const r1 = latestBatch.map(item => item["temperature_line/ruang1"]);
-            const r2 = latestBatch.map(item => item["temperature_line/ruang2"]);
-            const r3 = latestBatch.map(item => item["temperature_line/ruang3"]);
-            const r4 = latestBatch.map(item => item["temperature_line/ruang4"]);
-            const ante = latestBatch.map(item => item["temperature_line/ante"]);
-
-            logger.innerText = `Data Berhasil Sinkron! Menampilkan 300 Baris. Terakhir: ${labels[labels.length-1]} (R1: ${r1[r1.length-1]}°C)`;
+            logger.innerText = `Update: ${labels[labels.length-1]} | R1: ${r1[r1.length-1]} | R2: ${r2[r2.length-1]}`;
 
             const datasets = [
                 { label: 'Ruang 1', data: r1, borderColor: '#e74c3c' },
@@ -82,18 +72,11 @@
                 { label: 'Ruang 3', data: r3, borderColor: '#f1c40f' },
                 { label: 'Ruang 4', data: r4, borderColor: '#9b59b6' },
                 { label: 'Anteroom', data: ante, borderColor: '#2ecc71' }
-            ].map(ds => ({
-                ...ds,
-                fill: false,
-                tension: 0.1,
-                pointRadius: 0.5, // Poin kecil agar tidak menumpuk jika datanya banyak
-                borderWidth: 2
-            }));
+            ].map(ds => ({ ...ds, fill: false, tension: 0.1, pointRadius: 1, borderWidth: 2 }));
 
             updateChart(labels, datasets);
         } catch (e) {
-            logger.innerText = "Fetch Error: " + e.message;
-            console.error(e);
+            logger.innerText = "Error: " + e.message;
         }
     }
 
@@ -106,14 +89,11 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                scales: {
-                    x: { ticks: { autoSkip: true, maxTicksLimit: 10 } },
-                    y: { suggestedMin: -25, suggestedMax: 10 }
+                scales: { 
+                    y: { suggestedMin: -25, suggestedMax: 10 },
+                    x: { ticks: { autoSkip: true, maxTicksLimit: 10 } }
                 },
-                plugins: {
-                    legend: { position: 'bottom' }
-                }
+                plugins: { legend: { position: 'bottom' } }
             }
         });
     }
