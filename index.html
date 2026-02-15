@@ -67,8 +67,7 @@
     }
 
     const urlAppsScript = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
-
-    async function muatData() {
+async function muatData() {
         try {
             const respon = await fetch(urlAppsScript);
             const rawData = await respon.json();
@@ -78,28 +77,33 @@
                 return;
             }
 
-            // Membalik urutan data agar jam lama di kiri, jam baru di kanan
+            // Membalik urutan data (agar jam lama di kiri, jam baru di kanan)
             const rows = rawData.slice(1).reverse(); 
 
-            // Label: Memproses Tanggal & Jam
+            // LOGIKA LABEL TANGGAL & JAM (VERSI ANTI-GAGAL)
             const labels = rows.map(row => {
-                let tglRaw = row[0] ? String(row[0]) : "";
-                let jamRaw = row[1] ? String(row[1]) : "";
-                
-                // Jika format Google Date, bersihkan stringnya
-                if (tglRaw.includes("GMT") || tglRaw.includes("T")) {
-                    let d = new Date(tglRaw);
-                    tglRaw = d.getDate() + "-" + (d.toLocaleString('default', { month: 'short' }));
-                } else {
-                    // Potong tahun jika ada (agar grafik tidak penuh sesak)
-                    tglRaw = tglRaw.replace("-2026", "").replace("-2025", "");
+                // Ambil kolom A dan B sebagai teks
+                let tgl = row[0] ? String(row[0]) : "";
+                let jam = row[1] ? String(row[1]) : "";
+
+                // Jika formatnya "10-Feb-2026", kita ambil "10-Feb" saja agar ringkas
+                if (tgl.includes("-")) {
+                    let parts = tgl.split("-");
+                    if (parts.length >= 2) {
+                        tgl = parts[0] + "-" + parts[1]; // Hasil: 10-Feb
+                    }
                 }
 
-                // Ambil jam:menit saja
-                let jamClean = jamRaw.substring(0, 5);
-                return tglRaw + " " + jamClean;
+                // Jika jam formatnya "23:00:00", kita ambil "23:00" saja
+                if (jam.includes(":")) {
+                    let jamParts = jam.split(":");
+                    jam = jamParts[0] + ":" + jamParts[1];
+                }
+
+                return tgl + " " + jam;
             });
 
+            // Gambar Grafik
             renderChart("chartGabungan", labels, [
                 { label: 'CS1-R1', data: rows.map(row => row[15]), color: '#ff6384' },
                 { label: 'CS1-Ant', data: rows.map(row => row[19]), color: '#9966ff' },
@@ -107,11 +111,11 @@
                 { label: 'CS2-Ant', data: rows.map(row => row[25]), color: '#34495e' }
             ]);
 
-            document.getElementById("status-data").innerHTML = "Data berhasil diperbarui.";
+            document.getElementById("status-data").innerHTML = "Data berhasil dimuat pada: " + new Date().toLocaleTimeString();
 
         } catch (error) {
             console.error("Error:", error);
-            document.getElementById("status-data").innerHTML = "Gagal memuat data.";
+            document.getElementById("status-data").innerHTML = "Gagal memuat data. Cek koneksi atau URL.";
         }
     }
 
