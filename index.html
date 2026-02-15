@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CS1 - Data Berdasarkan Tanggal Terakhir</title>
+    <title>CS1 - 300 Baris Terbaru (Fixed)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2c3e50; --accent: #1abc9c; }
@@ -12,24 +12,25 @@
         .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 240px; background: var(--primary); color: white; padding-top: 80px; z-index: 999; }
         .main { margin-left: 240px; padding: 80px 20px 20px; }
         .card { background: white; border-radius: 12px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        #status-box { background: #1a1a1a; color: #0f0; padding: 12px; font-family: monospace; font-size: 11px; margin-bottom: 20px; border-radius: 8px; }
+        #status-box { background: #1a1a1a; color: #0f0; padding: 12px; font-family: monospace; font-size: 11px; margin-bottom: 20px; border-radius: 8px; border: 1px solid #333; }
         @media (max-width: 768px) { .sidebar { display: none; } .main { margin-left: 0; } }
     </style>
 </head>
 <body>
 
 <div class="top-bar">
-    <strong>❄️ CS1 MONITORING - DYNAMIC DATE RANGE</strong>
+    <strong>❄️ CS1 MONITORING - STABLE VIEW</strong>
 </div>
 
 <div class="sidebar">
+    <div style="padding: 10px 25px; font-size: 11px; color: #7f8c8d;">NAVIGASI</div>
     <a href="#" style="display:block; padding:15px 25px; color:white; text-decoration:none; background:#34495e;">🌡️ Suhu CS1</a>
 </div>
 
 <div class="main">
-    <div id="status-box">Mencari tanggal terakhir di data...</div>
+    <div id="status-box">Menarik data terbaru dari baris atas...</div>
     <div class="card">
-        <h3 style="margin-top:0;">Grafik Suhu (2 Tanggal Terakhir dari Data)</h3>
+        <h3 style="margin-top:0; color:#34495e;">Grafik Suhu (300 Data Terakhir)</h3>
         <div style="height: 450px;"><canvas id="chartCS1"></canvas></div>
     </div>
 </div>
@@ -39,10 +40,13 @@
     let chart;
 
     function formatLabel(tglStr, jamStr) {
-        const d = new Date(tglStr);
-        const j = new Date(jamStr);
-        const bln = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
-        return `${d.getDate()} ${bln[d.getMonth()]} ${j.getHours().toString().padStart(2, '0')}:${j.getMinutes().toString().padStart(2, '0')}`;
+        try {
+            const d = new Date(tglStr);
+            const j = new Date(jamStr);
+            const bln = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+            if(isNaN(d.getTime())) return "Invalid Date";
+            return `${d.getDate()} ${bln[d.getMonth()]} ${j.getHours().toString().padStart(2, '0')}:${j.getMinutes().toString().padStart(2, '0')}`;
+        } catch(e) { return "Err"; }
     }
 
     async function loadData() {
@@ -50,39 +54,27 @@
         try {
             const r = await fetch(API_URL);
             const data = await r.json();
-            if (!data || data.length === 0) return;
-
-            // 1. Cari tanggal paling besar/terbaru yang ada di data
-            const allDates = data.map(item => new Date(item["temperature_line/tanggal"]).getTime());
-            const maxTimestamp = Math.max(...allDates);
             
-            const tanggalTerakhir = new Date(maxTimestamp);
-            tanggalTerakhir.setHours(0,0,0,0); // Reset ke jam 00:00
+            if (!data || data.length === 0) {
+                logger.innerText = "Error: Data dari API kosong.";
+                return;
+            }
 
-            // 2. Hitung tanggal H-1 dari tanggal terakhir tersebut
-            const tanggalMulai = new Date(tanggalTerakhir);
-            tanggalMulai.setDate(tanggalTerakhir.getDate() - 1);
+            // KARENA DATA TERBARU DI ATAS:
+            // 1. Ambil 300 baris pertama (terbaru)
+            let latestBatch = data.slice(0, 300);
 
-            // 3. Filter data: Hanya ambil yang tanggalnya >= tanggalMulai
-            let filtered = data.filter(item => {
-                const tglData = new Date(item["temperature_line/tanggal"]);
-                return tglData >= tanggalMulai;
-            });
+            // 2. Balik urutannya agar grafik mengalir dari kiri (lama) ke kanan (baru)
+            latestBatch.reverse();
 
-            // 4. Balik urutan agar dari waktu lama ke baru (karena data Anda terbaru di atas)
-            filtered.reverse();
+            const labels = latestBatch.map(item => formatLabel(item["temperature_line/tanggal"], item["temperature_line/jam"]));
+            const r1 = latestBatch.map(item => item["temperature_line/ruang1"]);
+            const r2 = latestBatch.map(item => item["temperature_line/ruang2"]);
+            const r3 = latestBatch.map(item => item["temperature_line/ruang3"]);
+            const r4 = latestBatch.map(item => item["temperature_line/ruang4"]);
+            const ante = latestBatch.map(item => item["temperature_line/ante"]);
 
-            const labels = filtered.map(item => formatLabel(item["temperature_line/tanggal"], item["temperature_line/jam"]));
-            const r1 = filtered.map(item => item["temperature_line/ruang1"]);
-            const r2 = filtered.map(item => item["temperature_line/ruang2"]);
-            const r3 = filtered.map(item => item["temperature_line/ruang3"]);
-            const r4 = filtered.map(item => item["temperature_line/ruang4"]);
-            const ante = filtered.map(item => item["temperature_line/ante"]);
-
-            const tglSelesaiStr = tanggalTerakhir.toLocaleDateString('id-ID');
-            const tglMulaiStr = tanggalMulai.toLocaleDateString('id-ID');
-            
-            logger.innerText = `Menampilkan data: ${tglMulaiStr} s/d ${tglSelesaiStr} (${filtered.length} baris)`;
+            logger.innerText = `Data Berhasil Sinkron! Menampilkan 300 Baris. Terakhir: ${labels[labels.length-1]} (R1: ${r1[r1.length-1]}°C)`;
 
             const datasets = [
                 { label: 'Ruang 1', data: r1, borderColor: '#e74c3c' },
@@ -90,11 +82,18 @@
                 { label: 'Ruang 3', data: r3, borderColor: '#f1c40f' },
                 { label: 'Ruang 4', data: r4, borderColor: '#9b59b6' },
                 { label: 'Anteroom', data: ante, borderColor: '#2ecc71' }
-            ].map(ds => ({ ...ds, fill: false, tension: 0.1, pointRadius: 1 }));
+            ].map(ds => ({
+                ...ds,
+                fill: false,
+                tension: 0.1,
+                pointRadius: 0.5, // Poin kecil agar tidak menumpuk jika datanya banyak
+                borderWidth: 2
+            }));
 
             updateChart(labels, datasets);
         } catch (e) {
-            logger.innerText = "Error: " + e.message;
+            logger.innerText = "Fetch Error: " + e.message;
+            console.error(e);
         }
     }
 
@@ -109,10 +108,12 @@
                 maintainAspectRatio: false,
                 interaction: { mode: 'index', intersect: false },
                 scales: {
-                    x: { ticks: { autoSkip: true, maxTicksLimit: 12 } },
+                    x: { ticks: { autoSkip: true, maxTicksLimit: 10 } },
                     y: { suggestedMin: -25, suggestedMax: 10 }
                 },
-                plugins: { legend: { position: 'bottom' } }
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
             }
         });
     }
