@@ -68,56 +68,62 @@
 
     const urlAppsScript = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
 async function muatData() {
-        try {
-            const respon = await fetch(urlAppsScript);
-            const rawData = await respon.json();
-            
-            if (rawData.length <= 1) {
-                document.getElementById("status-data").innerHTML = "Data tidak ditemukan.";
-                return;
+    try {
+        const respon = await fetch(urlAppsScript);
+        const rawData = await respon.json();
+        
+        if (!rawData || rawData.length <= 1) {
+            document.getElementById("status-data").innerHTML = "Data tidak ditemukan di Sheet.";
+            return;
+        }
+
+        // Ambil data dan balikkan urutannya (Lama ke Baru)
+        const rows = rawData.slice(1).reverse(); 
+
+        // 1. LOGIKA LABEL (TANGGAL & JAM)
+        const labels = rows.map(row => {
+            // Pastikan data ada, jika tidak beri string kosong
+            let tgl = row[0] ? String(row[0]) : "";
+            let jam = row[1] ? String(row[1]) : "";
+
+            // Bersihkan Tanggal: Ambil 6 karakter pertama (misal: 10-Feb)
+            // Ini paling aman jika formatmu 10-Feb-2026
+            if (tgl.length > 5) {
+                tgl = tgl.substring(0, 6); 
             }
 
-            // Membalik urutan data (agar jam lama di kiri, jam baru di kanan)
-            const rows = rawData.slice(1).reverse(); 
+            // Bersihkan Jam: Ambil 5 karakter pertama (misal: 23:00)
+            if (jam.length > 4) {
+                jam = jam.substring(0, 5);
+            }
 
-            // LOGIKA LABEL TANGGAL & JAM (VERSI ANTI-GAGAL)
-            const labels = rows.map(row => {
-                // Ambil kolom A dan B sebagai teks
-                let tgl = row[0] ? String(row[0]) : "";
-                let jam = row[1] ? String(row[1]) : "";
+            return tgl + " " + jam;
+        });
 
-                // Jika formatnya "10-Feb-2026", kita ambil "10-Feb" saja agar ringkas
-                if (tgl.includes("-")) {
-                    let parts = tgl.split("-");
-                    if (parts.length >= 2) {
-                        tgl = parts[0] + "-" + parts[1]; // Hasil: 10-Feb
-                    }
-                }
+        // 2. LOGIKA DATA SUHU (KONVERSI KE ANGKA)
+        // Fungsi parseFloat penting agar angka -20 tidak dianggap teks " -20"
+        const ambilSuhu = (baris, indeks) => {
+            let val = baris[indeks];
+            if (val === "" || val === undefined) return null;
+            let angka = parseFloat(val);
+            return isNaN(angka) ? null : angka;
+        };
 
-                // Jika jam formatnya "23:00:00", kita ambil "23:00" saja
-                if (jam.includes(":")) {
-                    let jamParts = jam.split(":");
-                    jam = jamParts[0] + ":" + jamParts[1];
-                }
+        // Gambar Grafik dengan Data yang sudah jadi Angka
+        renderChart("chartGabungan", labels, [
+            { label: 'CS1-R1', data: rows.map(r => ambilSuhu(r, 15)), color: '#ff6384' },
+            { label: 'CS1-Ant', data: rows.map(r => ambilSuhu(r, 19)), color: '#9966ff' },
+            { label: 'CS2-RA', data: rows.map(r => ambilSuhu(r, 22)), color: '#e67e22' },
+            { label: 'CS2-Ant', data: rows.map(r => ambilSuhu(r, 25)), color: '#34495e' }
+        ]);
 
-                return tgl + " " + jam;
-            });
+        document.getElementById("status-data").innerHTML = "Data diperbarui: " + labels[labels.length - 1];
 
-            // Gambar Grafik
-            renderChart("chartGabungan", labels, [
-                { label: 'CS1-R1', data: rows.map(row => row[15]), color: '#ff6384' },
-                { label: 'CS1-Ant', data: rows.map(row => row[19]), color: '#9966ff' },
-                { label: 'CS2-RA', data: rows.map(row => row[22]), color: '#e67e22' },
-                { label: 'CS2-Ant', data: rows.map(row => row[25]), color: '#34495e' }
-            ]);
-
-            document.getElementById("status-data").innerHTML = "Data berhasil dimuat pada: " + new Date().toLocaleTimeString();
-
-        } catch (error) {
-            console.error("Error:", error);
-            document.getElementById("status-data").innerHTML = "Gagal memuat data. Cek koneksi atau URL.";
-        }
+    } catch (error) {
+        console.error("Detail Error:", error);
+        document.getElementById("status-data").innerHTML = "Gagal: " + error.message;
     }
+}
 
     function renderChart(canvasId, labels, datasets) {
         const ctx = document.getElementById(canvasId).getContext('2d');
