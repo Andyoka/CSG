@@ -2,128 +2,53 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard CS1 - Fix Undefined</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Diagnosa Data Cold Storage</title>
     <style>
-        :root { --primary: #2c3e50; --accent: #1abc9c; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f4f7f9; }
-        .top-bar { position: fixed; top: 0; width: 100%; height: 60px; background: white; display: flex; align-items: center; padding: 0 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1000; }
-        .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 240px; background: var(--primary); color: white; padding-top: 80px; transition: 0.3s; z-index: 999; }
-        .main { margin-left: 240px; padding: 80px 20px 20px; transition: 0.3s; }
-        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .nav-link { display: block; padding: 15px 25px; color: #bdc3c7; text-decoration: none; border-left: 4px solid transparent; }
-        .nav-link.active { background: #34495e; color: white; border-left-color: var(--accent); }
-        #console { background: #1a1a1a; color: #0f0; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; margin-bottom: 15px; min-height: 40px; }
-        @media (max-width: 768px) { .sidebar { left: -240px; } .main { margin-left: 0; } }
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #0f0; line-height: 1.5; }
+        .box { border: 1px solid #333; padding: 15px; border-radius: 8px; background: #000; overflow-x: auto; }
+        .error { color: #ff4757; font-weight: bold; }
+        .success { color: #2ed573; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="top-bar">
-    <strong>❄️ MONITORING SYSTEM - CS1</strong>
-</div>
-
-<div class="sidebar">
-    <a href="#" class="nav-link active">🌡️ Temperature CS1</a>
-    <a href="#" class="nav-link">⚙️ Dashboard CS2</a>
-</div>
-
-<div class="main">
-    <div id="console">Memulai pemindaian data...</div>
-    <div class="card">
-        <h3>Grafik Suhu CS1 (Ruang 1-4 & Ante)</h3>
-        <div style="height: 400px;"><canvas id="chartCS1"></canvas></div>
-    </div>
-</div>
+    <h2>🔍 Diagnosa Data Google Sheets</h2>
+    <div id="status">Menghubungkan ke Web App...</div>
+    <hr>
+    <h3>Isi 3 Baris Terakhir dari Sheet Anda:</h3>
+    <div id="data-view" class="box">Menunggu data...</div>
 
 <script>
-    // PASTIKAN URL INI ADALAH URL DEPLOYMENT TERBARU ANDA
+    // GANTI URL INI DENGAN URL DEPLOYMENT TERBARU ANDA
     const API_URL = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
-    let chart;
 
-    // Fungsi membersihkan angka dari teks aneh
-    function toNum(v) {
-        if (v === null || v === undefined || v === "") return null;
-        let clean = String(v).replace(/,/g, '.').replace(/[^0-9.\-]/g, '');
-        let n = parseFloat(clean);
-        return isNaN(n) ? null : n;
-    }
+    async function checkData() {
+        const status = document.getElementById('status');
+        const view = document.getElementById('data-view');
 
-    async function loadData() {
-        const logger = document.getElementById('console');
         try {
-            const r = await fetch(API_URL);
-            const data = await r.json();
-            
-            if (!data || data.length < 2) {
-                logger.innerText = "Data kosong atau belum terisi di Sheets.";
+            const res = await fetch(API_URL);
+            const data = await res.json();
+
+            if (!data || data.length === 0) {
+                status.innerHTML = "<span class='error'>GAGAL: Server merespon, tapi datanya KOSONG [].</span>";
                 return;
             }
 
-            // Buang header, ambil data baris
-            const rows = data.slice(1); 
+            status.innerHTML = "<span class='success'>BERHASIL: Terkoneksi! Total " + data.length + " baris ditemukan.</span>";
             
-            // Perbaikan Label: Cek apakah kolom 0 dan 1 ada isinya
-            const labels = rows.map(item => {
-                let tgl = item[0] ? String(item[0]) : "";
-                let jam = item[1] ? String(item[1]) : "";
-                return tgl + " " + jam;
-            });
-            
-            const datasets = [
-                { label: 'R1', col: 15, color: '#e74c3c' }, // Kolom P
-                { label: 'R2', col: 16, color: '#3498db' }, // Kolom Q
-                { label: 'R3', col: 17, color: '#f1c40f' }, // Kolom R
-                { label: 'R4', col: 18, color: '#9b59b6' }, // Kolom S
-                { label: 'Ante', col: 19, color: '#2ecc71' } // Kolom T
-            ].map(ds => ({
-                label: ds.label,
-                data: rows.map(row => toNum(row[ds.col])),
-                borderColor: ds.color,
-                backgroundColor: ds.color,
-                fill: false,
-                tension: 0.1,
-                pointRadius: 1
-            }));
+            // Ambil 3 baris terakhir untuk dicek strukturnya
+            const sample = data.slice(-3);
+            view.innerText = JSON.stringify(sample, null, 2);
 
-            logger.innerText = "Berhasil memuat " + rows.length + " baris data.";
-            updateChart(labels, datasets);
         } catch (e) {
-            logger.innerText = "Error: " + e.message;
-            console.error(e);
+            status.innerHTML = "<span class='error'>ERROR KONEKSI: " + e.message + "</span><br><br>" +
+                               "1. Pastikan URL sudah benar.<br>" +
+                               "2. Pastikan Deployment di Google Script diatur ke 'Anyone'.";
         }
     }
 
-    function updateChart(labels, datasets) {
-        const ctx = document.getElementById('chartCS1');
-        if (chart) chart.destroy();
-        chart = new Chart(ctx, {
-            type: 'line',
-            data: { labels, datasets },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: { 
-                        suggestedMin: -25, 
-                        suggestedMax: 10,
-                        title: { display: true, text: 'Suhu (°C)' }
-                    },
-                    x: {
-                        ticks: { autoSkip: true, maxTicksLimit: 12 }
-                    }
-                },
-                plugins: {
-                    legend: { position: 'bottom' }
-                }
-            }
-        });
-    }
-
-    loadData();
-    // Refresh otomatis setiap 1 menit
-    setInterval(loadData, 60000);
+    checkData();
 </script>
 </body>
 </html>
