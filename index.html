@@ -16,8 +16,7 @@
         .nav-btn:hover { background: #34495e; color: #1abc9c; }
         .page { display: none; }
         .active { display: block; }
-        .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-        .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; }
         h2 { color: #2c3e50; margin-top: 0; }
     </style>
 </head>
@@ -37,31 +36,26 @@
 <div class="main-content" id="mainArea">
     <div id="page1" class="page active">
         <h2>Temperature Overview (2 Hari Terakhir)</h2>
-        <div class="grid-container">
-            <div class="card"><h4>Status Overview</h4><p>Sistem Normal</p></div>
-        </div>
-
-        <div style="margin-top: 30px;">
-            <div class="card">
-                <h3>Grafik Perbandingan Suhu CS1 & CS2</h3>
-                <canvas id="chartGabungan"></canvas> 
+        <div class="card">
+            <h3>Grafik Perbandingan Suhu CS1 & CS2</h3>
+            <div style="height: 400px;">
+                <canvas id="chartGabungan"></canvas>
             </div>
         </div>
     </div>
 
     <div id="page2" class="page">
         <h2>Pressure Overview</h2>
-        <div class="card"><canvas id="chartPress1"></canvas></div>
+        <div class="card"><p>Data belum tersedia.</p></div>
     </div>
 
     <div id="page3" class="page">
         <h2>Data Logs</h2>
-        <div class="card" id="tabel-container">Memproses data dari tab Temperature...</div>
+        <div class="card" id="status-data">Memproses data...</div>
     </div>
 </div>
 
 <script>
-    // 1. UI LOGIC
     function toggleSidebar() {
         document.getElementById("mySidebar").classList.toggle("closed");
         document.getElementById("mainArea").classList.toggle("full");
@@ -70,48 +64,42 @@
     function showPage(pageId) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(pageId).classList.add('active');
-        if (window.innerWidth < 768) toggleSidebar();
     }
 
-    // 2. DATA LOGIC
     const urlAppsScript = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
 
     async function muatData() {
         try {
             const respon = await fetch(urlAppsScript);
-            const data = await respon.json();
+            const rawData = await respon.json();
             
-            if (data.length <= 1) {
-                document.getElementById("tabel-container").innerHTML = "Data tidak ditemukan.";
+            if (rawData.length <= 1) {
+                document.getElementById("status-data").innerHTML = "Data tidak ditemukan.";
                 return;
             }
 
-            const rows = data.slice(1); 
+            // Membalik urutan data agar jam lama di kiri, jam baru di kanan
+            const rows = rawData.slice(1).reverse(); 
 
-            // Label: Gabungan Tanggal & Jam
-const labels = rows.map(row => {
-    try {
-        let tglRaw = row[0];
-        let jamRaw = row[1];
-        let tglFormat = "";
+            // Label: Memproses Tanggal & Jam
+            const labels = rows.map(row => {
+                let tglRaw = row[0] ? String(row[0]) : "";
+                let jamRaw = row[1] ? String(row[1]) : "";
+                
+                // Jika format Google Date, bersihkan stringnya
+                if (tglRaw.includes("GMT") || tglRaw.includes("T")) {
+                    let d = new Date(tglRaw);
+                    tglRaw = d.getDate() + "-" + (d.toLocaleString('default', { month: 'short' }));
+                } else {
+                    // Potong tahun jika ada (agar grafik tidak penuh sesak)
+                    tglRaw = tglRaw.replace("-2026", "").replace("-2025", "");
+                }
 
-        // Jika row[0] sudah berupa tanggal asli dari Sheets
-        if (tglRaw instanceof Date || !isNaN(Date.parse(tglRaw))) {
-            let d = new Date(tglRaw);
-            tglFormat = d.toLocaleDateString('id-ID', {day:'2-digit', month:'short'});
-        } else {
-            // Jika row[0] terbaca sebagai teks biasa, kita ambil apa adanya
-            tglFormat = tglRaw; 
-        }
+                // Ambil jam:menit saja
+                let jamClean = jamRaw.substring(0, 5);
+                return tglRaw + " " + jamClean;
+            });
 
-        // Gabungkan dengan jam dari kolom B
-        return tglFormat + " " + (jamRaw || "");
-    } catch (e) {
-        return "Cek Format"; // Jika benar-benar error
-    }
-});
-
-            // Kirim data ke fungsi pembuat grafik
             renderChart("chartGabungan", labels, [
                 { label: 'CS1-R1', data: rows.map(row => row[15]), color: '#ff6384' },
                 { label: 'CS1-Ant', data: rows.map(row => row[19]), color: '#9966ff' },
@@ -119,18 +107,16 @@ const labels = rows.map(row => {
                 { label: 'CS2-Ant', data: rows.map(row => row[25]), color: '#34495e' }
             ]);
 
-            document.getElementById("tabel-container").innerHTML = "Data berhasil dimuat.";
+            document.getElementById("status-data").innerHTML = "Data berhasil diperbarui.";
 
         } catch (error) {
             console.error("Error:", error);
-            document.getElementById("tabel-container").innerHTML = "Error koneksi.";
+            document.getElementById("status-data").innerHTML = "Gagal memuat data.";
         }
     }
 
     function renderChart(canvasId, labels, datasets) {
-        const ctx = document.getElementById(canvasId);
-        if(!ctx) return; // Mencegah error jika canvas tidak ada
-
+        const ctx = document.getElementById(canvasId).getContext('2d');
         new Chart(ctx, {
             type: 'line',
             data: {
@@ -142,19 +128,28 @@ const labels = rows.map(row => {
                     backgroundColor: ds.color + '22',
                     fill: false,
                     tension: 0.3,
-                    pointRadius: 2
+                    pointRadius: 2,
+                    borderWidth: 2
                 }))
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 interaction: { mode: 'index', intersect: false },
-                plugins: { legend: { position: 'bottom' } },
-                scales: { y: { beginAtZero: false } }
+                plugins: { 
+                    legend: { position: 'bottom' }
+                },
+                scales: {
+                    x: { ticks: { maxRotation: 45, minRotation: 45 } },
+                    y: { 
+                        beginAtZero: false,
+                        title: { display: true, text: 'Suhu (°C)' }
+                    }
+                }
             }
         });
     }
 
-    // Jalankan saat load
     muatData();
 </script>
 
