@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitoring Cold Storage CS1</title>
+    <title>CS1 Temperature Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: #f4f7f9; color: #333; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: #f4f7f9; }
         .top-bar { position: fixed; top: 0; left: 0; right: 0; height: 50px; background: #fff; display: flex; align-items: center; padding: 0 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1001; }
         .sidebar { width: 250px; height: 100vh; background: #2c3e50; color: white; position: fixed; left: 0; top: 0; transition: 0.3s; z-index: 1000; padding-top: 60px; }
         .sidebar.closed { left: -250px; }
@@ -14,33 +14,28 @@
         .main-content.full { margin-left: 0; }
         .nav-btn { display: block; width: 90%; padding: 12px; margin: 5px auto; cursor: pointer; background: transparent; color: #ecf0f1; border: none; text-align: left; border-radius: 5px; font-size: 16px; }
         .nav-btn:hover { background: #34495e; color: #1abc9c; }
-        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        #debug-console { background: #222; color: #0f0; padding: 10px; font-family: monospace; font-size: 11px; border-radius: 5px; margin-bottom: 15px; max-height: 100px; overflow-y: auto; }
-        .page { display: none; }
-        .active { display: block; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        #debug-console { background: #111; color: #0f0; padding: 10px; font-family: monospace; font-size: 11px; border-radius: 5px; margin-bottom: 15px; height: 80px; overflow-y: auto; border: 1px solid #333; }
     </style>
 </head>
 <body>
 
 <div class="top-bar">
     <button class="menu-btn" onclick="toggleSidebar()">☰</button>
-    <span style="margin-left: 15px; font-weight: bold;">CS1 Temperature Dashboard</span>
+    <span style="margin-left: 15px; font-weight: bold;">CS1 Monitor System</span>
 </div>
 
 <div class="sidebar" id="mySidebar">
-    <button class="nav-btn" onclick="showPage('page1')">🌡️ CS1: Temperature</button>
-    <button class="nav-btn">⚙️ CS2 (Next)</button>
+    <button class="nav-btn" onclick="location.reload()">🔄 Refresh Halaman</button>
 </div>
 
 <div class="main-content" id="mainArea">
-    <div id="page1" class="page active">
-        <h2>Monitoring CS1 (P, Q, R, S, T)</h2>
-        <div id="debug-console">Inisialisasi sistem...</div>
-        
-        <div class="card">
-            <div style="height: 450px;">
-                <canvas id="chartCS1"></canvas>
-            </div>
+    <div id="debug-console">Inisialisasi...</div>
+    
+    <div class="card">
+        <h3>Grafik Suhu CS1 (Ruang 1-4 & Ante)</h3>
+        <div style="height: 450px;">
+            <canvas id="chartCS1"></canvas>
         </div>
     </div>
 </div>
@@ -54,57 +49,53 @@
         document.getElementById("mainArea").classList.toggle("full");
     }
 
-    function showPage(pageId) {
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.getElementById(pageId).classList.add('active');
+    // FUNGSI PEMBERSIH ANGKA PALING KUAT
+    function paksaJadiAngka(input) {
+        if (input === null || input === undefined || input === "") return null;
+        
+        // Ubah ke string, ganti koma jadi titik, buang semua karakter kecuali angka, titik, dan minus
+        let clean = String(input).replace(/,/g, '.').replace(/[^0-9.\-]/g, '');
+        
+        let num = parseFloat(clean);
+        return isNaN(num) ? null : num;
     }
 
     async function fetchData() {
         const consoleLog = document.getElementById('debug-console');
         try {
-            consoleLog.innerText += "\n> Menarik data...";
+            consoleLog.innerText += "\n> Mencoba tarik data...";
             const res = await fetch(urlScript);
             const data = await res.json();
 
-            if (data.length < 2) {
-                consoleLog.innerText += "\n> Error: Data kosong.";
+            if (!data || data.length < 2) {
+                consoleLog.innerText += "\n> Error: Data tidak terbaca.";
                 return;
             }
 
-            // Ambil data (kecuali header), balikkan urutan (lama ke baru)
+            // Balik urutan agar kronologis
             const rows = data.slice(1).reverse();
 
-            // PROSES LABEL (Kolom A & B)
-            const labels = rows.map(r => {
-                const tgl = String(r[0] || "").substring(0, 6);
-                const jam = String(r[1] || "").substring(0, 5);
-                return tgl + " " + jam;
-            });
+            // Ambil Label
+            const labels = rows.map(r => String(r[0]).substring(0,6) + " " + String(r[1]).substring(0,5));
 
-            // FUNGSI MEMBERSIHKAN ANGKA (Mengatasi data minus dan teks aneh)
-            const cleanNum = (val) => {
-                if (val === "" || val === undefined) return null;
-                let num = parseFloat(val);
-                return isNaN(num) ? null : num;
-            };
+            // Ambil Data Suhu (P=15, Q=16, R=17, S=18, T=19)
+            const d1 = rows.map(r => paksaJadiAngka(r[15]));
+            const d2 = rows.map(r => paksaJadiAngka(r[16]));
+            const d3 = rows.map(r => paksaJadiAngka(r[17]));
+            const d4 = rows.map(r => paksaJadiAngka(r[18]));
+            const d5 = rows.map(r => paksaJadiAngka(r[19]));
 
-            const ds1 = rows.map(r => cleanNum(r[15])); // P
-            const ds2 = rows.map(r => cleanNum(r[16])); // Q
-            const ds3 = rows.map(r => cleanNum(r[17])); // R
-            const ds4 = rows.map(r => cleanNum(r[18])); // S
-            const ds5 = rows.map(r => cleanNum(r[19])); // T
-
-            consoleLog.innerText += "\n> Berhasil. Data Terakhir: " + ds1[ds1.length-1] + "°C";
+            consoleLog.innerText += "\n> Data Terdeteksi! Baris terakhir R1: " + d1[d1.length-1];
             consoleLog.scrollTop = consoleLog.scrollHeight;
 
-            drawChart(labels, ds1, ds2, ds3, ds4, ds5);
+            renderChart(labels, d1, d2, d3, d4, d5);
 
         } catch (e) {
-            consoleLog.innerText += "\n> Error: " + e.message;
+            consoleLog.innerText += "\n> Error Koneksi: " + e.message;
         }
     }
 
-    function drawChart(labels, p, q, r, s, t) {
+    function renderChart(labels, p, q, r, s, t) {
         const ctx = document.getElementById('chartCS1').getContext('2d');
         if (myChart) myChart.destroy();
 
@@ -113,33 +104,28 @@
             data: {
                 labels: labels,
                 datasets: [
-                    { label: 'R1 (P)', data: p, borderColor: '#ff6384', fill: false, tension: 0.2, pointRadius: 1 },
-                    { label: 'R2 (Q)', data: q, borderColor: '#36a2eb', fill: false, tension: 0.2, pointRadius: 1 },
-                    { label: 'R3 (R)', data: r, borderColor: '#ffce56', fill: false, tension: 0.2, pointRadius: 1 },
-                    { label: 'R4 (S)', data: s, borderColor: '#4bc0c0', fill: false, tension: 0.2, pointRadius: 1 },
-                    { label: 'Ante (T)', data: t, borderColor: '#9966ff', fill: false, tension: 0.2, pointRadius: 1 }
+                    { label: 'R1', data: p, borderColor: 'red', tension: 0.3, pointRadius: 2 },
+                    { label: 'R2', data: q, borderColor: 'blue', tension: 0.3, pointRadius: 2 },
+                    { label: 'R3', data: r, borderColor: 'orange', tension: 0.3, pointRadius: 2 },
+                    { label: 'R4', data: s, borderColor: 'cyan', tension: 0.3, pointRadius: 2 },
+                    { label: 'Ante', data: t, borderColor: 'purple', tension: 0.3, pointRadius: 2 }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    y: { 
-                        suggestedMin: -25, 
-                        suggestedMax: 15,
-                        title: { display: true, text: 'Suhu (°C)' }
-                    },
-                    x: {
-                        ticks: { autoSkip: true, maxTicksLimit: 10 }
-                    }
+                    y: { suggestedMin: -25, suggestedMax: 15 }
                 },
-                plugins: { legend: { position: 'bottom' } }
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
             }
         });
     }
 
     fetchData();
-    setInterval(fetchData, 60000); // Auto update 1 menit
+    setInterval(fetchData, 60000);
 </script>
 
 </body>
