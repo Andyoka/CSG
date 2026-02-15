@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CS1 Dashboard - Urutan Posisi</title>
+    <title>CS1 Dashboard - P,Q,R,S,T Fix</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2c3e50; --accent: #1abc9c; }
@@ -19,18 +19,18 @@
 <body>
 
 <div class="top-bar">
-    <strong>❄️ MONITORING CS1 - INDEX BASED</strong>
+    <strong>❄️ MONITORING CS1 (KOLOM P - T)</strong>
 </div>
 
 <div class="sidebar">
-    <div style="padding: 10px 25px; font-size: 12px; color: #7f8c8d;">NAVIGATION</div>
-    <a href="#" style="display:block; padding:15px 25px; color:white; text-decoration:none; background:#34495e; border-left:4px solid var(--accent);">🌡️ CS1 Temperature</a>
+    <div style="padding: 10px 25px; font-size: 12px; color: #7f8c8d;">NAVIGASI</div>
+    <a href="#" style="display:block; padding:15px 25px; color:white; text-decoration:none; background:#34495e; border-left:4px solid var(--accent);">🌡️ Suhu CS1</a>
 </div>
 
 <div class="main">
-    <div id="status-box">Menarik data berdasarkan posisi kolom...</div>
+    <div id="status-box">Menghubungkan ke kolom P, Q, R, S, T...</div>
     <div class="card">
-        <h3>Grafik Suhu (Berdasarkan Posisi Kolom)</h3>
+        <h3>Grafik Suhu CS1</h3>
         <div style="height: 450px;"><canvas id="chartCS1"></canvas></div>
     </div>
 </div>
@@ -53,29 +53,27 @@
             const data = await r.json();
             if (!data || data.length === 0) return;
 
-            const latestData = data.slice(-50); // 50 data terbaru
-
-            // Kita ubah objek menjadi array berdasarkan posisi urutannya
+            const latestData = data.slice(-60);
             const rowsAsArray = latestData.map(item => Object.values(item));
 
             const labels = rowsAsArray.map(row => formatLabel(row[0], row[1]));
 
-            // MENGAMBIL DATA BERDASARKAN INDEX (URUTAN)
-            // Sesuai data JSON: Ruang1 ada di urutan ke-14 (index 13)
-            const r1 = rowsAsArray.map(row => row[13]);
-            const r2 = rowsAsArray.map(row => row[14]);
-            const r3 = rowsAsArray.map(row => row[15]);
-            const r4 = rowsAsArray.map(row => row[16]);
-            const ante = rowsAsArray.map(row => row[17]);
+            // PERBAIKAN INDEKS:
+            // P = 15, Q = 16, R = 17, S = 18, T = 19
+            const r1 = rowsAsArray.map(row => row[15]);
+            const r2 = rowsAsArray.map(row => row[16]);
+            const r3 = rowsAsArray.map(row => row[17]);
+            const r4 = rowsAsArray.map(row => row[18]);
+            const ante = rowsAsArray.map(row => row[19]);
 
-            logger.innerText = `Update Berhasil! R1: ${r1[r1.length-1]}°C | R2: ${r2[r2.length-1]}°C`;
+            logger.innerText = `DATA KOLOM P-T AKTIF. Terakhir R1: ${r1[r1.length-1]}°C`;
 
             const datasets = [
-                { label: 'Ruang 1', data: r1, borderColor: '#e74c3c' },
-                { label: 'Ruang 2', data: r2, borderColor: '#3498db' },
-                { label: 'Ruang 3', data: r3, borderColor: '#f1c40f' },
-                { label: 'Ruang 4', data: r4, borderColor: '#9b59b6' },
-                { label: 'Anteroom', data: ante, borderColor: '#2ecc71' }
+                { label: 'Ruang 1 (P)', data: r1, borderColor: '#e74c3c' },
+                { label: 'Ruang 2 (Q)', data: r2, borderColor: '#3498db' },
+                { label: 'Ruang 3 (R)', data: r3, borderColor: '#f1c40f' },
+                { label: 'Ruang 4 (S)', data: r4, borderColor: '#9b59b6' },
+                { label: 'Ante (T)', data: ante, borderColor: '#2ecc71' }
             ].map(ds => ({
                 ...ds,
                 fill: false,
