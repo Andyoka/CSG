@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CS1 Dashboard - Tanggal & Jam</title>
+    <title>CS1 Dashboard - Urutan Posisi</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2c3e50; --accent: #1abc9c; }
@@ -19,18 +19,18 @@
 <body>
 
 <div class="top-bar">
-    <strong>❄️ MONITORING SYSTEM CS1</strong>
+    <strong>❄️ MONITORING CS1 - INDEX BASED</strong>
 </div>
 
 <div class="sidebar">
-    <div style="padding: 10px 25px; font-size: 12px; color: #7f8c8d;">MENU</div>
-    <a href="#" style="display:block; padding:15px 25px; color:white; text-decoration:none; background:#34495e; border-left:4px solid var(--accent);">🌡️ Suhu CS1</a>
+    <div style="padding: 10px 25px; font-size: 12px; color: #7f8c8d;">NAVIGATION</div>
+    <a href="#" style="display:block; padding:15px 25px; color:white; text-decoration:none; background:#34495e; border-left:4px solid var(--accent);">🌡️ CS1 Temperature</a>
 </div>
 
 <div class="main">
-    <div id="status-box">Memperbarui data tanggal & jam...</div>
+    <div id="status-box">Menarik data berdasarkan posisi kolom...</div>
     <div class="card">
-        <h3>Grafik Suhu (Real-Time History)</h3>
+        <h3>Grafik Suhu (Berdasarkan Posisi Kolom)</h3>
         <div style="height: 450px;"><canvas id="chartCS1"></canvas></div>
     </div>
 </div>
@@ -39,18 +39,11 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
     let chart;
 
-    // Fungsi untuk mengubah teks tanggal menjadi format rapi (05 Des 17:52)
     function formatLabel(tglStr, jamStr) {
         const bln = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
         const d = new Date(tglStr);
         const j = new Date(jamStr);
-        
-        const tanggal = d.getDate().toString().padStart(2, '0');
-        const bulan = bln[d.getMonth()];
-        const jam = j.getHours().toString().padStart(2, '0');
-        const menit = j.getMinutes().toString().padStart(2, '0');
-        
-        return `${tanggal} ${bulan} ${jam}:${menit}`;
+        return `${d.getDate()} ${bln[d.getMonth()]} ${j.getHours().toString().padStart(2, '0')}:${j.getMinutes().toString().padStart(2, '0')}`;
     }
 
     async function loadData() {
@@ -60,21 +53,22 @@
             const data = await r.json();
             if (!data || data.length === 0) return;
 
-            const latestData = data.slice(-50); // Ambil 50 data terakhir
+            const latestData = data.slice(-50); // 50 data terbaru
 
-            // Gabungkan Tanggal dan Jam untuk label sumbu X
-            const labels = latestData.map(item => 
-                formatLabel(item["temperature_line/tanggal"], item["temperature_line/jam"])
-            );
+            // Kita ubah objek menjadi array berdasarkan posisi urutannya
+            const rowsAsArray = latestData.map(item => Object.values(item));
 
-            // Ambil data suhu
-            const r1 = latestData.map(item => item["temperature_line/ruang1"]);
-            const r2 = latestData.map(item => item["temperature_line/ruang2"]);
-            const r3 = latestData.map(item => item["temperature_line/ruang3"]);
-            const r4 = latestData.map(item => item["temperature_line/ruang4"]);
-            const ante = latestData.map(item => item["temperature_line/ante"]);
+            const labels = rowsAsArray.map(row => formatLabel(row[0], row[1]));
 
-            logger.innerText = "Koneksi OK. Menampilkan data sampai: " + labels[labels.length-1];
+            // MENGAMBIL DATA BERDASARKAN INDEX (URUTAN)
+            // Sesuai data JSON: Ruang1 ada di urutan ke-14 (index 13)
+            const r1 = rowsAsArray.map(row => row[13]);
+            const r2 = rowsAsArray.map(row => row[14]);
+            const r3 = rowsAsArray.map(row => row[15]);
+            const r4 = rowsAsArray.map(row => row[16]);
+            const ante = rowsAsArray.map(row => row[17]);
+
+            logger.innerText = `Update Berhasil! R1: ${r1[r1.length-1]}°C | R2: ${r2[r2.length-1]}°C`;
 
             const datasets = [
                 { label: 'Ruang 1', data: r1, borderColor: '#e74c3c' },
@@ -85,9 +79,9 @@
             ].map(ds => ({
                 ...ds,
                 fill: false,
-                tension: 0.3,
-                pointRadius: 2,
-                pointHoverRadius: 6
+                tension: 0.1,
+                pointRadius: 3,
+                borderWidth: 2
             }));
 
             updateChart(labels, datasets);
@@ -106,17 +100,11 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    y: { suggestedMin: -25, suggestedMax: 10, title: { display: true, text: 'Suhu (°C)' } },
-                    x: { ticks: { autoSkip: true, maxTicksLimit: 8, maxRotation: 0 } }
+                    y: { suggestedMin: -25, suggestedMax: 10 }
                 },
                 plugins: {
                     legend: { position: 'bottom' },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        backgroundColor: 'rgba(0,0,0,0.8)',
-                        padding: 12
-                    }
+                    tooltip: { mode: 'index', intersect: false }
                 }
             }
         });
