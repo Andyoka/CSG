@@ -3,28 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CS1 - Solusi 2 Hari Terakhir</title>
+    <title>CS1 Dashboard - Filter System</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --primary: #2c3e50; --accent: #1abc9c; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f4f7f9; }
-        .top-bar { position: fixed; top: 0; width: 100%; height: 60px; background: white; display: flex; align-items: center; padding: 0 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1000; }
+        :root { --primary: #2c3e50; --accent: #1abc9c; --bg: #f4f7f9; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); }
+        
+        /* Header & Layout */
+        .top-bar { position: fixed; top: 0; width: 100%; height: 60px; background: white; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1000; box-sizing: border-box; }
         .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 240px; background: var(--primary); color: white; padding-top: 80px; z-index: 999; }
         .main { margin-left: 240px; padding: 80px 20px 20px; }
-        .card { background: white; border-radius: 12px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        #status-box { background: #1a1a1a; color: #0f0; padding: 12px; font-family: monospace; font-size: 11px; margin-bottom: 20px; border-radius: 8px; border: 1px solid #444; white-space: pre-wrap; }
+        
+        /* Card & Controls */
+        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .filter-section { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; background: #ebedef; padding: 15px; border-radius: 8px; }
+        .input-group { display: flex; flex-direction: column; gap: 5px; }
+        label { font-size: 12px; font-weight: bold; color: #555; }
+        input[type="date"] { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; }
+        
+        button { background: var(--accent); color: white; border: none; padding: 9px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        button:hover { background: #16a085; }
+        button.reset { background: #95a5a6; }
+
+        #status-box { background: #1a1a1a; color: #0f0; padding: 10px; font-family: monospace; font-size: 11px; margin-bottom: 15px; border-radius: 5px; border-left: 4px solid var(--accent); }
+        
         @media (max-width: 768px) { .sidebar { display: none; } .main { margin-left: 0; } }
     </style>
 </head>
 <body>
 
-<div class="top-bar"><strong>❄️ MONITORING CS1 - 2 HARI DATA TERBARU</strong></div>
-<div class="sidebar"><a href="#" style="display:block; padding:15px 25px; color:white; text-decoration:none; background:#34495e;">🌡️ Suhu CS1</a></div>
+<div class="top-bar">
+    <strong>❄️ MONITORING SYSTEM CS1</strong>
+    <span id="live-clock" style="font-size: 13px; color: #666;"></span>
+</div>
+
+<div class="sidebar">
+    <div style="padding: 10px 25px; font-size: 11px; color: #7f8c8d; letter-spacing: 1px;">MENU UTAMA</div>
+    <a href="#" style="display:block; padding:15px 25px; color:white; text-decoration:none; background:#34495e; border-left:4px solid var(--accent);">🌡️ Grafik Suhu</a>
+</div>
 
 <div class="main">
-    <div id="status-box">Menganalisa data...</div>
+    <div id="status-box">Menghubungkan ke database...</div>
+
     <div class="card">
-        <h3 style="margin-top:0; color:#34495e;">Grafik Suhu (2 Hari Terakhir dari Spreadsheet)</h3>
+        <div class="filter-section">
+            <div class="input-group">
+                <label>Mulai Tanggal:</label>
+                <input type="date" id="startDate">
+            </div>
+            <div class="input-group">
+                <label>Sampai Tanggal:</label>
+                <input type="date" id="endDate">
+            </div>
+            <button onclick="applyFilter()">Tampilkan</button>
+            <button class="reset" onclick="resetFilter()">Reset (2 Hari)</button>
+        </div>
+
         <div style="height: 450px;"><canvas id="chartCS1"></canvas></div>
     </div>
 </div>
@@ -32,65 +66,96 @@
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
     let chart;
+    let rawDataGlobal = [];
 
-    // Fungsi deteksi kolom P-T berdasarkan posisi asli (Indeks 15-19)
-    function getCleanData(obj) {
-        return Object.values(obj);
-    }
+    // Jam Digital
+    setInterval(() => {
+        document.getElementById('live-clock').innerText = new Date().toLocaleString('id-ID');
+    }, 1000);
 
     async function loadData() {
         const logger = document.getElementById('status-box');
         try {
             const r = await fetch(API_URL);
-            const rawData = await r.json();
-            if (!rawData || rawData.length === 0) return;
-
-            // 1. Cari tanggal murni paling baru di seluruh data
-            const allTimestamps = rawData.map(d => new Date(Object.values(d)[0]).getTime());
-            const latestMs = Math.max(...allTimestamps);
-            const latestDate = new Date(latestMs);
-            latestDate.setHours(0,0,0,0); // Set ke jam 00:00 hari tersebut
-
-            // 2. Hitung ambang batas (Tanggal Terakhir - 1 hari)
-            const cutoffMs = latestDate.getTime() - (24 * 60 * 60 * 1000);
-
-            // 3. Filter data: Hanya yang masuk dalam rentang 2 hari tersebut
-            const filtered = rawData.filter(d => {
-                const itemDate = new Date(Object.values(d)[0]).getTime();
-                return itemDate >= cutoffMs;
-            });
-
-            // 4. Balik urutan agar dari lama ke baru (karena data terbaru di atas)
-            filtered.reverse();
-
-            // 5. Mapping data (Gunakan Indeks 0=Tgl, 1=Jam, 15=P, 16=Q, 17=R, 18=S, 19=T)
-            const labels = filtered.map(d => {
-                const row = Object.values(d);
-                const tgl = new Date(row[0]);
-                const jam = new Date(row[1]);
-                return `${tgl.getDate()}/${tgl.getMonth()+1} ${jam.getHours().toString().padStart(2,'0')}:${jam.getMinutes().toString().padStart(2,'0')}`;
-            });
-
-            const r1 = filtered.map(d => Object.values(d)[15]);
-            const r2 = filtered.map(d => Object.values(d)[16]);
-            const r3 = filtered.map(d => Object.values(d)[17]);
-            const r4 = filtered.map(d => Object.values(d)[18]);
-            const ante = filtered.map(d => Object.values(d)[19]);
-
-            logger.innerText = `Range Data: ${new Date(cutoffMs).toLocaleDateString()} s/d ${new Date(latestMs).toLocaleDateString()}\nTotal Baris: ${filtered.length} | Terakhir R1: ${r1[r1.length-1]}°C`;
-
-            const datasets = [
-                { label: 'Ruang 1', data: r1, borderColor: '#e74c3c' },
-                { label: 'Ruang 2', data: r2, borderColor: '#3498db' },
-                { label: 'Ruang 3', data: r3, borderColor: '#f1c40f' },
-                { label: 'Ruang 4', data: r4, borderColor: '#9b59b6' },
-                { label: 'Anteroom', data: ante, borderColor: '#2ecc71' }
-            ].map(ds => ({ ...ds, fill: false, tension: 0.1, pointRadius: 1, borderWidth: 2 }));
-
-            updateChart(labels, datasets);
+            rawDataGlobal = await r.json();
+            if (!rawDataGlobal || rawDataGlobal.length === 0) return;
+            
+            resetFilter(); // Tampilan awal: 2 hari terakhir
         } catch (e) {
-            logger.innerText = "Error Sinkronisasi: " + e.message;
+            logger.innerText = "Error: " + e.message;
         }
+    }
+
+    function processAndDisplay(filteredData) {
+        const logger = document.getElementById('status-box');
+        
+        // Balik urutan agar dari lama ke baru
+        const displayData = [...filteredData].reverse();
+
+        const labels = displayData.map(d => {
+            const row = Object.values(d);
+            const t = new Date(row[0]);
+            const j = new Date(row[1]);
+            return `${t.getDate()}/${t.getMonth()+1} ${j.getHours().toString().padStart(2,'0')}:${j.getMinutes().toString().padStart(2,'0')}`;
+        });
+
+        // Tetap menggunakan Indeks 15-19 (P-T)
+        const datasets = [
+            { label: 'Ruang 1', data: displayData.map(d => Object.values(d)[15]), borderColor: '#e74c3c' },
+            { label: 'Ruang 2', data: displayData.map(d => Object.values(d)[16]), borderColor: '#3498db' },
+            { label: 'Ruang 3', data: displayData.map(d => Object.values(d)[17]), borderColor: '#f1c40f' },
+            { label: 'Ruang 4', data: displayData.map(d => Object.values(d)[18]), borderColor: '#9b59b6' },
+            { label: 'Anteroom', data: displayData.map(d => Object.values(d)[19]), borderColor: '#2ecc71' }
+        ].map(ds => ({
+            ...ds,
+            fill: false,
+            tension: 0.1,
+            pointRadius: labels.length > 100 ? 0.5 : 3,
+            borderWidth: 2
+        }));
+
+        updateChart(labels, datasets);
+        logger.innerText = `Menampilkan ${filteredData.length} data poin.`;
+    }
+
+    function applyFilter() {
+        const start = document.getElementById('startDate').value;
+        const end = document.getElementById('endDate').value;
+        
+        if (!start || !end) {
+            alert("Pilih kedua tanggal terlebih dahulu!");
+            return;
+        }
+
+        const startDate = new Date(start);
+        startDate.setHours(0,0,0,0);
+        const endDate = new Date(end);
+        endDate.setHours(23,59,59,999);
+
+        const filtered = rawDataGlobal.filter(d => {
+            const current = new Date(Object.values(d)[0]);
+            return current >= startDate && current <= endDate;
+        });
+
+        processAndDisplay(filtered);
+    }
+
+    function resetFilter() {
+        // Cari tanggal terbaru di data
+        const allTimestamps = rawDataGlobal.map(d => new Date(Object.values(d)[0]).getTime());
+        const latestMs = Math.max(...allTimestamps);
+        const latestDate = new Date(latestMs);
+        latestDate.setHours(0,0,0,0);
+
+        const cutoffMs = latestDate.getTime() - (24 * 60 * 60 * 1000);
+
+        const filtered = rawDataGlobal.filter(d => {
+            return new Date(Object.values(d)[0]).getTime() >= cutoffMs;
+        });
+
+        document.getElementById('startDate').value = "";
+        document.getElementById('endDate').value = "";
+        processAndDisplay(filtered);
     }
 
     function updateChart(labels, datasets) {
@@ -102,17 +167,17 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: { 
-                    y: { suggestedMin: -25, suggestedMax: 10 },
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    y: { suggestedMin: -25, suggestedMax: 10, title: { display: true, text: 'Suhu (°C)' } },
                     x: { ticks: { autoSkip: true, maxTicksLimit: 12 } }
-                },
-                plugins: { legend: { position: 'bottom' } }
+                }
             }
         });
     }
 
     loadData();
-    setInterval(loadData, 60000);
+    setInterval(loadData, 300000); // Update data tiap 5 menit
 </script>
 </body>
 </html>
