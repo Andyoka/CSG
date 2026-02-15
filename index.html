@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CS1 - Solusi Final</title>
+    <title>CS1 Dashboard - Tanggal & Jam</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2c3e50; --accent: #1abc9c; }
@@ -12,26 +12,26 @@
         .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 240px; background: var(--primary); color: white; padding-top: 80px; transition: 0.3s; z-index: 999; }
         .main { margin-left: 240px; padding: 80px 20px 20px; transition: 0.3s; }
         .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        #status-box { background: #1a1a1a; color: #0f0; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 11px; margin-bottom: 15px; }
+        #status-box { background: #1a1a1a; color: #0f0; padding: 10px; font-family: monospace; font-size: 11px; margin-bottom: 15px; border-radius: 5px; }
         @media (max-width: 768px) { .sidebar { left: -240px; } .main { margin-left: 0; } }
     </style>
 </head>
 <body>
 
 <div class="top-bar">
-    <strong>❄️ MONITORING COLD STORAGE CS1</strong>
+    <strong>❄️ MONITORING SYSTEM CS1</strong>
 </div>
 
 <div class="sidebar">
-    <div style="padding: 10px 25px; font-size: 12px; color: #7f8c8d;">MENU UTAMA</div>
+    <div style="padding: 10px 25px; font-size: 12px; color: #7f8c8d;">MENU</div>
     <a href="#" style="display:block; padding:15px 25px; color:white; text-decoration:none; background:#34495e; border-left:4px solid var(--accent);">🌡️ Suhu CS1</a>
 </div>
 
 <div class="main">
-    <div id="status-box">Menghubungkan ke database...</div>
+    <div id="status-box">Memperbarui data tanggal & jam...</div>
     <div class="card">
-        <h3>Grafik Suhu (Ruang 1, 2, 3, 4 & Ante)</h3>
-        <div style="height: 450px;"><canvas id="chartFinal"></canvas></div>
+        <h3>Grafik Suhu (Real-Time History)</h3>
+        <div style="height: 450px;"><canvas id="chartCS1"></canvas></div>
     </div>
 </div>
 
@@ -39,34 +39,42 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
     let chart;
 
+    // Fungsi untuk mengubah teks tanggal menjadi format rapi (05 Des 17:52)
+    function formatLabel(tglStr, jamStr) {
+        const bln = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+        const d = new Date(tglStr);
+        const j = new Date(jamStr);
+        
+        const tanggal = d.getDate().toString().padStart(2, '0');
+        const bulan = bln[d.getMonth()];
+        const jam = j.getHours().toString().padStart(2, '0');
+        const menit = j.getMinutes().toString().padStart(2, '0');
+        
+        return `${tanggal} ${bulan} ${jam}:${menit}`;
+    }
+
     async function loadData() {
         const logger = document.getElementById('status-box');
         try {
             const r = await fetch(API_URL);
             const data = await r.json();
-            
-            if (!data || data.length === 0) {
-                logger.innerText = "Data kosong.";
-                return;
-            }
+            if (!data || data.length === 0) return;
 
-            // Data Anda sudah urut, kita ambil 50 data terakhir
-            const latestData = data.slice(-50);
+            const latestData = data.slice(-50); // Ambil 50 data terakhir
 
-            // Perbaikan Label Jam (Memotong format ISO String)
-            const labels = latestData.map(item => {
-                let d = new Date(item["temperature_line/jam"]);
-                return d.getHours().toString().padStart(2, '0') + ":" + d.getMinutes().toString().padStart(2, '0');
-            });
+            // Gabungkan Tanggal dan Jam untuk label sumbu X
+            const labels = latestData.map(item => 
+                formatLabel(item["temperature_line/tanggal"], item["temperature_line/jam"])
+            );
 
-            // AMBIL DATA BERDASARKAN KEY (NAMA LABEL)
+            // Ambil data suhu
             const r1 = latestData.map(item => item["temperature_line/ruang1"]);
             const r2 = latestData.map(item => item["temperature_line/ruang2"]);
             const r3 = latestData.map(item => item["temperature_line/ruang3"]);
             const r4 = latestData.map(item => item["temperature_line/ruang4"]);
             const ante = latestData.map(item => item["temperature_line/ante"]);
 
-            logger.innerText = "Data Berhasil Dimuat! Update Terakhir Ruang 1: " + r1[r1.length-1] + "°C";
+            logger.innerText = "Koneksi OK. Menampilkan data sampai: " + labels[labels.length-1];
 
             const datasets = [
                 { label: 'Ruang 1', data: r1, borderColor: '#e74c3c' },
@@ -78,18 +86,18 @@
                 ...ds,
                 fill: false,
                 tension: 0.3,
-                pointRadius: 2
+                pointRadius: 2,
+                pointHoverRadius: 6
             }));
 
             updateChart(labels, datasets);
-
         } catch (e) {
             logger.innerText = "Error: " + e.message;
         }
     }
 
     function updateChart(labels, datasets) {
-        const ctx = document.getElementById('chartFinal').getContext('2d');
+        const ctx = document.getElementById('chartCS1').getContext('2d');
         if (chart) chart.destroy();
         chart = new Chart(ctx, {
             type: 'line',
@@ -98,21 +106,24 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    y: { 
-                        suggestedMin: -25, 
-                        suggestedMax: 10,
-                        title: { display: true, text: 'Suhu (°C)' }
-                    }
+                    y: { suggestedMin: -25, suggestedMax: 10, title: { display: true, text: 'Suhu (°C)' } },
+                    x: { ticks: { autoSkip: true, maxTicksLimit: 8, maxRotation: 0 } }
                 },
                 plugins: {
-                    legend: { position: 'bottom' }
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                        padding: 12
+                    }
                 }
             }
         });
     }
 
     loadData();
-    setInterval(loadData, 60000); // Auto update 1 menit
+    setInterval(loadData, 60000);
 </script>
 </body>
 </html>
