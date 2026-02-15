@@ -88,11 +88,28 @@
 
             const rows = data.slice(1); 
 
-            // Label Tanggal + Jam
-            const labels = rows.map(row => {
-                let tgl = new Date(row[0]).toLocaleDateString('id-ID', {day:'2-digit', month:'short'});
-                return tgl + " " + row[1];
-            });
+            // Label: Gabungan Tanggal & Jam
+const labels = rows.map(row => {
+    try {
+        let tglRaw = row[0];
+        let jamRaw = row[1];
+        let tglFormat = "";
+
+        // Jika row[0] sudah berupa tanggal asli dari Sheets
+        if (tglRaw instanceof Date || !isNaN(Date.parse(tglRaw))) {
+            let d = new Date(tglRaw);
+            tglFormat = d.toLocaleDateString('id-ID', {day:'2-digit', month:'short'});
+        } else {
+            // Jika row[0] terbaca sebagai teks biasa, kita ambil apa adanya
+            tglFormat = tglRaw; 
+        }
+
+        // Gabungkan dengan jam dari kolom B
+        return tglFormat + " " + (jamRaw || "");
+    } catch (e) {
+        return "Cek Format"; // Jika benar-benar error
+    }
+});
 
             // Kirim data ke fungsi pembuat grafik
             renderChart("chartGabungan", labels, [
