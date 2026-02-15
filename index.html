@@ -3,37 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CS1 Temperature Dashboard</title>
+    <title>CS1 - 2 Hari Terakhir</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: #f4f7f9; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: #f0f2f5; }
         .top-bar { position: fixed; top: 0; left: 0; right: 0; height: 50px; background: #fff; display: flex; align-items: center; padding: 0 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1001; }
         .sidebar { width: 250px; height: 100vh; background: #2c3e50; color: white; position: fixed; left: 0; top: 0; transition: 0.3s; z-index: 1000; padding-top: 60px; }
-        .sidebar.closed { left: -250px; }
         .main-content { margin-left: 250px; padding: 70px 20px 20px 20px; transition: 0.3s; }
-        .main-content.full { margin-left: 0; }
-        .nav-btn { display: block; width: 90%; padding: 12px; margin: 5px auto; cursor: pointer; background: transparent; color: #ecf0f1; border: none; text-align: left; border-radius: 5px; font-size: 16px; }
-        .nav-btn:hover { background: #34495e; color: #1abc9c; }
-        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        #debug-console { background: #111; color: #0f0; padding: 10px; font-family: monospace; font-size: 11px; border-radius: 5px; margin-bottom: 15px; height: 80px; overflow-y: auto; border: 1px solid #333; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        #debug-console { background: #1a1a1a; color: #00ff00; padding: 12px; font-family: 'Courier New', monospace; font-size: 11px; border-radius: 8px; margin-bottom: 20px; max-height: 100px; overflow-y: auto; border: 1px solid #333; }
+        h2 { color: #2c3e50; margin-top: 0; }
     </style>
 </head>
 <body>
 
 <div class="top-bar">
-    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
-    <span style="margin-left: 15px; font-weight: bold;">CS1 Monitor System</span>
+    <span style="font-weight: bold; color: #2c3e50;">❄️ Monitoring Cold Storage CS1</span>
 </div>
 
 <div class="sidebar" id="mySidebar">
-    <button class="nav-btn" onclick="location.reload()">🔄 Refresh Halaman</button>
+    <div style="padding: 20px; font-size: 14px; color: #bdc3c7;">MENU</div>
+    <button style="width:100%; padding:15px; background:transparent; border:none; color:white; text-align:left; cursor:pointer; border-left: 4px solid #1abc9c;">🌡️ Temperature CS1</button>
 </div>
 
-<div class="main-content" id="mainArea">
-    <div id="debug-console">Inisialisasi...</div>
+<div class="main-content">
+    <div id="debug-console">Sistem siap. Menarik data terakhir dari Sheet...</div>
     
     <div class="card">
-        <h3>Grafik Suhu CS1 (Ruang 1-4 & Ante)</h3>
+        <h2>Grafik Suhu (Data Terbaru di Sheet)</h2>
         <div style="height: 450px;">
             <canvas id="chartCS1"></canvas>
         </div>
@@ -44,58 +41,54 @@
     const urlScript = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
     let myChart = null;
 
-    function toggleSidebar() {
-        document.getElementById("mySidebar").classList.toggle("closed");
-        document.getElementById("mainArea").classList.toggle("full");
+    // Fungsi pembersih angka agar nilai minus terbaca dengan benar
+    function toNum(val) {
+        if (val === null || val === undefined || val === "") return null;
+        let clean = String(val).replace(/,/g, '.').replace(/[^0-9.\-]/g, '');
+        let n = parseFloat(clean);
+        return isNaN(n) ? null : n;
     }
 
-    // FUNGSI PEMBERSIH ANGKA PALING KUAT
-    function paksaJadiAngka(input) {
-        if (input === null || input === undefined || input === "") return null;
-        
-        // Ubah ke string, ganti koma jadi titik, buang semua karakter kecuali angka, titik, dan minus
-        let clean = String(input).replace(/,/g, '.').replace(/[^0-9.\-]/g, '');
-        
-        let num = parseFloat(clean);
-        return isNaN(num) ? null : num;
-    }
-
-    async function fetchData() {
+    async function muatData() {
         const consoleLog = document.getElementById('debug-console');
         try {
-            consoleLog.innerText += "\n> Mencoba tarik data...";
             const res = await fetch(urlScript);
             const data = await res.json();
 
             if (!data || data.length < 2) {
-                consoleLog.innerText += "\n> Error: Data tidak terbaca.";
+                consoleLog.innerText += "\n> Error: Data tidak ditemukan.";
                 return;
             }
 
-            // Balik urutan agar kronologis
-            const rows = data.slice(1).reverse();
+            // AMBIL DATA TERBARU (100 baris terakhir = asumsi 2 hari data)
+            // Lalu di-reverse agar grafik berjalan dari kiri (lama) ke kanan (baru)
+            const rows = data.slice(1).slice(-100).reverse();
 
-            // Ambil Label
-            const labels = rows.map(r => String(r[0]).substring(0,6) + " " + String(r[1]).substring(0,5));
+            const labels = rows.map(r => {
+                let tgl = String(r[0] || "").substring(0, 6);
+                let jam = String(r[1] || "").substring(0, 5);
+                return tgl + " " + jam;
+            });
 
-            // Ambil Data Suhu (P=15, Q=16, R=17, S=18, T=19)
-            const d1 = rows.map(r => paksaJadiAngka(r[15]));
-            const d2 = rows.map(r => paksaJadiAngka(r[16]));
-            const d3 = rows.map(r => paksaJadiAngka(r[17]));
-            const d4 = rows.map(r => paksaJadiAngka(r[18]));
-            const d5 = rows.map(r => paksaJadiAngka(r[19]));
+            // Pemetaan Kolom: P=15, Q=16, R=17, S=18, T=19
+            const ds1 = rows.map(r => toNum(r[15]));
+            const ds2 = rows.map(r => toNum(r[16]));
+            const ds3 = rows.map(r => toNum(r[17]));
+            const ds4 = rows.map(r => toNum(r[18]));
+            const ds5 = rows.map(r => toNum(r[19]));
 
-            consoleLog.innerText += "\n> Data Terdeteksi! Baris terakhir R1: " + d1[d1.length-1];
+            consoleLog.innerText += "\n> Berhasil memuat " + rows.length + " data terbaru.";
+            consoleLog.innerText += "\n> Data Terakhir: " + ds1[ds1.length-1] + "°C";
             consoleLog.scrollTop = consoleLog.scrollHeight;
 
-            renderChart(labels, d1, d2, d3, d4, d5);
+            updateGrafik(labels, ds1, ds2, ds3, ds4, ds5);
 
         } catch (e) {
             consoleLog.innerText += "\n> Error Koneksi: " + e.message;
         }
     }
 
-    function renderChart(labels, p, q, r, s, t) {
+    function updateGrafik(labels, p, q, r, s, t) {
         const ctx = document.getElementById('chartCS1').getContext('2d');
         if (myChart) myChart.destroy();
 
@@ -104,18 +97,26 @@
             data: {
                 labels: labels,
                 datasets: [
-                    { label: 'R1', data: p, borderColor: 'red', tension: 0.3, pointRadius: 2 },
-                    { label: 'R2', data: q, borderColor: 'blue', tension: 0.3, pointRadius: 2 },
-                    { label: 'R3', data: r, borderColor: 'orange', tension: 0.3, pointRadius: 2 },
-                    { label: 'R4', data: s, borderColor: 'cyan', tension: 0.3, pointRadius: 2 },
-                    { label: 'Ante', data: t, borderColor: 'purple', tension: 0.3, pointRadius: 2 }
+                    { label: 'R1 (P)', data: p, borderColor: '#ff6384', tension: 0.3, pointRadius: 1 },
+                    { label: 'R2 (Q)', data: q, borderColor: '#36a2eb', tension: 0.3, pointRadius: 1 },
+                    { label: 'R3 (R)', data: r, borderColor: '#ffce56', tension: 0.3, pointRadius: 1 },
+                    { label: 'R4 (S)', data: s, borderColor: '#4bc0c0', tension: 0.3, pointRadius: 1 },
+                    { label: 'Ante (T)', data: t, borderColor: '#9966ff', tension: 0.3, pointRadius: 1 }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    y: { suggestedMin: -25, suggestedMax: 15 }
+                    y: { 
+                        suggestedMin: -25, 
+                        suggestedMax: 15,
+                        grid: { color: '#e0e0e0' }
+                    },
+                    x: {
+                        ticks: { autoSkip: true, maxTicksLimit: 12 },
+                        grid: { display: false }
+                    }
                 },
                 plugins: {
                     legend: { position: 'bottom' }
@@ -124,8 +125,8 @@
         });
     }
 
-    fetchData();
-    setInterval(fetchData, 60000);
+    muatData();
+    setInterval(muatData, 60000); // Cek data baru tiap 1 menit
 </script>
 
 </body>
