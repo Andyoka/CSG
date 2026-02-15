@@ -3,34 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CS1 Dashboard - Murni Urutan Kolom</title>
+    <title>CS1 Dashboard - Header Unique Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --primary: #2c3e50; --accent: #1abc9c; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f4f7f9; }
+        :root { --primary: #2c3e50; --accent: #1abc9c; --bg: #f4f7f9; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); }
         .top-bar { position: fixed; top: 0; width: 100%; height: 60px; background: white; display: flex; align-items: center; padding: 0 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1000; }
         .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 240px; background: var(--primary); color: white; padding-top: 80px; transition: 0.3s; z-index: 999; }
         .main { margin-left: 240px; padding: 80px 20px 20px; transition: 0.3s; }
         .card { background: white; border-radius: 12px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        #debug-log { background: #1a1a1a; color: #0f0; padding: 12px; font-family: monospace; font-size: 11px; margin-bottom: 20px; border-radius: 8px; border: 1px solid #333; }
+        #status-box { background: #1a1a1a; color: #0f0; padding: 12px; font-family: monospace; font-size: 11px; margin-bottom: 20px; border-radius: 8px; border: 1px solid #333; }
         @media (max-width: 768px) { .sidebar { left: -240px; } .main { margin-left: 0; } }
     </style>
 </head>
 <body>
 
 <div class="top-bar">
-    <strong style="color: var(--primary); font-size: 1.1rem;">❄️ CS1 MONITORING (URUTAN KOLOM P-T)</strong>
+    <strong style="color: var(--primary); font-size: 1.1rem;">❄️ MONITORING CS1 - STABLE VERSION</strong>
 </div>
 
 <div class="sidebar">
-    <div style="padding: 10px 25px; font-size: 11px; color: #7f8c8d; letter-spacing: 1px;">DASHBOARD</div>
-    <a href="#" style="display:block; padding:15px 25px; color:white; text-decoration:none; background:#34495e; border-left:4px solid var(--accent);">🌡️ Suhu CS1</a>
+    <div style="padding: 10px 25px; font-size: 11px; color: #7f8c8d; letter-spacing: 1px;">NAVIGATION</div>
+    <a href="#" style="display:block; padding:15px 25px; color:white; text-decoration:none; background:#34495e; border-left:4px solid var(--accent);">🌡️ CS1 Temperature</a>
 </div>
 
 <div class="main">
-    <div id="debug-log">Membedah urutan data...</div>
+    <div id="status-box">Menghubungkan ke Header Baru...</div>
     <div class="card">
-        <h3 style="margin-top:0; color:#34495e;">Grafik Suhu (Berdasarkan Urutan Kolom Sheets)</h3>
+        <h3 style="margin-top:0; color:#34495e;">Grafik Suhu (Berdasarkan Header Unik)</h3>
         <div style="height: 450px;"><canvas id="chartCS1"></canvas></div>
     </div>
 </div>
@@ -47,38 +47,38 @@
     }
 
     async function loadData() {
-        const logger = document.getElementById('debug-log');
+        const logger = document.getElementById('status-box');
         try {
             const r = await fetch(API_URL);
-            const rawData = await r.json();
-            if (!rawData || rawData.length === 0) return;
+            const data = await r.json();
+            if (!data || data.length === 0) return;
 
-            const latest = rawData.slice(-50);
+            const latest = data.slice(-50);
 
-            // TRIK UTAMA: Mengabaikan nama header, hanya mengambil nilai berdasarkan urutan
-            const rows = latest.map(obj => Object.entries(obj).map(entry => entry[1]));
+            // MEMANGGIL DATA BERDASARKAN NAMA HEADER BARU ANDA
+            // Pastikan nama di dalam ["..."] SAMA PERSIS dengan yang muncul di JSON/Sheets
+            const labels = latest.map(item => formatLabel(item["temperature_line/tanggal"], item["temperature_line/jam"]));
+            
+            const r1 = latest.map(item => item["temperature_line/ruang1"]);
+            const r2 = latest.map(item => item["temperature_line/ruang2"]);
+            const r3 = latest.map(item => item["temperature_line/ruang3"]);
+            const r4 = latest.map(item => item["temperature_line/ruang4"]);
+            const ante = latest.map(item => item["temperature_line/ante"]);
 
-            // Pemetaan Kolom P, Q, R, S, T (Indeks 15, 16, 17, 18, 19)
-            const labels = rows.map(row => formatLabel(row[0], row[1]));
-            const r1 = rows.map(row => row[15]);
-            const r2 = rows.map(row => row[16]);
-            const r3 = rows.map(row => row[17]);
-            const r4 = rows.map(row => row[18]);
-            const ante = rows.map(row => row[19]);
-
-            logger.innerText = `SINKRON POSISI! | P:${r1[r1.length-1]} | Q:${r2[r2.length-1]} | R:${r3[r3.length-1]} | S:${r4[r4.length-1]} | T:${ante[ante.length-1]}`;
+            logger.innerText = `Koneksi Stabil! | Update Terakhir: ${labels[labels.length-1]} | R1: ${r1[r1.length-1]}°C`;
 
             const datasets = [
-                { label: 'Ruang 1 (P)', data: r1, borderColor: '#e74c3c' },
-                { label: 'Ruang 2 (Q)', data: r2, borderColor: '#3498db' },
-                { label: 'Ruang 3 (R)', data: r3, borderColor: '#f1c40f' },
-                { label: 'Ruang 4 (S)', data: r4, borderColor: '#9b59b6' },
-                { label: 'Ante (T)', data: ante, borderColor: '#2ecc71' }
+                { label: 'Ruang 1', data: r1, borderColor: '#e74c3c' },
+                { label: 'Ruang 2', data: r2, borderColor: '#3498db' },
+                { label: 'Ruang 3', data: r3, borderColor: '#f1c40f' },
+                { label: 'Ruang 4', data: r4, borderColor: '#9b59b6' },
+                { label: 'Anteroom', data: ante, borderColor: '#2ecc71' }
             ].map(ds => ({
                 ...ds,
                 fill: false,
                 tension: 0.1,
-                pointRadius: 3
+                pointRadius: 3,
+                borderWidth: 2
             }));
 
             updateChart(labels, datasets);
@@ -98,7 +98,7 @@
                 maintainAspectRatio: false,
                 interaction: { mode: 'index', intersect: false },
                 scales: {
-                    y: { suggestedMin: -25, suggestedMax: 10 }
+                    y: { suggestedMin: -25, suggestedMax: 10, title: { display: true, text: 'Suhu (°C)' } }
                 },
                 plugins: {
                     legend: { position: 'bottom' }
