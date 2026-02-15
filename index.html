@@ -3,131 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CS1 - 2 Hari Terakhir</title>
+    <title>Dashboard CS1</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: #f0f2f5; }
-        .top-bar { position: fixed; top: 0; left: 0; right: 0; height: 50px; background: #fff; display: flex; align-items: center; padding: 0 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1001; }
-        .sidebar { width: 250px; height: 100vh; background: #2c3e50; color: white; position: fixed; left: 0; top: 0; transition: 0.3s; z-index: 1000; padding-top: 60px; }
-        .main-content { margin-left: 250px; padding: 70px 20px 20px 20px; transition: 0.3s; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        #debug-console { background: #1a1a1a; color: #00ff00; padding: 12px; font-family: 'Courier New', monospace; font-size: 11px; border-radius: 8px; margin-bottom: 20px; max-height: 100px; overflow-y: auto; border: 1px solid #333; }
-        h2 { color: #2c3e50; margin-top: 0; }
+        :root { --primary: #2c3e50; --accent: #1abc9c; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f4f7f9; }
+        .top-bar { position: fixed; top: 0; width: 100%; height: 60px; background: white; display: flex; align-items: center; padding: 0 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1000; }
+        .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 240px; background: var(--primary); color: white; padding-top: 80px; transition: 0.3s; z-index: 999; }
+        .main { margin-left: 240px; padding: 80px 20px 20px; transition: 0.3s; }
+        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .nav-link { display: block; padding: 15px 25px; color: #bdc3c7; text-decoration: none; border-left: 4px solid transparent; }
+        .nav-link.active { background: #34495e; color: white; border-left-color: var(--accent); }
+        #console { background: #1a1a1a; color: #0f0; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; margin-bottom: 15px; }
+        @media (max-width: 768px) { .sidebar { left: -240px; } .main { margin-left: 0; } }
     </style>
 </head>
 <body>
 
 <div class="top-bar">
-    <span style="font-weight: bold; color: #2c3e50;">❄️ Monitoring Cold Storage CS1</span>
+    <strong>❄️ MONITORING SYSTEM</strong>
 </div>
 
-<div class="sidebar" id="mySidebar">
-    <div style="padding: 20px; font-size: 14px; color: #bdc3c7;">MENU</div>
-    <button style="width:100%; padding:15px; background:transparent; border:none; color:white; text-align:left; cursor:pointer; border-left: 4px solid #1abc9c;">🌡️ Temperature CS1</button>
+<div class="sidebar">
+    <a href="#" class="nav-link active">🌡️ Temperature CS1</a>
+    <a href="#" class="nav-link">⚙️ Dashboard CS2</a>
 </div>
 
-<div class="main-content">
-    <div id="debug-console">Sistem siap. Menarik data terakhir dari Sheet...</div>
-    
+<div class="main">
+    <div id="console">Menghubungkan ke Google Sheets...</div>
     <div class="card">
-        <h2>Grafik Suhu (Data Terbaru di Sheet)</h2>
-        <div style="height: 450px;">
-            <canvas id="chartCS1"></canvas>
-        </div>
+        <h3>Grafik Suhu CS1 (P, Q, R, S, T)</h3>
+        <div style="height: 400px;"><canvas id="chartCS1"></canvas></div>
     </div>
 </div>
 
 <script>
-    const urlScript = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
-    let myChart = null;
+    // GANTI DENGAN URL DEPLOYMENT BARU ANDA
+    const API_URL = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
+    let chart;
 
-    // Fungsi pembersih angka agar nilai minus terbaca dengan benar
-    function toNum(val) {
-        if (val === null || val === undefined || val === "") return null;
-        let clean = String(val).replace(/,/g, '.').replace(/[^0-9.\-]/g, '');
-        let n = parseFloat(clean);
+    function toNum(v) {
+        if (!v) return null;
+        let n = parseFloat(String(v).replace(/,/g, '.').replace(/[^0-9.\-]/g, ''));
         return isNaN(n) ? null : n;
     }
 
-    async function muatData() {
-        const consoleLog = document.getElementById('debug-console');
+    async function loadData() {
+        const logger = document.getElementById('console');
         try {
-            const res = await fetch(urlScript);
-            const data = await res.json();
-
+            const r = await fetch(API_URL);
+            const data = await r.json();
             if (!data || data.length < 2) {
-                consoleLog.innerText += "\n> Error: Data tidak ditemukan.";
+                logger.innerText = "Data kosong. Cek IMPORTRANGE di Sheets.";
                 return;
             }
 
-            // AMBIL DATA TERBARU (100 baris terakhir = asumsi 2 hari data)
-            // Lalu di-reverse agar grafik berjalan dari kiri (lama) ke kanan (baru)
-            const rows = data.slice(1).slice(-100).reverse();
+            // Data dari GAS sudah kita batasi 150 baris, jadi tinggal kita pakai
+            const rows = data.slice(1); 
+            const labels = rows.map(item => item[0] + " " + item[1]);
+            
+            const datasets = [
+                { label: 'R1', col: 15, color: '#e74c3c' },
+                { label: 'R2', col: 16, color: '#3498db' },
+                { label: 'R3', col: 17, color: '#f1c40f' },
+                { label: 'R4', col: 18, color: '#9b59b6' },
+                { label: 'Ante', col: 19, color: '#2ecc71' }
+            ].map(ds => ({
+                label: ds.label,
+                data: rows.map(row => toNum(row[ds.col])),
+                borderColor: ds.color,
+                fill: false,
+                tension: 0.1,
+                pointRadius: 1
+            }));
 
-            const labels = rows.map(r => {
-                let tgl = String(r[0] || "").substring(0, 6);
-                let jam = String(r[1] || "").substring(0, 5);
-                return tgl + " " + jam;
-            });
-
-            // Pemetaan Kolom: P=15, Q=16, R=17, S=18, T=19
-            const ds1 = rows.map(r => toNum(r[15]));
-            const ds2 = rows.map(r => toNum(r[16]));
-            const ds3 = rows.map(r => toNum(r[17]));
-            const ds4 = rows.map(r => toNum(r[18]));
-            const ds5 = rows.map(r => toNum(r[19]));
-
-            consoleLog.innerText += "\n> Berhasil memuat " + rows.length + " data terbaru.";
-            consoleLog.innerText += "\n> Data Terakhir: " + ds1[ds1.length-1] + "°C";
-            consoleLog.scrollTop = consoleLog.scrollHeight;
-
-            updateGrafik(labels, ds1, ds2, ds3, ds4, ds5);
-
+            logger.innerText = "Berhasil menarik " + rows.length + " baris data.";
+            updateChart(labels, datasets);
         } catch (e) {
-            consoleLog.innerText += "\n> Error Koneksi: " + e.message;
+            logger.innerText = "Error: " + e.message;
         }
     }
 
-    function updateGrafik(labels, p, q, r, s, t) {
-        const ctx = document.getElementById('chartCS1').getContext('2d');
-        if (myChart) myChart.destroy();
-
-        myChart = new Chart(ctx, {
+    function updateChart(labels, datasets) {
+        const ctx = document.getElementById('chartCS1');
+        if (chart) chart.destroy();
+        chart = new Chart(ctx, {
             type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    { label: 'R1 (P)', data: p, borderColor: '#ff6384', tension: 0.3, pointRadius: 1 },
-                    { label: 'R2 (Q)', data: q, borderColor: '#36a2eb', tension: 0.3, pointRadius: 1 },
-                    { label: 'R3 (R)', data: r, borderColor: '#ffce56', tension: 0.3, pointRadius: 1 },
-                    { label: 'R4 (S)', data: s, borderColor: '#4bc0c0', tension: 0.3, pointRadius: 1 },
-                    { label: 'Ante (T)', data: t, borderColor: '#9966ff', tension: 0.3, pointRadius: 1 }
-                ]
-            },
+            data: { labels, datasets },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    y: { 
-                        suggestedMin: -25, 
-                        suggestedMax: 15,
-                        grid: { color: '#e0e0e0' }
-                    },
-                    x: {
-                        ticks: { autoSkip: true, maxTicksLimit: 12 },
-                        grid: { display: false }
-                    }
-                },
-                plugins: {
-                    legend: { position: 'bottom' }
+                    y: { suggestedMin: -25, suggestedMax: 10 }
                 }
             }
         });
     }
 
-    muatData();
-    setInterval(muatData, 60000); // Cek data baru tiap 1 menit
+    loadData();
+    setInterval(loadData, 60000);
 </script>
-
 </body>
 </html>
