@@ -3,34 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CS1 Dashboard - Header Unique Edition</title>
+    <title>CS1 - 2 Hari Terakhir</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --primary: #2c3e50; --accent: #1abc9c; --bg: #f4f7f9; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); }
+        :root { --primary: #2c3e50; --accent: #1abc9c; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f4f7f9; }
         .top-bar { position: fixed; top: 0; width: 100%; height: 60px; background: white; display: flex; align-items: center; padding: 0 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1000; }
-        .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 240px; background: var(--primary); color: white; padding-top: 80px; transition: 0.3s; z-index: 999; }
-        .main { margin-left: 240px; padding: 80px 20px 20px; transition: 0.3s; }
+        .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 240px; background: var(--primary); color: white; padding-top: 80px; z-index: 999; }
+        .main { margin-left: 240px; padding: 80px 20px 20px; }
         .card { background: white; border-radius: 12px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        #status-box { background: #1a1a1a; color: #0f0; padding: 12px; font-family: monospace; font-size: 11px; margin-bottom: 20px; border-radius: 8px; border: 1px solid #333; }
-        @media (max-width: 768px) { .sidebar { left: -240px; } .main { margin-left: 0; } }
+        #status-box { background: #1a1a1a; color: #0f0; padding: 12px; font-family: monospace; font-size: 11px; margin-bottom: 20px; border-radius: 8px; }
+        @media (max-width: 768px) { .sidebar { display: none; } .main { margin-left: 0; } }
     </style>
 </head>
 <body>
 
 <div class="top-bar">
-    <strong style="color: var(--primary); font-size: 1.1rem;">❄️ MONITORING CS1 - STABLE VERSION</strong>
+    <strong>❄️ CS1 MONITORING - 2 DAYS VIEW</strong>
 </div>
 
 <div class="sidebar">
-    <div style="padding: 10px 25px; font-size: 11px; color: #7f8c8d; letter-spacing: 1px;">NAVIGATION</div>
-    <a href="#" style="display:block; padding:15px 25px; color:white; text-decoration:none; background:#34495e; border-left:4px solid var(--accent);">🌡️ CS1 Temperature</a>
+    <a href="#" style="display:block; padding:15px 25px; color:white; text-decoration:none; background:#34495e;">🌡️ Suhu CS1</a>
 </div>
 
 <div class="main">
-    <div id="status-box">Menghubungkan ke Header Baru...</div>
+    <div id="status-box">Memproses data terbaru (Baris Atas)...</div>
     <div class="card">
-        <h3 style="margin-top:0; color:#34495e;">Grafik Suhu (Berdasarkan Header Unik)</h3>
+        <h3 style="margin-top:0;">Grafik Suhu 2 Hari Terakhir</h3>
         <div style="height: 450px;"><canvas id="chartCS1"></canvas></div>
     </div>
 </div>
@@ -53,19 +52,32 @@
             const data = await r.json();
             if (!data || data.length === 0) return;
 
-            const latest = data.slice(-50);
+            // Logika 2 Hari Terakhir
+            const sekarang = new Date();
+            const duaHariLalu = new Date();
+            duaHariLalu.setDate(sekarang.getDate() - 2);
 
-            // MEMANGGIL DATA BERDASARKAN NAMA HEADER BARU ANDA
-            // Pastikan nama di dalam ["..."] SAMA PERSIS dengan yang muncul di JSON/Sheets
-            const labels = latest.map(item => formatLabel(item["temperature_line/tanggal"], item["temperature_line/jam"]));
-            
-            const r1 = latest.map(item => item["temperature_line/ruang1"]);
-            const r2 = latest.map(item => item["temperature_line/ruang2"]);
-            const r3 = latest.map(item => item["temperature_line/ruang3"]);
-            const r4 = latest.map(item => item["temperature_line/ruang4"]);
-            const ante = latest.map(item => item["temperature_line/ante"]);
+            // Filter data yang hanya dalam rentang 2 hari & ambil dari atas
+            // Karena data terbaru di atas, kita tidak perlu .reverse() di awal
+            let filtered = data.filter(item => {
+                const tglData = new Date(item["temperature_line/tanggal"]);
+                return tglData >= duaHariLalu;
+            });
 
-            logger.innerText = `Koneksi Stabil! | Update Terakhir: ${labels[labels.length-1]} | R1: ${r1[r1.length-1]}°C`;
+            // Jika data terlalu banyak, batasi misal 300 poin agar tidak berat
+            if (filtered.length > 300) filtered = filtered.slice(0, 300);
+
+            // BALIK URUTAN agar yang terbaru ada di kanan grafik
+            filtered.reverse();
+
+            const labels = filtered.map(item => formatLabel(item["temperature_line/tanggal"], item["temperature_line/jam"]));
+            const r1 = filtered.map(item => item["temperature_line/ruang1"]);
+            const r2 = filtered.map(item => item["temperature_line/ruang2"]);
+            const r3 = filtered.map(item => item["temperature_line/ruang3"]);
+            const r4 = filtered.map(item => item["temperature_line/ruang4"]);
+            const ante = filtered.map(item => item["temperature_line/ante"]);
+
+            logger.innerText = `Update: ${labels[labels.length-1]} | Menampilkan ${filtered.length} data baris.`;
 
             const datasets = [
                 { label: 'Ruang 1', data: r1, borderColor: '#e74c3c' },
@@ -73,13 +85,7 @@
                 { label: 'Ruang 3', data: r3, borderColor: '#f1c40f' },
                 { label: 'Ruang 4', data: r4, borderColor: '#9b59b6' },
                 { label: 'Anteroom', data: ante, borderColor: '#2ecc71' }
-            ].map(ds => ({
-                ...ds,
-                fill: false,
-                tension: 0.1,
-                pointRadius: 3,
-                borderWidth: 2
-            }));
+            ].map(ds => ({ ...ds, fill: false, tension: 0.1, pointRadius: 1 }));
 
             updateChart(labels, datasets);
         } catch (e) {
@@ -98,11 +104,10 @@
                 maintainAspectRatio: false,
                 interaction: { mode: 'index', intersect: false },
                 scales: {
-                    y: { suggestedMin: -25, suggestedMax: 10, title: { display: true, text: 'Suhu (°C)' } }
+                    x: { ticks: { autoSkip: true, maxTicksLimit: 10 } },
+                    y: { suggestedMin: -25, suggestedMax: 10 }
                 },
-                plugins: {
-                    legend: { position: 'bottom' }
-                }
+                plugins: { legend: { position: 'bottom' } }
             }
         });
     }
