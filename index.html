@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard CS1</title>
+    <title>Dashboard CS1 - Fix Undefined</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2c3e50; --accent: #1abc9c; }
@@ -14,14 +14,14 @@
         .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .nav-link { display: block; padding: 15px 25px; color: #bdc3c7; text-decoration: none; border-left: 4px solid transparent; }
         .nav-link.active { background: #34495e; color: white; border-left-color: var(--accent); }
-        #console { background: #1a1a1a; color: #0f0; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; margin-bottom: 15px; }
+        #console { background: #1a1a1a; color: #0f0; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; margin-bottom: 15px; min-height: 40px; }
         @media (max-width: 768px) { .sidebar { left: -240px; } .main { margin-left: 0; } }
     </style>
 </head>
 <body>
 
 <div class="top-bar">
-    <strong>❄️ MONITORING SYSTEM</strong>
+    <strong>❄️ MONITORING SYSTEM - CS1</strong>
 </div>
 
 <div class="sidebar">
@@ -30,21 +30,23 @@
 </div>
 
 <div class="main">
-    <div id="console">Menghubungkan ke Google Sheets...</div>
+    <div id="console">Memulai pemindaian data...</div>
     <div class="card">
-        <h3>Grafik Suhu CS1 (P, Q, R, S, T)</h3>
+        <h3>Grafik Suhu CS1 (Ruang 1-4 & Ante)</h3>
         <div style="height: 400px;"><canvas id="chartCS1"></canvas></div>
     </div>
 </div>
 
 <script>
-    // GANTI DENGAN URL DEPLOYMENT BARU ANDA
+    // PASTIKAN URL INI ADALAH URL DEPLOYMENT TERBARU ANDA
     const API_URL = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
     let chart;
 
+    // Fungsi membersihkan angka dari teks aneh
     function toNum(v) {
-        if (!v) return null;
-        let n = parseFloat(String(v).replace(/,/g, '.').replace(/[^0-9.\-]/g, ''));
+        if (v === null || v === undefined || v === "") return null;
+        let clean = String(v).replace(/,/g, '.').replace(/[^0-9.\-]/g, '');
+        let n = parseFloat(clean);
         return isNaN(n) ? null : n;
     }
 
@@ -53,34 +55,43 @@
         try {
             const r = await fetch(API_URL);
             const data = await r.json();
+            
             if (!data || data.length < 2) {
-                logger.innerText = "Data kosong. Cek IMPORTRANGE di Sheets.";
+                logger.innerText = "Data kosong atau belum terisi di Sheets.";
                 return;
             }
 
-            // Data dari GAS sudah kita batasi 150 baris, jadi tinggal kita pakai
+            // Buang header, ambil data baris
             const rows = data.slice(1); 
-            const labels = rows.map(item => item[0] + " " + item[1]);
+            
+            // Perbaikan Label: Cek apakah kolom 0 dan 1 ada isinya
+            const labels = rows.map(item => {
+                let tgl = item[0] ? String(item[0]) : "";
+                let jam = item[1] ? String(item[1]) : "";
+                return tgl + " " + jam;
+            });
             
             const datasets = [
-                { label: 'R1', col: 15, color: '#e74c3c' },
-                { label: 'R2', col: 16, color: '#3498db' },
-                { label: 'R3', col: 17, color: '#f1c40f' },
-                { label: 'R4', col: 18, color: '#9b59b6' },
-                { label: 'Ante', col: 19, color: '#2ecc71' }
+                { label: 'R1', col: 15, color: '#e74c3c' }, // Kolom P
+                { label: 'R2', col: 16, color: '#3498db' }, // Kolom Q
+                { label: 'R3', col: 17, color: '#f1c40f' }, // Kolom R
+                { label: 'R4', col: 18, color: '#9b59b6' }, // Kolom S
+                { label: 'Ante', col: 19, color: '#2ecc71' } // Kolom T
             ].map(ds => ({
                 label: ds.label,
                 data: rows.map(row => toNum(row[ds.col])),
                 borderColor: ds.color,
+                backgroundColor: ds.color,
                 fill: false,
                 tension: 0.1,
                 pointRadius: 1
             }));
 
-            logger.innerText = "Berhasil menarik " + rows.length + " baris data.";
+            logger.innerText = "Berhasil memuat " + rows.length + " baris data.";
             updateChart(labels, datasets);
         } catch (e) {
             logger.innerText = "Error: " + e.message;
+            console.error(e);
         }
     }
 
@@ -94,13 +105,24 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    y: { suggestedMin: -25, suggestedMax: 10 }
+                    y: { 
+                        suggestedMin: -25, 
+                        suggestedMax: 10,
+                        title: { display: true, text: 'Suhu (°C)' }
+                    },
+                    x: {
+                        ticks: { autoSkip: true, maxTicksLimit: 12 }
+                    }
+                },
+                plugins: {
+                    legend: { position: 'bottom' }
                 }
             }
         });
     }
 
     loadData();
+    // Refresh otomatis setiap 1 menit
     setInterval(loadData, 60000);
 </script>
 </body>
