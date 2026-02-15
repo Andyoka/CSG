@@ -3,28 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CS1 - Auto-Fix Line</title>
+    <title>CS1 Dashboard - Header Unique Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --primary: #2c3e50; --accent: #1abc9c; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f4f7f9; }
+        :root { --primary: #2c3e50; --accent: #1abc9c; --bg: #f4f7f9; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); }
         .top-bar { position: fixed; top: 0; width: 100%; height: 60px; background: white; display: flex; align-items: center; padding: 0 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1000; }
-        .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 240px; background: var(--primary); color: white; padding-top: 80px; z-index: 999; }
-        .main { margin-left: 240px; padding: 80px 20px 20px; }
+        .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 240px; background: var(--primary); color: white; padding-top: 80px; transition: 0.3s; z-index: 999; }
+        .main { margin-left: 240px; padding: 80px 20px 20px; transition: 0.3s; }
         .card { background: white; border-radius: 12px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        #status-box { background: #1a1a1a; color: #0f0; padding: 12px; font-family: monospace; font-size: 11px; margin-bottom: 20px; border-radius: 8px; border: 1px solid #444; }
-        @media (max-width: 768px) { .sidebar { display: none; } .main { margin-left: 0; } }
+        #status-box { background: #1a1a1a; color: #0f0; padding: 12px; font-family: monospace; font-size: 11px; margin-bottom: 20px; border-radius: 8px; border: 1px solid #333; }
+        @media (max-width: 768px) { .sidebar { left: -240px; } .main { margin-left: 0; } }
     </style>
 </head>
 <body>
 
-<div class="top-bar"><strong>❄️ MONITORING CS1 - AUTO SYNC</strong></div>
-<div class="sidebar"><a href="#" style="display:block; padding:15px 25px; color:white; text-decoration:none; background:#34495e;">🌡️ Suhu CS1</a></div>
+<div class="top-bar">
+    <strong style="color: var(--primary); font-size: 1.1rem;">❄️ MONITORING CS1 - STABLE VERSION</strong>
+</div>
+
+<div class="sidebar">
+    <div style="padding: 10px 25px; font-size: 11px; color: #7f8c8d; letter-spacing: 1px;">NAVIGATION</div>
+    <a href="#" style="display:block; padding:15px 25px; color:white; text-decoration:none; background:#34495e; border-left:4px solid var(--accent);">🌡️ CS1 Temperature</a>
+</div>
 
 <div class="main">
-    <div id="status-box">Mencari kecocokan data...</div>
+    <div id="status-box">Menghubungkan ke Header Baru...</div>
     <div class="card">
-        <h3 style="margin-top:0; color:#34495e;">Grafik Suhu (Real-Time)</h3>
+        <h3 style="margin-top:0; color:#34495e;">Grafik Suhu (Berdasarkan Header Unik)</h3>
         <div style="height: 450px;"><canvas id="chartCS1"></canvas></div>
     </div>
 </div>
@@ -33,16 +39,11 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
     let chart;
 
-    // Fungsi pintar mencari data meskipun nama header sedikit berbeda
-    function findVal(obj, keyName) {
-        const key = Object.keys(obj).find(k => k.toLowerCase().includes(keyName.toLowerCase()));
-        return key ? obj[key] : null;
-    }
-
     function formatLabel(tglStr, jamStr) {
-        const d = new Date(tglStr); const j = new Date(jamStr);
+        const d = new Date(tglStr);
+        const j = new Date(jamStr);
         const bln = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
-        return isNaN(d.getTime()) ? "Err" : `${d.getDate()} ${bln[d.getMonth()]} ${j.getHours().toString().padStart(2, '0')}:${j.getMinutes().toString().padStart(2, '0')}`;
+        return `${d.getDate()} ${bln[d.getMonth()]} ${j.getHours().toString().padStart(2, '0')}:${j.getMinutes().toString().padStart(2, '0')}`;
     }
 
     async function loadData() {
@@ -52,19 +53,19 @@
             const data = await r.json();
             if (!data || data.length === 0) return;
 
-            // Ambil 300 data teratas (Terbaru) lalu balik urutan
-            let batch = data.slice(0, 300).reverse();
+            const latest = data.slice(-50);
 
-            const labels = batch.map(item => formatLabel(findVal(item, "tanggal"), findVal(item, "jam")));
+            // MEMANGGIL DATA BERDASARKAN NAMA HEADER BARU ANDA
+            // Pastikan nama di dalam ["..."] SAMA PERSIS dengan yang muncul di JSON/Sheets
+            const labels = latest.map(item => formatLabel(item["temperature_line/tanggal"], item["temperature_line/jam"]));
             
-            // Mencari data Ruang 1-4 & Ante tanpa peduli huruf besar/kecil
-            const r1 = batch.map(item => findVal(item, "ruang1"));
-            const r2 = batch.map(item => findVal(item, "ruang2"));
-            const r3 = batch.map(item => findVal(item, "ruang3"));
-            const r4 = batch.map(item => findVal(item, "ruang4"));
-            const ante = batch.map(item => findVal(item, "ante"));
+            const r1 = latest.map(item => item["temperature_line/ruang1"]);
+            const r2 = latest.map(item => item["temperature_line/ruang2"]);
+            const r3 = latest.map(item => item["temperature_line/ruang3"]);
+            const r4 = latest.map(item => item["temperature_line/ruang4"]);
+            const ante = latest.map(item => item["temperature_line/ante"]);
 
-            logger.innerText = `Update: ${labels[labels.length-1]} | R1: ${r1[r1.length-1]} | R2: ${r2[r2.length-1]}`;
+            logger.innerText = `Koneksi Stabil! | Update Terakhir: ${labels[labels.length-1]} | R1: ${r1[r1.length-1]}°C`;
 
             const datasets = [
                 { label: 'Ruang 1', data: r1, borderColor: '#e74c3c' },
@@ -72,7 +73,13 @@
                 { label: 'Ruang 3', data: r3, borderColor: '#f1c40f' },
                 { label: 'Ruang 4', data: r4, borderColor: '#9b59b6' },
                 { label: 'Anteroom', data: ante, borderColor: '#2ecc71' }
-            ].map(ds => ({ ...ds, fill: false, tension: 0.1, pointRadius: 1, borderWidth: 2 }));
+            ].map(ds => ({
+                ...ds,
+                fill: false,
+                tension: 0.1,
+                pointRadius: 3,
+                borderWidth: 2
+            }));
 
             updateChart(labels, datasets);
         } catch (e) {
@@ -89,11 +96,13 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: { 
-                    y: { suggestedMin: -25, suggestedMax: 10 },
-                    x: { ticks: { autoSkip: true, maxTicksLimit: 10 } }
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    y: { suggestedMin: -25, suggestedMax: 10, title: { display: true, text: 'Suhu (°C)' } }
                 },
-                plugins: { legend: { position: 'bottom' } }
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
             }
         });
     }
