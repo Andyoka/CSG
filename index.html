@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MONITORING SYSTEM V8.9</title>
+    <title>MONITORING SYSTEM V8.9.1</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2c3e50; --accent: #1abc9c; --bg: #f4f7f9; --sidebar: #1e2b37; --sub: #162129; }
@@ -17,25 +17,39 @@
         .sidebar { width: 260px; background: var(--sidebar); color: #ecf0f1; display: flex; flex-direction: column; overflow-y: auto; }
         .logo-area { padding: 25px; text-align: center; background: #162129; border-bottom: 1px solid #2c3e50; }
         .logo-box { font-size: 20px; font-weight: bold; color: white; border: 2px solid var(--accent); display: inline-block; padding: 5px 15px; border-radius: 8px; text-transform: uppercase; }
+        
+        .menu-section { padding: 15px 20px 5px 20px; font-size: 11px; color: #7f8c8d; font-weight: bold; text-transform: uppercase; }
         .nav-item { padding: 12px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 14px; transition: 0.2s; border-left: 4px solid transparent; }
+        .nav-item:hover { background: var(--sub); }
         .nav-item.active { background: var(--sub); border-left-color: var(--accent); color: var(--accent); }
+
+        .lvl-2, .lvl-3 { display: none; background: #162129; }
+        .show { display: block !important; }
+        .sub-item { padding: 10px 20px 10px 40px; cursor: pointer; font-size: 13px; color: #bdc3c7; display: flex; justify-content: space-between; }
+        .deep-item { padding: 8px 20px 8px 60px; cursor: pointer; font-size: 12px; color: #95a5a6; }
+        .deep-item.active { color: white; background: var(--accent); font-weight: bold; }
 
         /* Content Area */
         .content { flex: 1; overflow-y: auto; padding: 20px; }
+        .toolbar { display: flex; gap: 10px; margin-bottom: 20px; background: #fff; padding: 15px; border-radius: 8px; align-items: flex-end; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; }
         
-        /* Gallery Styles */
+        /* Table Styles */
+        .table-wrapper { margin-top: 20px; overflow-x: auto; max-height: 400px; border: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; }
+        th { background: #f8f9fa; position: sticky; top: 0; padding: 12px; border-bottom: 2px solid #dee2e6; }
+        td { padding: 8px; border-bottom: 1px solid #eee; }
+
+        /* Photo Styles */
         .area-section { margin-bottom: 40px; }
         .area-header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid #ddd; padding-bottom: 5px; }
         .area-title { font-size: 18px; font-weight: bold; color: var(--primary); }
-        .area-info { font-size: 12px; color: #666; }
         .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
-        .photo-card { background: white; border-radius: 10px; overflow: hidden; border: 1px solid #ddd; position: relative; transition: 0.3s; }
+        .photo-card { background: white; border-radius: 10px; overflow: hidden; border: 1px solid #ddd; position: relative; }
         .photo-card img { width: 100%; height: 160px; object-fit: cover; background: #f0f0f0; cursor: pointer; }
-        .photo-label { padding: 10px; font-size: 11px; background: #fff; border-top: 1px solid #eee; }
-        .id-badge { position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,0.5); color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; }
+        .photo-label { padding: 10px; font-size: 11px; }
 
-        @media print { .sidebar, .header { display: none !important; } .content { padding: 0; } }
+        @media print { .sidebar, .header, .toolbar { display: none !important; } .content { padding: 0; } }
     </style>
 </head>
 <body>
@@ -49,112 +63,82 @@
     <div class="sidebar">
         <div class="logo-area">
             <div class="logo-box" id="dynamicLogo">MYCOM</div>
-            <div style="font-size: 10px; color: #7f8c8d; margin-top:5px;">CONTROL PANEL</div>
+            <div style="font-size: 10px; color: #7f8c8d; margin-top:5px;">CONTROL DASHBOARD</div>
         </div>
-        <div style="padding:15px 20px 5px; font-size:11px; color:#7f8c8d; font-weight:bold;">MENU</div>
-        <div class="nav-item active" onclick="switchTab('MYCOM', this)"><span>📊 MONITORING SUHU</span></div>
-        <div class="nav-item" onclick="switchTab('FOTO', this)"><span>📷 FOTO KEBERSIHAN</span></div>
+
+        <div class="menu-section">Data Monitoring</div>
+        <div class="nav-item active" onclick="switchTab('MYCOM', this)">
+            <span>📊 MONITORING SUHU</span><span>▼</span>
+        </div>
+        <div id="mycom-lvl2" class="lvl-2 show">
+            <div class="sub-item" onclick="toggleSubMenu('suhu-lvl3')"><span>🌡️ Lokasi Area</span></div>
+            <div id="suhu-lvl3" class="lvl-3 show">
+                <div class="deep-item active" onclick="changeUnit('P2', this)">Suhu P2</div>
+                <div class="deep-item" onclick="changeUnit('CWP', this)">Suhu CWP</div>
+                <div class="deep-item" onclick="changeUnit('CS1', this)">Suhu CS1</div>
+                <div class="deep-item" onclick="changeUnit('CS2', this)">Suhu CS2</div>
+            </div>
+        </div>
+
+        <div class="nav-item" onclick="switchTab('FOTO', this)">
+            <span>📷 FOTO KEBERSIHAN</span><span>▼</span>
+        </div>
     </div>
 
     <div class="content">
-        <div id="tab-MYCOM">
-            <div class="card">
-                <canvas id="myChart" style="height:400px;"></canvas>
+        <div id="sec-MYCOM">
+            <div class="toolbar">
+                <div style="display:flex; flex-direction:column; gap:5px;">
+                    <label style="font-size:10px; font-weight:bold;">FILTER TANGGAL</label>
+                    <div style="display:flex; gap:5px;">
+                        <input type="date" id="startDate">
+                        <input type="date" id="endDate">
+                        <button onclick="applyFilter()" style="background:var(--accent); color:white; border:none; padding:8px 15px; border-radius:4px; font-weight:bold; cursor:pointer;">PROSES</button>
+                    </div>
+                </div>
+                <div style="flex-grow: 1;"></div>
+                <button onclick="window.print()" style="background:#34495e; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer;">🖨️ PRINT LAPORAN</button>
             </div>
-            <div id="table-suhu-container"></div>
+            <div class="card"><div style="height: 400px;"><canvas id="myChart"></canvas></div></div>
+            <div class="card">
+                <h3 id="tableTitle" style="margin:0 0 15px 0; color:#2c3e50; font-size:16px;">Riwayat Data</h3>
+                <div class="table-wrapper"><table id="dataTable"><thead id="tableHead"></thead><tbody id="tableBody"></tbody></table></div>
+            </div>
         </div>
 
-        <div id="tab-FOTO" style="display:none;">
-            <div id="gallery-content">
-                <p>Memasangkan koneksi data foto...</p>
-            </div>
+        <div id="sec-FOTO" style="display:none;">
+            <div id="gallery-content"><p>Memuat data foto...</p></div>
         </div>
     </div>
 </div>
 
 <script>
-    // URL SUHU (Existing)
-    const URL_API_SUHU = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
-    
-    // URL FOTO (Baru dari Anda)
-    const URL_API_FOTO = "https://script.google.com/macros/s/AKfycbwes3tRQrHvDhE_l88WieD-ptVuHd2JXM-dq9jdb9M3xwuzQ9eMTjityjxNNc9Jt_mebQ/exec";
+    const URL_SUHU = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
+    const URL_FOTO = "https://script.google.com/macros/s/AKfycbwes3tRQrHvDhE_l88WieD-ptVuHd2JXM-dq9jdb9M3xwuzQ9eMTjityjxNNc9Jt_mebQ/exec";
 
-    // --- LOGIKA DATA FOTO ---
-    const AREA_CONFIG = [
-        { name: "RUANG 1", start: 0, end: 3, id: 4, tgl: 5, jam: 6 },
-        { name: "RUANG 2", start: 7, end: 10, id: 11, tgl: 12, jam: 13 },
-        { name: "RUANG 3", start: 14, end: 17, id: 18, tgl: 19, jam: 20 },
-        { name: "RUANG 4", start: 21, end: 24, id: 25, tgl: 26, jam: 27 },
-        { name: "RUANG A", start: 28, end: 31, id: 32, tgl: 33, jam: 34 },
-        { name: "RUANG B", start: 35, end: 38, id: 39, tgl: 40, jam: 41 },
-        { name: "RUANG C", start: 42, end: 45, id: 46, tgl: 47, jam: 48 },
-        { name: "ANTEROOM UTARA", start: 49, end: 49, id: 50, tgl: 51, jam: 52 },
-        { name: "ANTEROOM SELATAN", start: 53, end: 53, id: 54, tgl: 55, jam: 56 }
-    ];
+    let myChart, rawDataSuhu = [], activeUnit = 'P2';
 
-    async function loadPhotoData() {
+    // --- LOGIKA SUHU ---
+    async function fetchSuhu() {
         try {
-            const res = await fetch(URL_API_FOTO + "?t=" + new Date().getTime());
-            const data = await res.json();
-            renderGallery(data);
-        } catch (e) {
-            document.getElementById('gallery-content').innerHTML = "<p>Error koneksi data foto. Pastikan Apps Script sudah di-deploy 'Anyone'.</p>";
-        }
+            const res = await fetch(URL_SUHU + "?t=" + new Date().getTime());
+            rawDataSuhu = await res.json();
+            updateUI();
+        } catch (err) { console.error("Error Suhu", err); }
     }
 
-    function renderGallery(data) {
-        const container = document.getElementById('gallery-content');
-        container.innerHTML = "";
-
-        AREA_CONFIG.forEach(area => {
-            const latestEntry = data.find(row => {
-                const vals = Object.values(row);
-                return vals[area.start] && vals[area.start] !== "";
-            });
-
-            if (latestEntry) {
-                const vals = Object.values(latestEntry);
-                let html = `
-                <div class="area-section">
-                    <div class="area-header">
-                        <span class="area-title">${area.name}</span>
-                        <span class="area-info">Kondisi Terakhir: 📅 ${vals[area.tgl]} | 🕒 ${vals[area.jam]}</span>
-                    </div>
-                    <div class="photo-grid">`;
-
-                for (let i = area.start; i <= area.end; i++) {
-                    if (vals[i] && vals[i] !== "") {
-                        // Link image viewer AppSheet
-                        const imgUrl = `https://www.appsheet.com/template/gettablefileurl?appName=LS2Foto-XXXXXX&tableName=Foto%20Ruang%20%26%20Gudang&fileName=${encodeURIComponent(vals[i])}`;
-                        html += `
-                        <div class="photo-card">
-                            <span class="id-badge">ID: ${vals[area.id]}</span>
-                            <img src="${imgUrl}" onerror="this.src='https://via.placeholder.com/400x300?text=File+Not+Found'" onclick="window.open(this.src)">
-                            <div class="photo-label">Foto Bagian ${i - area.start + 1}</div>
-                        </div>`;
-                    }
-                }
-                html += `</div></div>`;
-                container.innerHTML += html;
-            }
-        });
-    }
-
-    // --- FUNGSI TAB ---
-    function switchTab(tab, el) {
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    function changeUnit(unit, el) {
+        activeUnit = unit;
+        document.querySelectorAll('.deep-item').forEach(d => d.classList.remove('active'));
         el.classList.add('active');
-        document.getElementById('dynamicLogo').innerText = tab;
-        document.getElementById('tab-MYCOM').style.display = tab === 'MYCOM' ? 'block' : 'none';
-        document.getElementById('tab-FOTO').style.display = tab === 'FOTO' ? 'block' : 'none';
-        if(tab === 'FOTO') loadPhotoData();
+        updateUI();
     }
 
-    // --- INITIALIZE ---
-    setInterval(() => { document.getElementById('live-clock').innerText = new Date().toLocaleString('id-ID'); }, 1000);
-    
-    // Memanggil data suhu seperti biasa
-    // (Tambahkan script Chart.js dan fetchData suhu Anda di sini agar grafik suhu tetap muncul)
-</script>
-</body>
-</html>
+    function updateUI(filteredData = null) {
+        let config = {};
+        if(activeUnit === 'CS1') config = { indices: [13,14,15,16,17], labels: ['R1','R2','R3','R4','Ante'], colors: ['#e74c3c','#3498db','#f1c40f','#9b59b6','#2ecc71'] };
+        else if(activeUnit === 'CS2') config = { indices: [18,19,20,21], labels: ['RA','RB','RC','Ante'], colors: ['#c0392b','#2980b9','#f39c12','#27ae60'] };
+        else if(activeUnit === 'P2') config = { indices: [2,3,4,5,6,7,8,9,10], labels: ['Clean1','Clean2','Pack1','Pack2','Pre1','Pre2','Seas1','Seas2','Stemer'], colors: ['#1abc9c','#16a085','#2ecc71','#27ae60','#3498db','#2980b9','#9b59b6','#8e44ad','#e67e22'] };
+        else if(activeUnit === 'CWP') config = { indices: [11,12], labels: ['CWP 1','CWP 2'], colors: ['#e74c3c','#3498db'] };
+
+        const dataToUse = filteredData || rawDataSuhu.slice(0, 50);
