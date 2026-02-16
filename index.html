@@ -3,51 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CS MONITORING V5.4 - FIX DATE</title>
+    <title>CS MONITORING V5.5 - PRO</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2c3e50; --accent: #1abc9c; --bg: #f4f7f9; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); }
         .header { background: var(--primary); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
         .container { padding: 20px; max-width: 1400px; margin: 0 auto; }
-        .status-bar { background: #1a1a1a; color: #0f0; padding: 12px; font-family: monospace; font-size: 13px; border-radius: 8px; margin-bottom: 20px; border-left: 6px solid var(--accent); display: flex; justify-content: space-between; align-items: center; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; }
-        .filter-section { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: flex-end; background: #eee; padding: 15px; border-radius: 8px; }
-        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        
+        /* Toolbar Styles */
+        .toolbar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; background: #fff; padding: 15px; border-radius: 8px; align-items: flex-end; border: 1px solid #ddd; }
+        .tool-group { display: flex; flex-direction: column; gap: 5px; }
         label { font-size: 11px; font-weight: bold; color: #555; }
-        input[type="date"] { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-        button { cursor: pointer; border: none; border-radius: 4px; font-weight: bold; padding: 10px 20px; }
-        .btn-apply { background: var(--accent); color: white; }
+        
+        select, input, button { padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
+        button { cursor: pointer; font-weight: bold; transition: 0.2s; border: none; }
+        
+        .btn-view { background: var(--accent); color: white; }
+        .btn-print { background: #34495e; color: white; }
+        .btn-export { background: #27ae60; color: white; }
         .btn-reset { background: #95a5a6; color: white; }
+        button:hover { opacity: 0.8; }
+
+        @media print {
+            .toolbar, .header, .status-bar { display: none !important; }
+            .card { box-shadow: none; border: none; }
+            body { background: white; }
+        }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <strong>❄️ MONITORING SYSTEM <span style="color:var(--accent)">V5.4 DATE-FIX</span></strong>
-    <div id="live-clock" style="font-size: 14px; font-family: monospace;"></div>
+    <strong>❄️ CS MONITORING <span style="color:var(--accent)">V5.5 PRO</span></strong>
+    <div id="live-clock" style="font-family: monospace;"></div>
 </div>
 
 <div class="container">
-    <div class="status-bar">
-        <span id="stat-text">🚀 Memproses data tanggal...</span>
-        <span id="live-update" style="color: #aaa; font-size: 11px;"></span>
-    </div>
-
-    <div class="card">
-        <div class="filter-section">
-            <div class="filter-group">
-                <label>DARI TANGGAL</label>
+    <div class="toolbar">
+        <div class="tool-group">
+            <label>RENTANG TANGGAL</label>
+            <div style="display:flex; gap:5px;">
                 <input type="date" id="startDate">
-            </div>
-            <div class="filter-group">
-                <label>SAMPAI TANGGAL</label>
                 <input type="date" id="endDate">
             </div>
-            <button class="btn-apply" onclick="applyFilter()">TAMPILKAN FILTER</button>
-            <button class="btn-reset" onclick="resetFilter()">RESET (2 HARI)</button>
         </div>
-        <div style="height: 500px;"><canvas id="myChart"></canvas></div>
+
+        <div class="tool-group">
+            <label>PILIH UNIT</label>
+            <select id="unitSelector" onchange="applyFilter()">
+                <option value="ALL">Tampilkan Semua (CS1 & CS2)</option>
+                <option value="CS1">Hanya CS1</option>
+                <option value="CS2">Hanya CS2</option>
+            </select>
+        </div>
+
+        <button class="btn-view" onclick="applyFilter()">TAMPILKAN</button>
+        <button class="btn-reset" onclick="resetFilter()">RESET</button>
+        <div style="flex-grow: 1;"></div>
+        <button class="btn-print" onclick="window.print()">🖨️ PRINT GRAFIK</button>
+        <button class="btn-export" onclick="exportToCSV()">📊 DOWNLOAD EXCEL (CSV)</button>
+    </div>
+
+    <div class="card" id="printArea">
+        <div style="height: 550px;"><canvas id="myChart"></canvas></div>
     </div>
 </div>
 
@@ -55,37 +75,26 @@
     const URL_API = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
     let myChart;
     let rawDataGlobal = [];
+    let currentFilteredData = [];
 
     async function fetchData() {
-        const stat = document.getElementById('stat-text');
         try {
-            stat.innerText = "⏳ Sinkronisasi data...";
             const res = await fetch(URL_API + "?t=" + new Date().getTime());
             rawDataGlobal = await res.json();
             resetFilter();
-        } catch (err) {
-            stat.innerText = "❌ GAGAL: " + err.message;
-        }
+        } catch (err) { console.error("Gagal ambil data", err); }
     }
 
     function processAndDisplay(filteredData) {
-        const stat = document.getElementById('stat-text');
+        currentFilteredData = filteredData;
         const batch = [...filteredData].reverse();
+        const unitType = document.getElementById('unitSelector').value;
         
         const labels = batch.map(d => {
             const r = Object.values(d);
-            // PERBAIKAN LOGIKA TANGGAL: Ambil string asli, bersihkan simbol aneh
-            let dateStr = r[0] ? r[0].toString().split('T')[0] : ""; 
-            let timeStr = r[1] ? r[1].toString() : "";
-            
-            // Coba parsing manual jika Date object gagal
-            const dt = new Date(r[0]); 
+            const dt = new Date(r[0]);
             const jam = new Date(r[1]);
-
-            if (isNaN(dt.getTime())) return "Err";
-            
-            // Format: Tgl/Bln Jam:Menit
-            return `${dt.getDate()}/${dt.getMonth()+1} ${jam.getHours().toString().padStart(2,'0')}:${jam.getMinutes().toString().padStart(2,'0')}`;
+            return isNaN(dt.getTime()) ? "" : `${dt.getDate()}/${dt.getMonth()+1} ${jam.getHours().toString().padStart(2,'0')}:${jam.getMinutes().toString().padStart(2,'0')}`;
         });
 
         const g = (obj, idx) => {
@@ -94,66 +103,78 @@
             return isNaN(n) ? null : n;
         };
 
-        const sets = [
-            { label: 'CS1-R1', data: batch.map(d => g(d, 15)), borderColor: '#e74c3c' },
-            { label: 'CS1-R2', data: batch.map(d => g(d, 16)), borderColor: '#3498db' },
-            { label: 'CS1-R3', data: batch.map(d => g(d, 17)), borderColor: '#f1c40f' },
-            { label: 'CS1-R4', data: batch.map(d => g(d, 18)), borderColor: '#9b59b6' },
-            { label: 'CS1-Ant', data: batch.map(d => g(d, 19)), borderColor: '#2ecc71' },
-            { label: 'CS2-RA', data: batch.map(d => g(d, 20)), borderColor: '#c0392b', borderDash: [5,5] },
-            { label: 'CS2-RB', data: batch.map(d => g(d, 21)), borderColor: '#2980b9', borderDash: [5,5] },
-            { label: 'CS2-RC', data: batch.map(d => g(d, 22)), borderColor: '#f39c12', borderDash: [5,5] },
-            { label: 'CS2-Ant', data: batch.map(d => g(d, 23)), borderColor: '#27ae60', borderDash: [5,5] }
+        // Definisi Dataset
+        const allSets = [
+            { label: 'CS1-R1', data: batch.map(d => g(d, 15)), borderColor: '#e74c3c', unit: 'CS1' },
+            { label: 'CS1-R2', data: batch.map(d => g(d, 16)), borderColor: '#3498db', unit: 'CS1' },
+            { label: 'CS1-R3', data: batch.map(d => g(d, 17)), borderColor: '#f1c40f', unit: 'CS1' },
+            { label: 'CS1-R4', data: batch.map(d => g(d, 18)), borderColor: '#9b59b6', unit: 'CS1' },
+            { label: 'CS1-Ant', data: batch.map(d => g(d, 19)), borderColor: '#2ecc71', unit: 'CS1' },
+            { label: 'CS2-RA', data: batch.map(d => g(d, 20)), borderColor: '#c0392b', borderDash: [5,5], unit: 'CS2' },
+            { label: 'CS2-RB', data: batch.map(d => g(d, 21)), borderColor: '#2980b9', borderDash: [5,5], unit: 'CS2' },
+            { label: 'CS2-RC', data: batch.map(d => g(d, 22)), borderColor: '#f39c12', borderDash: [5,5], unit: 'CS2' },
+            { label: 'CS2-Ant', data: batch.map(d => g(d, 23)), borderColor: '#27ae60', borderDash: [5,5], unit: 'CS2' }
         ];
+
+        // Filter dataset berdasarkan dropdown
+        const visibleSets = unitType === 'ALL' ? allSets : allSets.filter(s => s.unit === unitType);
 
         if (myChart) myChart.destroy();
         myChart = new Chart(document.getElementById('myChart'), {
             type: 'line',
-            data: { 
-                labels, 
-                datasets: sets.map(s => ({ ...s, fill:false, tension:0.2, pointRadius:0, borderWidth:3 })) 
-            },
+            data: { labels, datasets: visibleSets.map(s => ({...s, fill:false, tension:0.2, pointRadius:0, borderWidth:3})) },
             options: {
                 responsive: true, maintainAspectRatio: false,
                 interaction: { mode: 'index', intersect: false },
-                plugins: { legend: { position: 'bottom' } },
-                scales: { 
-                    x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } },
-                    y: { suggestedMin: -25, suggestedMax: 15 } 
+                plugins: { 
+                    legend: { position: 'bottom' },
+                    title: { display: true, text: 'Grafik Suhu Ruangan Storage' }
                 }
             }
         });
-        stat.innerText = `🟢 AKTIF | Menampilkan ${filteredData.length} data`;
     }
 
     function applyFilter() {
         const sStr = document.getElementById('startDate').value;
         const eStr = document.getElementById('endDate').value;
-        if(!sStr || !eStr) return;
+        let filtered = rawDataGlobal;
 
-        const start = new Date(sStr); start.setHours(0,0,0,0);
-        const end = new Date(eStr); end.setHours(23,59,59,999);
-
-        const filtered = rawDataGlobal.filter(d => {
-            const r = Object.values(d);
-            const cur = new Date(r[0]);
-            return cur >= start && cur <= end;
-        });
+        if(sStr && eStr) {
+            const start = new Date(sStr); start.setHours(0,0,0,0);
+            const end = new Date(eStr); end.setHours(23,59,59,999);
+            filtered = rawDataGlobal.filter(d => {
+                const cur = new Date(Object.values(d)[0]);
+                return cur >= start && cur <= end;
+            });
+        }
         processAndDisplay(filtered);
     }
 
     function resetFilter() {
+        document.getElementById('startDate').value = "";
+        document.getElementById('endDate').value = "";
         const allT = rawDataGlobal.map(d => new Date(Object.values(d)[0]).getTime()).filter(t => !isNaN(t));
-        if(allT.length === 0) return;
-        const latest = new Date(Math.max(...allT));
-        const cutoff = latest.getTime() - (48 * 60 * 60 * 1000);
-        const filtered = rawDataGlobal.filter(d => new Date(Object.values(d)[0]).getTime() >= cutoff);
-        processAndDisplay(filtered);
+        const cutoff = Math.max(...allT) - (48 * 60 * 60 * 1000);
+        processAndDisplay(rawDataGlobal.filter(d => new Date(Object.values(d)[0]).getTime() >= cutoff));
+    }
+
+    function exportToCSV() {
+        if(currentFilteredData.length === 0) return;
+        let csv = "Tanggal,Jam,CS1-R1,CS1-R2,CS1-R3,CS1-R4,CS1-Ant,CS2-RA,CS2-RB,CS2-RC,CS2-Ant\n";
+        currentFilteredData.forEach(row => {
+            const r = Object.values(row);
+            csv += `${r[0]},${r[1]},${r[15]},${r[16]},${r[17]},${r[18]},${r[19]},${r[20]},${r[21]},${r[22]},${r[23]}\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.setAttribute('href', url);
+        a.setAttribute('download', `Data_Suhu_${new Date().toLocaleDateString()}.csv`);
+        a.click();
     }
 
     setInterval(() => { document.getElementById('live-clock').innerText = new Date().toLocaleString('id-ID'); }, 1000);
     fetchData();
-    setInterval(fetchData, 600000);
 </script>
 </body>
 </html>
