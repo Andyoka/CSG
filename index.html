@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CS1 & CS2 - Auto Key Finder</title>
+    <title>CS1 & CS2 - Final Mapping</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2c3e50; --accent: #1abc9c; --bg: #f4f7f9; }
@@ -16,26 +16,18 @@
 </head>
 <body>
 
-<div class="top-bar"><strong>❄️ DASHBOARD CS1 & CS2 (AUTO-SYNC)</strong></div>
+<div class="top-bar"><strong>❄️ DASHBOARD CS1 & CS2 (MAPPING FIXED)</strong></div>
 
 <div class="main">
     <div class="card">
         <div style="height: 500px;"><canvas id="combinedChart"></canvas></div>
     </div>
-    
-    <div id="debug-log">Memulai pencarian kolom data...</div>
+    <div id="debug-log">Menghubungkan ke server...</div>
 </div>
 
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
     let chart;
-
-    // FUNGSI PINTAR: Mencari kolom berdasarkan teks di header
-    function findData(item, keywords) {
-        const keys = Object.keys(item);
-        const match = keys.find(k => keywords.every(kw => k.toLowerCase().includes(kw.toLowerCase())));
-        return match ? parseFloat(item[match]) : null;
-    }
 
     async function loadData() {
         const log = document.getElementById('debug-log');
@@ -44,36 +36,55 @@
             const data = await r.json();
             if (!data || data.length === 0) return;
 
-            // Ambil 2 hari terakhir (asumsi 200 baris cukup)
-            const batch = data.slice(0, 200).reverse();
+            // 1. Cari tanggal terbaru di data untuk filter 2 hari terakhir
+            const allT = data.map(d => new Date(Object.values(d)[0]).getTime());
+            const latestMs = Math.max(...allT);
+            const cutoff = latestMs - (48 * 60 * 60 * 1000); // 48 jam terakhir
 
-            const labels = batch.map(item => {
-                const t = new Date(Object.values(item)[0]);
-                const j = new Date(Object.values(item)[1]);
+            const filtered = data.filter(d => new Date(Object.values(d)[0]).getTime() >= cutoff).reverse();
+
+            const labels = filtered.map(item => {
+                const row = Object.values(item);
+                const t = new Date(row[0]);
+                const j = new Date(row[1]);
                 return `${t.getDate()}/${t.getMonth()+1} ${j.getHours()}:${j.getMinutes().toString().padStart(2,'0')}`;
             });
 
-            // LOGIKA PENCARIAN OTOMATIS BERDASARKAN NAMA
-            const datasets = [
-                { label: 'CS1-R1', data: batch.map(i => findData(i, ['ruang1'])), borderColor: '#e74c3c' },
-                { label: 'CS1-R2', data: batch.map(i => findData(i, ['ruang2'])), borderColor: '#3498db' },
-                { label: 'CS1-R3', data: batch.map(i => findData(i, ['ruang3'])), borderColor: '#f1c40f' },
-                { label: 'CS1-R4', data: batch.map(i => findData(i, ['ruang4'])), borderColor: '#9b59b6' },
-                { label: 'CS1-Ante', data: batch.map(i => findData(i, ['cs1','ante'])), borderColor: '#2ecc71' },
-                
-                { label: 'CS2-RA', data: batch.map(i => findData(i, ['ruanga'])), borderColor: '#c0392b', borderDash:[5,5] },
-                { label: 'CS2-RB', data: batch.map(i => findData(i, ['ruangb'])), borderColor: '#2980b9', borderDash:[5,5] },
-                { label: 'CS2-RC', data: batch.map(i => findData(i, ['ruangc'])), borderColor: '#f39c12', borderDash:[5,5] },
-                { label: 'CS2-Ante', data: batch.map(i => findData(i, ['cs2','ante'])), borderColor: '#27ae60', borderDash:[5,5] }
-            ].filter(ds => ds.data.some(v => v !== null)); // Hanya tampilkan yang ada datanya
+            // FUNGSI PAKSA ANGKA
+            const getVal = (row, idx) => {
+                const v = Object.values(row)[idx];
+                const n = parseFloat(v);
+                return isNaN(n) ? null : n;
+            };
 
-            log.innerText = "KOLOM TERDETEKSI:\n" + datasets.map(d => `✅ ${d.label}`).join('\n');
+            const datasets = [
+                // CS1: Kolom P(15), Q(16), R(17), S(18), T(19)
+                { label: 'CS1-R1', data: filtered.map(i => getVal(i, 15)), borderColor: '#e74c3c' },
+                { label: 'CS1-R2', data: filtered.map(i => getVal(i, 16)), borderColor: '#3498db' },
+                { label: 'CS1-R3', data: filtered.map(i => getVal(i, 17)), borderColor: '#f1c40f' },
+                { label: 'CS1-R4', data: filtered.map(i => getVal(i, 18)), borderColor: '#9b59b6' },
+                { label: 'CS1-Ante', data: filtered.map(i => getVal(i, 19)), borderColor: '#2ecc71' },
+                
+                // CS2: Kolom W(22), X(23), Y(24), Z(25)
+                { label: 'CS2-RA', data: filtered.map(i => getVal(i, 22)), borderColor: '#c0392b', borderDash:[5,5] },
+                { label: 'CS2-RB', data: filtered.map(i => getVal(i, 23)), borderColor: '#2980b9', borderDash:[5,5] },
+                { label: 'CS2-RC', data: filtered.map(i => getVal(i, 24)), borderColor: '#f39c12', borderDash:[5,5] },
+                { label: 'CS2-Ante', data: filtered.map(i => getVal(i, 25)), borderColor: '#27ae60', borderDash:[5,5] }
+            ];
+
+            log.innerText = `Berhasil menarik ${filtered.length} data poin.\n` + 
+                            `Status CS2-RA: ${getVal(filtered[filtered.length-1], 22)}°C (Indeks 22)`;
 
             if (chart) chart.destroy();
             chart = new Chart(document.getElementById('combinedChart'), {
                 type: 'line',
                 data: { labels, datasets },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    scales: { y: { suggestedMin: -25, suggestedMax: 15 } },
+                    plugins: { legend: { position: 'bottom' } }
+                }
             });
 
         } catch (e) { log.innerText = "Error: " + e.message; }
