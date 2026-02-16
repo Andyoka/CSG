@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CS MONITORING V5.6 - PRO TABLE</title>
+    <title>CS MONITORING V5.7 - 2 DAYS VIEW</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2c3e50; --accent: #1abc9c; --bg: #f4f7f9; }
@@ -11,7 +11,6 @@
         .header { background: var(--primary); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top:0; z-index:100; }
         .container { padding: 20px; max-width: 1400px; margin: 0 auto; }
         
-        /* Toolbar */
         .toolbar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; background: #fff; padding: 15px; border-radius: 8px; align-items: flex-end; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .tool-group { display: flex; flex-direction: column; gap: 5px; }
         label { font-size: 11px; font-weight: bold; color: #555; }
@@ -21,10 +20,10 @@
         .btn-view { background: var(--accent); color: white; }
         .btn-print { background: #34495e; color: white; }
         .btn-export { background: #27ae60; color: white; }
+        .btn-reset { background: #95a5a6; color: white; }
 
-        /* Table Style */
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; }
-        .table-wrapper { margin-top: 20px; overflow-x: auto; max-height: 400px; overflow-y: auto; }
+        .table-wrapper { margin-top: 20px; overflow-x: auto; max-height: 400px; overflow-y: auto; border: 1px solid #eee; }
         table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: center; }
         th { background: #f8f9fa; position: sticky; top: 0; padding: 12px; border-bottom: 2px solid #dee2e6; }
         td { padding: 10px; border-bottom: 1px solid #eee; }
@@ -40,34 +39,35 @@
 <body>
 
 <div class="header">
-    <strong>❄️ CS MONITORING <span style="color:var(--accent)">V5.6</span></strong>
+    <strong>❄️ CS MONITORING <span style="color:var(--accent)">V5.7 (2-DAYS)</span></strong>
     <div id="live-clock"></div>
 </div>
 
 <div class="container">
     <div class="toolbar">
         <div class="tool-group">
-            <label>RENTANG TANGGAL</label>
+            <label>FILTER TANGGAL</label>
             <div style="display:flex; gap:5px;">
                 <input type="date" id="startDate">
                 <input type="date" id="endDate">
             </div>
         </div>
         <div class="tool-group">
-            <label>PILIH UNIT STORAGE</label>
-            <select id="unitSelector" onchange="applyFilter()">
-                <option value="CS1">Unit CS1 (R1 - R4 + Ante)</option>
-                <option value="CS2">Unit CS2 (RA - RC + Ante)</option>
+            <label>PILIH UNIT</label>
+            <select id="unitSelector" onchange="updateUI()">
+                <option value="CS1">Unit CS1 (Cold Storage 1)</option>
+                <option value="CS2">Unit CS2 (Cold Storage 2)</option>
             </select>
         </div>
-        <button class="btn-view" onclick="applyFilter()">PROSES</button>
+        <button class="btn-view" onclick="applyFilter()">PROSES FILTER</button>
+        <button class="btn-reset" onclick="resetToTwoDays()">RESET (2 HARI)</button>
         <div style="flex-grow: 1;"></div>
         <button class="btn-print" onclick="window.print()">🖨️ PRINT LAPORAN</button>
-        <button class="btn-export" onclick="exportToCSV()">📊 DOWNLOAD EXCEL (.CSV)</button>
+        <button class="btn-export" onclick="exportToCSV()">📊 DOWNLOAD CSV</button>
     </div>
 
     <div class="card">
-        <div style="height: 400px;"><canvas id="myChart"></canvas></div>
+        <div style="height: 450px;"><canvas id="myChart"></canvas></div>
     </div>
 
     <div class="card">
@@ -91,31 +91,40 @@
         try {
             const res = await fetch(URL_API + "?t=" + new Date().getTime());
             rawDataGlobal = await res.json();
-            resetInitial();
+            resetToTwoDays();
         } catch (err) { console.error("Error API", err); }
     }
 
-    function resetInitial() {
+    function resetToTwoDays() {
+        document.getElementById('startDate').value = "";
+        document.getElementById('endDate').value = "";
+        
         const allT = rawDataGlobal.map(d => new Date(Object.values(d)[0]).getTime()).filter(t => !isNaN(t));
-        const cutoff = Math.max(...allT) - (24 * 60 * 60 * 1000); // Default 24 jam terakhir
-        currentData = rawDataGlobal.filter(d => new Date(Object.values(d)[0]).getTime() >= cutoff);
+        if (allT.length === 0) return;
+        
+        const latestTime = Math.max(...allT);
+        const twoDaysAgo = latestTime - (48 * 60 * 60 * 1000); // 48 jam
+        
+        currentData = rawDataGlobal.filter(d => new Date(Object.values(d)[0]).getTime() >= twoDaysAgo);
         updateUI();
     }
 
     function applyFilter() {
         const sStr = document.getElementById('startDate').value;
         const eStr = document.getElementById('endDate').value;
-        let filtered = rawDataGlobal;
-
-        if(sStr && eStr) {
-            const start = new Date(sStr); start.setHours(0,0,0,0);
-            const end = new Date(eStr); end.setHours(23,59,59,999);
-            filtered = rawDataGlobal.filter(d => {
-                const cur = new Date(Object.values(d)[0]);
-                return cur >= start && cur <= end;
-            });
+        
+        if(!sStr || !eStr) {
+            alert("Harap pilih tanggal mulai dan selesai!");
+            return;
         }
-        currentData = filtered;
+
+        const start = new Date(sStr); start.setHours(0,0,0,0);
+        const end = new Date(eStr); end.setHours(23,59,59,999);
+        
+        currentData = rawDataGlobal.filter(d => {
+            const cur = new Date(Object.values(d)[0]);
+            return cur >= start && cur <= end;
+        });
         updateUI();
     }
 
@@ -123,12 +132,10 @@
         const unit = document.getElementById('unitSelector').value;
         const batch = [...currentData].reverse();
         
-        // Setup Kolom & Dataset
         const config = unit === 'CS1' 
             ? { indices: [15,16,17,18,19], labels: ['R1','R2','R3','R4','Ante'], colors: ['#e74c3c','#3498db','#f1c40f','#9b59b6','#2ecc71'] }
             : { indices: [20,21,22,23], labels: ['RA','RB','RC','Ante'], colors: ['#c0392b','#2980b9','#f39c12','#27ae60'] };
 
-        // 1. Update Grafik
         const labelsX = batch.map(d => {
             const r = Object.values(d);
             const dt = new Date(r[0]); const jam = new Date(r[1]);
@@ -150,11 +157,16 @@
         myChart = new Chart(document.getElementById('myChart'), {
             type: 'line',
             data: { labels: labelsX, datasets },
-            options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false } }
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { position: 'bottom' } }
+            }
         });
 
-        // 2. Update Tabel
-        document.getElementById('tableTitle').innerText = `Data Riwayat Suhu Unit ${unit}`;
+        // Update Tabel
+        document.getElementById('tableTitle').innerText = `Data Riwayat Suhu ${unit} (Total: ${batch.length} Baris)`;
         const head = document.getElementById('tableHead');
         const body = document.getElementById('tableBody');
         
@@ -169,8 +181,14 @@
 
     function exportToCSV() {
         const unit = document.getElementById('unitSelector').value;
-        let csv = document.getElementById('dataTable').innerText.replace(/\t/g, ",").replace(/\n/g, "\r\n");
-        const blob = new Blob([csv], { type: 'text/csv' });
+        const rows = document.querySelectorAll("#dataTable tr");
+        let csv = [];
+        for (let i = 0; i < rows.length; i++) {
+            let row = [], cols = rows[i].querySelectorAll("td, th");
+            for (let j = 0; j < cols.length; j++) row.push(cols[j].innerText);
+            csv.push(row.join(","));
+        }
+        const blob = new Blob([csv.join("\n")], { type: 'text/csv' });
         const a = document.createElement('a');
         a.href = window.URL.createObjectURL(blob);
         a.download = `Laporan_Suhu_${unit}_${new Date().toLocaleDateString()}.csv`;
@@ -179,6 +197,7 @@
 
     setInterval(() => { document.getElementById('live-clock').innerText = new Date().toLocaleString('id-ID'); }, 1000);
     fetchData();
+    setInterval(fetchData, 600000); // Auto refresh 10 menit
 </script>
 </body>
 </html>
