@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MONITORING SYSTEM V8.2 - APPSHEET READY</title>
+    <title>MONITORING SYSTEM V8.3</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2c3e50; --accent: #1abc9c; --bg: #f4f7f9; --sidebar: #1e2b37; --sub: #162129; }
@@ -15,8 +15,8 @@
         
         /* Sidebar */
         .sidebar { width: 260px; background: var(--sidebar); color: #ecf0f1; display: flex; flex-direction: column; overflow-y: auto; border-right: 1px solid #2c3e50; }
-        .logo-area { padding: 25px; text-align: center; background: #162129; transition: 0.5s; border-bottom: 1px solid #2c3e50; }
-        .logo-box { font-size: 22px; font-weight: bold; color: white; border: 2px solid var(--accent); display: inline-block; padding: 5px 15px; border-radius: 8px; margin-bottom: 5px; background: rgba(26, 188, 156, 0.1); min-width: 120px; text-transform: uppercase; }
+        .logo-area { padding: 25px; text-align: center; background: #162129; border-bottom: 1px solid #2c3e50; }
+        .logo-box { font-size: 22px; font-weight: bold; color: white; border: 2px solid var(--accent); display: inline-block; padding: 5px 15px; border-radius: 8px; text-transform: uppercase; background: rgba(26, 188, 156, 0.1); }
         
         .menu-section { padding: 15px 20px 5px 20px; font-size: 11px; color: #7f8c8d; font-weight: bold; text-transform: uppercase; }
         .nav-item { padding: 12px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 14px; transition: 0.2s; border-left: 4px solid transparent; }
@@ -26,7 +26,7 @@
         .lvl-2, .lvl-3 { display: none; background: #162129; }
         .show { display: block !important; }
 
-        .sub-item { padding: 10px 20px 10px 40px; cursor: pointer; font-size: 13px; color: #bdc3c7; display: flex; justify-content: space-between; transition: 0.2s; }
+        .sub-item { padding: 10px 20px 10px 40px; cursor: pointer; font-size: 13px; color: #bdc3c7; display: flex; justify-content: space-between; }
         .deep-item { padding: 8px 20px 8px 60px; cursor: pointer; font-size: 12px; color: #95a5a6; }
         .deep-item.active { color: white; background: var(--accent); font-weight: bold; }
 
@@ -38,13 +38,19 @@
         .toolbar { display: flex; gap: 10px; margin-bottom: 20px; background: #fff; padding: 15px; border-radius: 8px; align-items: flex-end; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; }
         
-        /* Photo Gallery Grid */
-        .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; display: none; }
-        .photo-card { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .photo-card img { width: 100%; height: 150px; object-fit: cover; background: #eee; }
-        .photo-info { padding: 10px; font-size: 11px; color: #666; }
+        /* Photo Gallery */
+        .latest-photo-container { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+        .photo-main { flex: 1; min-width: 300px; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .photo-main img { width: 100%; border-radius: 8px; border: 1px solid #ddd; }
+        
+        .btn-print { background: #34495e; color: white; padding: 8px 15px; border-radius: 4px; font-weight: bold; cursor: pointer; }
 
-        @media print { .sidebar, .toolbar, .header { display: none !important; } .content { padding: 0; } }
+        .table-wrapper { margin-top: 20px; overflow-x: auto; max-height: 400px; border: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; }
+        th { background: #f8f9fa; position: sticky; top: 0; padding: 12px; border-bottom: 2px solid #dee2e6; }
+        td { padding: 8px; border-bottom: 1px solid #eee; }
+
+        @media print { .sidebar, .toolbar, .header { display: none !important; } .content { padding: 0; } .card { border:none; box-shadow:none; } }
     </style>
 </head>
 <body>
@@ -58,7 +64,7 @@
     <div class="sidebar">
         <div class="logo-area">
             <div class="logo-box" id="dynamicLogo">MYCOM</div>
-            <div id="logoSubtext" style="font-size: 10px; color: #7f8c8d;">MONITORING SYSTEM</div>
+            <div id="logoSubtext" style="font-size: 10px; color: #7f8c8d; margin-top:5px;">MONITORING SYSTEM</div>
         </div>
 
         <div class="menu-section">Main Modules</div>
@@ -76,26 +82,20 @@
                 <div class="deep-item" onclick="changeUnit('CS1', this)">Suhu CS1</div>
                 <div class="deep-item" onclick="changeUnit('CS2', this)">Suhu CS2</div>
             </div>
-            <div class="sub-item" onclick="toggleMenu('comp-lvl3', this)">
-                <span>⚙️ Compressor</span><span class="arrow">▼</span>
-            </div>
-            <div id="comp-lvl3" class="lvl-3">
-                <div class="deep-item" onclick="alert('Module Run Hours')">Run Hours</div>
-            </div>
         </div>
 
         <div class="nav-item" onclick="activateModule('STOCK', 'stock-lvl2', this)">
             <span>📦 STOCK</span><span class="arrow">▼</span>
         </div>
         <div id="stock-lvl2" class="lvl-2">
-            <div class="sub-item" onclick="alert('Opening Stock...')">Inventory Data</div>
+            <div class="sub-item" onclick="alert('Module Stock')">Data Stock</div>
         </div>
 
         <div class="nav-item" onclick="activateModule('FOTO', 'foto-lvl2', this)">
             <span>📷 FOTO</span><span class="arrow">▼</span>
         </div>
         <div id="foto-lvl2" class="lvl-2">
-            <div class="sub-item" onclick="openGallery()">Gallery AppSheet</div>
+            <div class="sub-item" onclick="toggleView('FOTO')">Kebersihan Terakhir</div>
         </div>
     </div>
 
@@ -103,13 +103,15 @@
         <div id="dashboardSection">
             <div class="toolbar">
                 <div style="display:flex; flex-direction:column; gap:5px;">
-                    <label>FILTER TANGGAL</label>
+                    <label>RENTANG TANGGAL</label>
                     <div style="display:flex; gap:5px;">
                         <input type="date" id="startDate">
                         <input type="date" id="endDate">
-                        <button style="background:var(--accent); color:white;" onclick="applyFilter()">PROSES</button>
+                        <button style="background:var(--accent); color:white; border:none; padding:8px 15px; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="applyFilter()">PROSES</button>
                     </div>
                 </div>
+                <div style="flex-grow: 1;"></div>
+                <button class="btn-print" onclick="window.print()">🖨️ PRINT LAPORAN</button>
             </div>
             <div class="card"><div style="height: 400px;"><canvas id="myChart"></canvas></div></div>
             <div class="card">
@@ -119,12 +121,18 @@
         </div>
 
         <div id="gallerySection" style="display:none;">
-            <h2 style="color:var(--primary)">📷 Gallery Temuan AppSheet</h2>
-            <p style="font-size:13px; color:#666;">Menampilkan foto berdasarkan folder AppSheet di Google Drive.</p>
-            <div class="photo-grid" id="photoGrid" style="display:grid;">
-                <div class="photo-card">
-                    <img src="https://via.placeholder.com/200x150?text=Loading+AppSheet..." alt="Foto">
-                    <div class="photo-info"><strong>Temuan_001.jpg</strong><br>Folder: AppSheet/Images</div>
+            <div class="toolbar">
+                <h3 style="margin:0; color:var(--primary)">📷 FOTO KEBERSIHAN TERAKHIR</h3>
+                <div style="flex-grow: 1;"></div>
+                <button class="btn-print" onclick="window.print()">🖨️ PRINT FOTO</button>
+            </div>
+            <div class="latest-photo-container">
+                <div class="photo-main">
+                    <img id="latestImg" src="https://via.placeholder.com/600x400?text=Menunggu+Data+AppSheet..." alt="Latest Photo">
+                    <div style="margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
+                        <p id="imgDate" style="font-weight:bold; margin:0;">Tanggal: -</p>
+                        <p id="imgNote" style="font-size:13px; color:#666;">Keterangan: Menunggu sinkronisasi Google Sheets.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -140,6 +148,8 @@
             const res = await fetch(URL_API + "?t=" + new Date().getTime());
             rawDataGlobal = await res.json();
             resetToTwoDays();
+            // Cek Foto Terbaru jika ada kolom foto di sheet
+            updateLatestPhoto();
         } catch (err) { console.error("Error", err); }
     }
 
@@ -148,9 +158,11 @@
         document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
         el.classList.add('active');
         toggleMenu(subId, el);
-        
-        // Switch View
-        if(moduleName === 'FOTO') {
+        toggleView(moduleName);
+    }
+
+    function toggleView(view) {
+        if(view === 'FOTO') {
             document.getElementById('dashboardSection').style.display = 'none';
             document.getElementById('gallerySection').style.display = 'block';
         } else {
@@ -159,8 +171,16 @@
         }
     }
 
-    function openGallery() {
-        alert("Sistem sedang disiapkan untuk membaca folder AppSheet Anda. Pastikan folder foto di Google Drive sudah di-share 'Anyone with link'.");
+    function updateLatestPhoto() {
+        // Logika sederhana: ambil baris terakhir yang punya data di kolom foto
+        // Misal kolom foto ada di indeks 22 (sesuaikan nanti)
+        const photoRows = rawDataGlobal.filter(d => Object.values(d)[22]); 
+        if(photoRows.length > 0) {
+            const latest = photoRows[0]; // Karena sudah di reverse biasanya
+            const r = Object.values(latest);
+            document.getElementById('imgDate').innerText = "Tanggal: " + new Date(r[0]).toLocaleDateString('id-ID');
+            // document.getElementById('latestImg').src = "LINK_HASIL_CONVERT_" + r[22];
+        }
     }
 
     function toggleMenu(id, el) {
@@ -182,6 +202,17 @@
         if (allT.length === 0) return;
         const cutoff = Math.max(...allT) - (48 * 60 * 60 * 1000); 
         currentData = rawDataGlobal.filter(d => new Date(Object.values(d)[0]).getTime() >= cutoff);
+        updateUI();
+    }
+
+    function applyFilter() {
+        const s = document.getElementById('startDate').value, e = document.getElementById('endDate').value;
+        if(!s || !e) return;
+        const start = new Date(s), end = new Date(e); end.setHours(23,59,59);
+        currentData = rawDataGlobal.filter(d => {
+            const cur = new Date(Object.values(d)[0]);
+            return cur >= start && cur <= end;
+        });
         updateUI();
     }
 
