@@ -3,36 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CS1 & CS2 - Final Calibration 4.1</title>
+    <title>CS1 & CS2 - Fix Connection</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2c3e50; --accent: #1abc9c; --bg: #f4f7f9; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); }
-        .top-bar { position: fixed; top: 0; width: 100%; height: 60px; background: white; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1000; width: 100%; box-sizing: border-box; }
+        .top-bar { position: fixed; top: 0; width: 100%; height: 60px; background: white; display: flex; align-items: center; padding: 0 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1000; width: 100%; box-sizing: border-box; justify-content: space-between;}
         .main { padding: 80px 20px 20px; max-width: 1400px; margin: 0 auto; }
         .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .filter-section { display: flex; gap: 10px; margin-bottom: 20px; align-items: flex-end; flex-wrap: wrap; }
-        button { background: var(--accent); color: white; border: none; padding: 10px 18px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        #status-info { background: #1a1a1a; color: #0f0; padding: 10px; font-family: monospace; font-size: 11px; border-radius: 6px; margin-bottom: 10px; }
+        #status-info { background: #1a1a1a; color: #0f0; padding: 12px; font-family: monospace; font-size: 11px; margin-bottom: 15px; border-radius: 6px; border-left: 5px solid var(--accent); }
     </style>
 </head>
 <body>
 
 <div class="top-bar">
-    <strong>❄️ MONITORING SYSTEM - <span style="color:#e74c3c">V.4.1 CALIBRATED</span></strong>
-    <span id="clock" style="font-size: 12px; color: #666;"></span>
+    <strong>❄️ MONITORING SYSTEM - <span style="color:#2ecc71">V.4.2 READY</span></strong>
+    <span id="update-status" style="font-size: 12px; color: #888;">Menunggu data...</span>
 </div>
 
 <div class="main">
-    <div id="status-info">Menghubungkan ke database...</div>
+    <div id="status-info">Inisialisasi koneksi...</div>
     
     <div class="card">
-        <div class="filter-section">
-            <input type="date" id="startDate" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-            <input type="date" id="endDate" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-            <button onclick="applyFilter()">Filter Data</button>
-            <button onclick="resetFilter()" style="background:#95a5a6;">Reset (2 Hari)</button>
-        </div>
         <div style="height: 550px;"><canvas id="combinedChart"></canvas></div>
     </div>
 </div>
@@ -40,55 +32,74 @@
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
     let chart;
-    let rawDataGlobal = [];
-
-    setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleString('id-ID'); }, 1000);
 
     async function loadData() {
+        const log = document.getElementById('status-info');
         try {
-            const r = await fetch(API_URL);
-            rawDataGlobal = await r.json();
-            resetFilter();
-        } catch (e) { document.getElementById('status-info').innerText = "Error: " + e.message; }
+            log.innerText = "Mengambil data dari Google Sheets...";
+            const response = await fetch(API_URL);
+            const rawData = await response.json();
+            
+            if (!rawData || rawData.length === 0) {
+                log.innerText = "Data kosong!";
+                return;
+            }
+
+            log.innerText = "Data diterima! Memproses grafik...";
+
+            // Ambil 100 data terbaru saja agar cepat
+            const data = rawData.slice(0, 100).reverse();
+            const rows = data.map(d => Object.values(d));
+
+            const labels = rows.map(r => {
+                const jam = new Date(r[1]);
+                return isNaN(jam) ? "N/A" : jam.getHours() + ":" + jam.getMinutes().toString().padStart(2,'0');
+            });
+
+            const parse = (v) => {
+                if(v === undefined || v === null) return null;
+                let n = parseFloat(v.toString().replace(',', '.'));
+                return isNaN(n) ? null : n;
+            };
+
+            const datasets = [
+                // CS1 - Indeks 15-19
+                { label: 'CS1-R1', data: rows.map(r => parse(r[15])), borderColor: '#e74c3c' },
+                { label: 'CS1-R2', data: rows.map(r => parse(r[16])), borderColor: '#3498db' },
+                { label: 'CS1-R3', data: rows.map(r => parse(r[17])), borderColor: '#f1c40f' },
+                { label: 'CS1-R4', data: rows.map(r => parse(r[18])), borderColor: '#9b59b6' },
+                { label: 'CS1-Ante', data: rows.map(r => parse(r[19])), borderColor: '#2ecc71' },
+                // CS2 - Indeks 20-23 (Sesuai kalibrasi Anda)
+                { label: 'CS2-RA', data: rows.map(r => parse(r[20])), borderColor: '#c0392b', borderDash: [5, 5] },
+                { label: 'CS2-RB', data: rows.map(r => parse(r[21])), borderColor: '#2980b9', borderDash: [5, 5] },
+                { label: 'CS2-RC', data: rows.map(r => parse(r[22])), borderColor: '#f39c12', borderDash: [5, 5] },
+                { label: 'CS2-Ante', data: rows.map(r => parse(r[23])), borderColor: '#27ae60', borderDash: [5, 5] }
+            ].map(ds => ({ ...ds, fill: false, tension: 0.1, borderWidth: 2, pointRadius: 2 }));
+
+            if (chart) chart.destroy();
+            chart = new Chart(document.getElementById('combinedChart'), {
+                type: 'line',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: { y: { suggestedMin: -25, suggestedMax: 15 } }
+                }
+            });
+
+            log.innerText = `AKTIF | ${data.length} Poin Terdeteksi | Terakhir: ${new Date().toLocaleTimeString()}`;
+            document.getElementById('update-status').innerText = "Update: " + new Date().toLocaleTimeString();
+
+        } catch (e) {
+            log.innerText = "Koneksi Gagal: " + e.message;
+            console.error(e);
+        }
     }
 
-    function processAndDisplay(filteredData) {
-        const batch = [...filteredData].reverse();
-        const rows = batch.map(item => Object.values(item));
-
-        const labels = rows.map(r => {
-            const t = new Date(r[0]);
-            const j = new Date(r[1]);
-            return `${t.getDate()}/${t.getMonth()+1} ${j.getHours().toString().padStart(2,'0')}:${j.getMinutes().toString().padStart(2,'0')}`;
-        });
-
-        const getNum = (r, idx) => {
-            if (!r[idx]) return null;
-            const val = parseFloat(r[idx].toString().replace(',', '.'));
-            return isNaN(val) ? null : val;
-        };
-
-        const datasets = [
-            // CS1 - Kunci di Indeks 15-19
-            { label: 'CS1-R1', data: rows.map(r => getNum(r, 15)), borderColor: '#e74c3c' },
-            { label: 'CS1-R2', data: rows.map(r => getNum(r, 16)), borderColor: '#3498db' },
-            { label: 'CS1-R3', data: rows.map(r => getNum(r, 17)), borderColor: '#f1c40f' },
-            { label: 'CS1-R4', data: rows.map(r => getNum(r, 18)), borderColor: '#9b59b6' },
-            { label: 'CS1-Ante', data: rows.map(r => getNum(r, 19)), borderColor: '#2ecc71' },
-            
-            // CS2 - KALIBRASI ULANG KE INDEKS 20-23
-            { label: 'CS2-RA', data: rows.map(r => getNum(r, 20)), borderColor: '#c0392b', borderDash: [5, 5] },
-            { label: 'CS2-RB', data: rows.map(r => getNum(r, 21)), borderColor: '#2980b9', borderDash: [5, 5] },
-            { label: 'CS2-RC', data: rows.map(r => getNum(r, 22)), borderColor: '#f39c12', borderDash: [5, 5] },
-            { label: 'CS2-Ante', data: rows.map(r => getNum(r, 23)), borderColor: '#27ae60', borderDash: [5, 5] }
-        ].map(ds => ({ ...ds, fill: false, tension: 0.1, pointRadius: labels.length > 100 ? 0 : 3, borderWidth: 2.5 }));
-
-        document.getElementById('status-info').innerText = `DATA OK | Terkoneksi ke CS1 (15-19) & CS2 (20-23) | Poin: ${filteredData.length}`;
-
-        if (chart) chart.destroy();
-        chart = new Chart(document.getElementById('combinedChart'), {
-            type: 'line',
-            data: { labels, datasets },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false
+    loadData();
+    // Refresh otomatis setiap 1 menit
+    setInterval(loadData, 60000);
+</script>
+</body>
+</html>
