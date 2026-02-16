@@ -98,4 +98,51 @@
                         borderWidth: 3, 
                         pointRadius: 0,      // Menghilangkan titik bulat
                         pointHitRadius: 10,  // Tetap bisa dideteksi saat mouse mendekat
-                        hover
+                        hoverRadius: 5       // Muncul titik kecil saat mouse di atasnya (opsional)
+                    })) 
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { 
+                        legend: { 
+                            position: 'bottom',
+                            labels: { usePointStyle: true, padding: 20, font: { size: 12, weight: 'bold' } }
+                        }
+                    },
+                    scales: { 
+                        y: { 
+                            suggestedMin: -25, 
+                            suggestedMax: 15,
+                            grid: { color: '#e0e0e0' },
+                            title: { display: true, text: 'Suhu (°C)', font: { weight: 'bold' } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 12 }
+                        }
+                    }
+                }
+            });
+
+            stat.innerText = "🟢 SISTEM AKTIF";
+            countStat.innerText = `Update: ${new Date().toLocaleTimeString()} | ${data.length} Poin`;
+
+        } catch (err) {
+            stat.innerText = "❌ ERROR KONEKSI";
+            console.error(err);
+        }
+    }
+
+    // Jam Digital
+    setInterval(() => { 
+        document.getElementById('live-clock').innerText = new Date().toLocaleTimeString('id-ID'); 
+    }, 1000);
+
+    fetchData();
+    // Update otomatis setiap 5 menit
+    setInterval(fetchData, 300000);
+</script>
+</body>
+</html>
