@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MONITORING SYSTEM V8.3</title>
+    <title>MONITORING SYSTEM V8.8 - PHOTO TRACKER</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2c3e50; --accent: #1abc9c; --bg: #f4f7f9; --sidebar: #1e2b37; --sub: #162129; }
@@ -14,43 +14,28 @@
         .main-wrapper { display: flex; flex: 1; overflow: hidden; }
         
         /* Sidebar */
-        .sidebar { width: 260px; background: var(--sidebar); color: #ecf0f1; display: flex; flex-direction: column; overflow-y: auto; border-right: 1px solid #2c3e50; }
+        .sidebar { width: 260px; background: var(--sidebar); color: #ecf0f1; display: flex; flex-direction: column; overflow-y: auto; }
         .logo-area { padding: 25px; text-align: center; background: #162129; border-bottom: 1px solid #2c3e50; }
-        .logo-box { font-size: 22px; font-weight: bold; color: white; border: 2px solid var(--accent); display: inline-block; padding: 5px 15px; border-radius: 8px; text-transform: uppercase; background: rgba(26, 188, 156, 0.1); }
-        
-        .menu-section { padding: 15px 20px 5px 20px; font-size: 11px; color: #7f8c8d; font-weight: bold; text-transform: uppercase; }
+        .logo-box { font-size: 20px; font-weight: bold; color: white; border: 2px solid var(--accent); display: inline-block; padding: 5px 15px; border-radius: 8px; text-transform: uppercase; }
         .nav-item { padding: 12px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 14px; transition: 0.2s; border-left: 4px solid transparent; }
-        .nav-item:hover { background: var(--sub); }
         .nav-item.active { background: var(--sub); border-left-color: var(--accent); color: var(--accent); }
-
-        .lvl-2, .lvl-3 { display: none; background: #162129; }
-        .show { display: block !important; }
-
-        .sub-item { padding: 10px 20px 10px 40px; cursor: pointer; font-size: 13px; color: #bdc3c7; display: flex; justify-content: space-between; }
-        .deep-item { padding: 8px 20px 8px 60px; cursor: pointer; font-size: 12px; color: #95a5a6; }
-        .deep-item.active { color: white; background: var(--accent); font-weight: bold; }
-
-        .arrow { font-size: 10px; transition: 0.3s; opacity: 0.5; }
-        .rotate { transform: rotate(180deg); }
 
         /* Content Area */
         .content { flex: 1; overflow-y: auto; padding: 20px; }
-        .toolbar { display: flex; gap: 10px; margin-bottom: 20px; background: #fff; padding: 15px; border-radius: 8px; align-items: flex-end; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; }
-        
-        /* Photo Gallery */
-        .latest-photo-container { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
-        .photo-main { flex: 1; min-width: 300px; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .photo-main img { width: 100%; border-radius: 8px; border: 1px solid #ddd; }
-        
-        .btn-print { background: #34495e; color: white; padding: 8px 15px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        .area-section { margin-bottom: 40px; }
+        .area-header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid #ddd; padding-bottom: 5px; }
+        .area-title { font-size: 18px; font-weight: bold; color: var(--primary); }
+        .area-info { font-size: 12px; color: #666; font-weight: normal; }
 
-        .table-wrapper { margin-top: 20px; overflow-x: auto; max-height: 400px; border: 1px solid #eee; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; }
-        th { background: #f8f9fa; position: sticky; top: 0; padding: 12px; border-bottom: 2px solid #dee2e6; }
-        td { padding: 8px; border-bottom: 1px solid #eee; }
+        /* Grid Foto */
+        .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
+        .photo-card { background: white; border-radius: 10px; overflow: hidden; border: 1px solid #ddd; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.3s; position: relative; }
+        .photo-card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .photo-card img { width: 100%; height: 160px; object-fit: cover; background: #f0f0f0; cursor: pointer; }
+        .photo-label { padding: 10px; font-size: 11px; background: #fff; border-top: 1px solid #eee; }
+        .id-badge { position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,0.5); color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; }
 
-        @media print { .sidebar, .toolbar, .header { display: none !important; } .content { padding: 0; } .card { border:none; box-shadow:none; } }
+        @media print { .sidebar, .header { display: none !important; } .content { padding: 0; } .photo-grid { grid-template-columns: repeat(3, 1fr); } }
     </style>
 </head>
 <body>
@@ -64,212 +49,102 @@
     <div class="sidebar">
         <div class="logo-area">
             <div class="logo-box" id="dynamicLogo">MYCOM</div>
-            <div id="logoSubtext" style="font-size: 10px; color: #7f8c8d; margin-top:5px;">MONITORING SYSTEM</div>
+            <div style="font-size: 10px; color: #7f8c8d; margin-top:5px;">CONTROL PANEL</div>
         </div>
-
-        <div class="menu-section">Main Modules</div>
-        
-        <div class="nav-item active" onclick="activateModule('MYCOM', 'mycom-lvl2', this)">
-            <span>📊 MYCOM</span><span class="arrow">▼</span>
-        </div>
-        <div id="mycom-lvl2" class="lvl-2 show">
-            <div class="sub-item" onclick="toggleMenu('suhu-lvl3', this)">
-                <span>🌡️ Suhu</span><span class="arrow">▼</span>
-            </div>
-            <div id="suhu-lvl3" class="lvl-3 show">
-                <div class="deep-item active" onclick="changeUnit('P2', this)">Suhu P2</div>
-                <div class="deep-item" onclick="changeUnit('CWP', this)">Suhu CWP</div>
-                <div class="deep-item" onclick="changeUnit('CS1', this)">Suhu CS1</div>
-                <div class="deep-item" onclick="changeUnit('CS2', this)">Suhu CS2</div>
-            </div>
-        </div>
-
-        <div class="nav-item" onclick="activateModule('STOCK', 'stock-lvl2', this)">
-            <span>📦 STOCK</span><span class="arrow">▼</span>
-        </div>
-        <div id="stock-lvl2" class="lvl-2">
-            <div class="sub-item" onclick="alert('Module Stock')">Data Stock</div>
-        </div>
-
-        <div class="nav-item" onclick="activateModule('FOTO', 'foto-lvl2', this)">
-            <span>📷 FOTO</span><span class="arrow">▼</span>
-        </div>
-        <div id="foto-lvl2" class="lvl-2">
-            <div class="sub-item" onclick="toggleView('FOTO')">Kebersihan Terakhir</div>
-        </div>
+        <div style="padding:15px 20px 5px; font-size:11px; color:#7f8c8d; font-weight:bold;">MENU</div>
+        <div class="nav-item active" onclick="switchTab('MYCOM', this)"><span>📊 MONITORING SUHU</span></div>
+        <div class="nav-item" onclick="switchTab('FOTO', this)"><span>📷 FOTO KEBERSIHAN</span></div>
     </div>
 
     <div class="content">
-        <div id="dashboardSection">
-            <div class="toolbar">
-                <div style="display:flex; flex-direction:column; gap:5px;">
-                    <label>RENTANG TANGGAL</label>
-                    <div style="display:flex; gap:5px;">
-                        <input type="date" id="startDate">
-                        <input type="date" id="endDate">
-                        <button style="background:var(--accent); color:white; border:none; padding:8px 15px; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="applyFilter()">PROSES</button>
-                    </div>
-                </div>
-                <div style="flex-grow: 1;"></div>
-                <button class="btn-print" onclick="window.print()">🖨️ PRINT LAPORAN</button>
-            </div>
-            <div class="card"><div style="height: 400px;"><canvas id="myChart"></canvas></div></div>
-            <div class="card">
-                <h3 id="tableTitle" style="margin:0 0 15px 0; color:#2c3e50; font-size:16px;">Tabel Data</h3>
-                <div class="table-wrapper"><table id="dataTable"><thead id="tableHead"></thead><tbody id="tableBody"></tbody></table></div>
+        <div id="tab-MYCOM">
+            <div style="background:white; padding:20px; border-radius:12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">
+                <canvas id="myChart" style="height:400px;"></canvas>
             </div>
         </div>
 
-        <div id="gallerySection" style="display:none;">
-            <div class="toolbar">
-                <h3 style="margin:0; color:var(--primary)">📷 FOTO KEBERSIHAN TERAKHIR</h3>
-                <div style="flex-grow: 1;"></div>
-                <button class="btn-print" onclick="window.print()">🖨️ PRINT FOTO</button>
-            </div>
-            <div class="latest-photo-container">
-                <div class="photo-main">
-                    <img id="latestImg" src="https://via.placeholder.com/600x400?text=Menunggu+Data+AppSheet..." alt="Latest Photo">
-                    <div style="margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
-                        <p id="imgDate" style="font-weight:bold; margin:0;">Tanggal: -</p>
-                        <p id="imgNote" style="font-size:13px; color:#666;">Keterangan: Menunggu sinkronisasi Google Sheets.</p>
-                    </div>
-                </div>
+        <div id="tab-FOTO" style="display:none;">
+            <div id="gallery-content">
+                <p>Memuat foto dari AppSheet...</p>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    const URL_API = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
-    let myChart, rawDataGlobal = [], currentData = [], activeUnit = 'P2';
+    // URL API FOTO ANDA
+    const URL_FOTO = "https://script.google.com/macros/s/URL_DARI_DEPLOY_BARU_ANDA/exec";
 
-    async function fetchData() {
+    // Mapping berdasarkan data 7-kolom Anda (4 Foto, 1 ID, 1 Tgl, 1 Jam)
+    const AREA_CONFIG = [
+        { name: "RUANG 1", start: 0, end: 3, id: 4, tgl: 5, jam: 6 },
+        { name: "RUANG 2", start: 7, end: 10, id: 11, tgl: 12, jam: 13 },
+        { name: "RUANG 3", start: 14, end: 17, id: 18, tgl: 19, jam: 20 },
+        { name: "RUANG 4", start: 21, end: 24, id: 25, tgl: 26, jam: 27 },
+        { name: "RUANG A", start: 28, end: 31, id: 32, tgl: 33, jam: 34 },
+        { name: "RUANG B", start: 35, end: 38, id: 39, tgl: 40, jam: 41 },
+        { name: "RUANG C", start: 42, end: 45, id: 46, tgl: 47, jam: 48 },
+        { name: "ANTEROOM UTARA", start: 49, end: 49, id: 50, tgl: 51, jam: 52 }, // Asumsi 1 foto
+        { name: "ANTEROOM SELATAN", start: 53, end: 53, id: 54, tgl: 55, jam: 56 } // Asumsi 1 foto
+    ];
+
+    async function loadPhotoData() {
         try {
-            const res = await fetch(URL_API + "?t=" + new Date().getTime());
-            rawDataGlobal = await res.json();
-            resetToTwoDays();
-            // Cek Foto Terbaru jika ada kolom foto di sheet
-            updateLatestPhoto();
-        } catch (err) { console.error("Error", err); }
-    }
-
-    function activateModule(moduleName, subId, el) {
-        document.getElementById('dynamicLogo').innerText = moduleName;
-        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-        el.classList.add('active');
-        toggleMenu(subId, el);
-        toggleView(moduleName);
-    }
-
-    function toggleView(view) {
-        if(view === 'FOTO') {
-            document.getElementById('dashboardSection').style.display = 'none';
-            document.getElementById('gallerySection').style.display = 'block';
-        } else {
-            document.getElementById('dashboardSection').style.display = 'block';
-            document.getElementById('gallerySection').style.display = 'none';
+            const res = await fetch(URL_FOTO);
+            const data = await res.json();
+            renderGallery(data);
+        } catch (e) {
+            console.error("Gagal muat foto", e);
         }
     }
 
-    function updateLatestPhoto() {
-        // Logika sederhana: ambil baris terakhir yang punya data di kolom foto
-        // Misal kolom foto ada di indeks 22 (sesuaikan nanti)
-        const photoRows = rawDataGlobal.filter(d => Object.values(d)[22]); 
-        if(photoRows.length > 0) {
-            const latest = photoRows[0]; // Karena sudah di reverse biasanya
-            const r = Object.values(latest);
-            document.getElementById('imgDate').innerText = "Tanggal: " + new Date(r[0]).toLocaleDateString('id-ID');
-            // document.getElementById('latestImg').src = "LINK_HASIL_CONVERT_" + r[22];
-        }
-    }
+    function renderGallery(data) {
+        const container = document.getElementById('gallery-content');
+        container.innerHTML = "";
 
-    function toggleMenu(id, el) {
-        const menu = document.getElementById(id);
-        if(menu) menu.classList.toggle('show');
-        const arrow = el.querySelector('.arrow');
-        if(arrow) arrow.classList.toggle('rotate');
-    }
-
-    function changeUnit(unit, element) {
-        activeUnit = unit;
-        document.querySelectorAll('.deep-item').forEach(el => el.classList.remove('active'));
-        element.classList.add('active');
-        updateUI();
-    }
-
-    function resetToTwoDays() {
-        const allT = rawDataGlobal.map(d => new Date(Object.values(d)[0]).getTime()).filter(t => !isNaN(t));
-        if (allT.length === 0) return;
-        const cutoff = Math.max(...allT) - (48 * 60 * 60 * 1000); 
-        currentData = rawDataGlobal.filter(d => new Date(Object.values(d)[0]).getTime() >= cutoff);
-        updateUI();
-    }
-
-    function applyFilter() {
-        const s = document.getElementById('startDate').value, e = document.getElementById('endDate').value;
-        if(!s || !e) return;
-        const start = new Date(s), end = new Date(e); end.setHours(23,59,59);
-        currentData = rawDataGlobal.filter(d => {
-            const cur = new Date(Object.values(d)[0]);
-            return cur >= start && cur <= end;
-        });
-        updateUI();
-    }
-
-    function updateUI() {
-        let config = {};
-        if(activeUnit === 'CS1') config = { indices: [13,14,15,16,17], labels: ['R1','R2','R3','R4','Ante'], colors: ['#e74c3c','#3498db','#f1c40f','#9b59b6','#2ecc71'] };
-        else if(activeUnit === 'CS2') config = { indices: [18,19,20,21], labels: ['RA','RB','RC','Ante'], colors: ['#c0392b','#2980b9','#f39c12','#27ae60'] };
-        else if(activeUnit === 'P2') config = { indices: [2,3,4,5,6,7,8,9,10], labels: ['Clean1','Clean2','Pack1','Pack2','Pre1','Pre2','Seas1','Seas2','Stemer'], colors: ['#1abc9c','#16a085','#2ecc71','#27ae60','#3498db','#2980b9','#9b59b6','#8e44ad','#e67e22'] };
-        else if(activeUnit === 'CWP') config = { indices: [11,12], labels: ['CWP 1','CWP 2'], colors: ['#e74c3c','#3498db'] };
-
-        const activeRows = currentData.filter(d => {
-            const r = Object.values(d);
-            return config.indices.some(idx => {
-                const val = parseFloat(r[idx]?.toString().replace(',','.'));
-                return !isNaN(val) && val !== 0;
+        AREA_CONFIG.forEach(area => {
+            // Cari baris terakhir yang punya data di area ini (mencari dari atas karena data di reverse di Apps Script)
+            const latestEntry = data.find(row => {
+                const vals = Object.values(row);
+                return vals[area.start] || vals[area.end];
             });
+
+            if (latestEntry) {
+                const vals = Object.values(latestEntry);
+                let html = `
+                <div class="area-section">
+                    <div class="area-header">
+                        <span class="area-title">${area.name}</span>
+                        <span class="area-info">Terakhir: ${vals[area.tgl]} | ${vals[area.jam]}</span>
+                    </div>
+                    <div class="photo-grid">`;
+
+                for (let i = area.start; i <= area.end; i++) {
+                    if (vals[i] && vals[i] !== "") {
+                        html += `
+                        <div class="photo-card">
+                            <span class="id-badge">ID: ${vals[area.id]}</span>
+                            <img src="https://www.appsheet.com/template/gettablefileurl?appName=LS2Foto-XXXXXX&tableName=Foto%20Ruang%20%26%20Gudang&fileName=${encodeURIComponent(vals[i])}" onclick="window.open(this.src)">
+                            <div class="photo-label">Bagian ${i - area.start + 1}</div>
+                        </div>`;
+                    }
+                }
+                html += `</div></div>`;
+                container.innerHTML += html;
+            }
         });
+    }
 
-        const batch = [...activeRows].reverse();
-        const labelsX = batch.map(d => {
-            const r = Object.values(d);
-            const dt = new Date(r[0]), jam = new Date(r[1]);
-            return `${dt.getDate()}/${dt.getMonth()+1} ${jam.getHours().toString().padStart(2,'0')}:00`;
-        });
-
-        const datasets = config.labels.map((l, i) => ({
-            label: l,
-            data: batch.map(d => {
-                const val = Object.values(d)[config.indices[i]];
-                const n = parseFloat(val?.toString().replace(',','.'));
-                return (isNaN(n) || n === 0) ? null : n;
-            }),
-            borderColor: config.colors[i],
-            fill: false, tension: 0.2, pointRadius: 0, borderWidth: 3, spanGaps: true
-        }));
-
-        if (myChart) myChart.destroy();
-        myChart = new Chart(document.getElementById('myChart'), {
-            type: 'line',
-            data: { labels: labelsX, datasets },
-            options: { responsive: true, maintainAspectRatio: false }
-        });
-
-        document.getElementById('tableTitle').innerText = `Data Riwayat: ${activeUnit}`;
-        const head = document.getElementById('tableHead'), body = document.getElementById('tableBody');
-        head.innerHTML = `<tr><th>Waktu</th>${config.labels.map(l => `<th>${l}</th>`).join('')}</tr>`;
-        body.innerHTML = batch.map(d => {
-            const r = Object.values(d);
-            const dt = new Date(r[0]), jam = new Date(r[1]);
-            const tStr = `${dt.getDate()}/${dt.getMonth()+1} ${jam.getHours().toString().padStart(2,'0')}:00`;
-            return `<tr><td>${tStr}</td>${config.indices.map(idx => `<td>${r[idx] || '-'}</td>`).join('')}</tr>`;
-        }).join('');
+    function switchTab(tab, el) {
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        el.classList.add('active');
+        document.getElementById('dynamicLogo').innerText = tab;
+        document.getElementById('tab-MYCOM').style.display = tab === 'MYCOM' ? 'block' : 'none';
+        document.getElementById('tab-FOTO').style.display = tab === 'FOTO' ? 'block' : 'none';
+        if(tab === 'FOTO') loadPhotoData();
     }
 
     setInterval(() => { document.getElementById('live-clock').innerText = new Date().toLocaleString('id-ID'); }, 1000);
-    fetchData();
-    setInterval(fetchData, 600000);
 </script>
 </body>
 </html>
