@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MONITORING SYSTEM V6.1 - SEAMLESS</title>
+    <title>MONITORING SYSTEM V6.2 - FIX INDEX</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2c3e50; --accent: #1abc9c; --bg: #f4f7f9; }
@@ -30,7 +30,7 @@
 <body>
 
 <div class="header">
-    <strong>❄️ MONITORING SYSTEM <span style="color:var(--accent)">V6.1 SEAMLESS</span></strong>
+    <strong>❄️ MONITORING SYSTEM <span style="color:var(--accent)">V6.2 FIX</span></strong>
     <div id="live-clock" style="font-family: monospace; font-weight: bold;"></div>
 </div>
 
@@ -46,9 +46,9 @@
         <div class="tool-group">
             <label>PILIH KATEGORI UNIT</label>
             <select id="unitSelector" onchange="updateUI()">
-                <option value="CS1">Unit CS1 (R1 - Ante)</option>
-                <option value="CS2">Unit CS2 (RA - Ante)</option>
-                <option value="P2">Produksi 2 (Full Active)</option>
+                <option value="CS1">Unit CS1 (R1 - R4 + Ante)</option>
+                <option value="CS2">Unit CS2 (RA - RC + Ante)</option>
+                <option value="P2">Produksi 2 (Cleaning - Stemer)</option>
                 <option value="CWP">CWP (1 & 2)</option>
             </select>
         </div>
@@ -115,17 +115,33 @@
         const unit = document.getElementById('unitSelector').value;
         let config = {};
         
+        // --- PERBAIKAN INDEKS KOLOM DISINI ---
         if(unit === 'CS1') {
-            config = { indices: [15,16,17,18,19], labels: ['R1','R2','R3','R4','Ante'], colors: ['#e74c3c','#3498db','#f1c40f','#9b59b6','#2ecc71'] };
+            config = { 
+                indices: [13,14,15,16,17], // Urutan R1, R2, R3, R4, Ante
+                labels: ['CS1-R1','CS1-R2','CS1-R3','CS1-R4','CS1-Ante'], 
+                colors: ['#e74c3c','#3498db','#f1c40f','#9b59b6','#2ecc71'] 
+            };
         } else if(unit === 'CS2') {
-            config = { indices: [20,21,22,23], labels: ['RA','RB','RC','Ante'], colors: ['#c0392b','#2980b9','#f39c12','#27ae60'] };
+            config = { 
+                indices: [18,19,20,21], // Urutan RA, RB, RC, Ante
+                labels: ['CS2-RA','CS2-RB','CS2-RC','CS2-Ante'], 
+                colors: ['#c0392b','#2980b9','#f39c12','#27ae60'] 
+            };
         } else if(unit === 'P2') {
-            config = { indices: [2,3,4,5,6,7,8,9,10], labels: ['Clean 1-6','Clean 7-12','Pack 1-2','Pack 3-4','PreClean 1-2','PreClean 3-4','Seas 1','Seas 2','Stemer'], colors: ['#1abc9c','#16a085','#2ecc71','#27ae60','#3498db','#2980b9','#9b59b6','#8e44ad','#e67e22'] };
+            config = { 
+                indices: [2,3,4,5,6,7,8,9,10], 
+                labels: ['Clean 1-6','Clean 7-12','Pack 1-2','Pack 3-4','PreClean 1-2','PreClean 3-4','Seas 1','Seas 2','Stemer'], 
+                colors: ['#1abc9c','#16a085','#2ecc71','#27ae60','#3498db','#2980b9','#9b59b6','#8e44ad','#e67e22'] 
+            };
         } else if(unit === 'CWP') {
-            config = { indices: [11,12], labels: ['CWP 1','CWP 2'], colors: ['#e74c3c','#3498db'] };
+            config = { 
+                indices: [11,12], 
+                labels: ['CWP 1','CWP 2'], 
+                colors: ['#e74c3c','#3498db'] 
+            };
         }
 
-        // FILTER TAHAP 1: Buang baris yang isinya 0 atau kosong di kategori terpilih
         const activeRows = currentData.filter(d => {
             const r = Object.values(d);
             return config.indices.some(idx => {
@@ -136,14 +152,12 @@
 
         const batch = [...activeRows].reverse();
 
-        // 1. Persiapkan Labels Sumbu X (Hanya yang ada datanya)
         const labelsX = batch.map(d => {
             const r = Object.values(d);
             const dt = new Date(r[0]); const jam = new Date(r[1]);
             return `${dt.getDate()}/${dt.getMonth()+1} ${jam.getHours().toString().padStart(2,'0')}:${jam.getMinutes().toString().padStart(2,'0')}`;
         });
 
-        // 2. Persiapkan Dataset
         const datasets = config.labels.map((l, i) => ({
             label: l,
             data: batch.map(d => {
@@ -162,16 +176,11 @@
             options: { 
                 responsive: true, maintainAspectRatio: false, 
                 interaction: { mode: 'index', intersect: false },
-                plugins: { legend: { position: 'bottom' } },
-                scales: { 
-                    x: { ticks: { autoSkip: true, maxTicksLimit: 12 } },
-                    y: { suggestedMin: 0 } 
-                }
+                plugins: { legend: { position: 'bottom' } }
             }
         });
 
-        // 3. Update Tabel
-        document.getElementById('tableTitle').innerText = `Data Suhu Aktif ${unit} (Nol Dihilangkan)`;
+        document.getElementById('tableTitle').innerText = `Laporan Riwayat ${unit}`;
         const head = document.getElementById('tableHead');
         const body = document.getElementById('tableBody');
         head.innerHTML = `<tr><th>Waktu</th>${config.labels.map(l => `<th>${l}</th>`).join('')}</tr>`;
