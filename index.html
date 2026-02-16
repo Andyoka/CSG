@@ -3,103 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CS1 & CS2 - Fix Connection</title>
+    <title>CS MONITORING V5</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --primary: #2c3e50; --accent: #1abc9c; --bg: #f4f7f9; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); }
-        .top-bar { position: fixed; top: 0; width: 100%; height: 60px; background: white; display: flex; align-items: center; padding: 0 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1000; width: 100%; box-sizing: border-box; justify-content: space-between;}
-        .main { padding: 80px 20px 20px; max-width: 1400px; margin: 0 auto; }
-        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        #status-info { background: #1a1a1a; color: #0f0; padding: 12px; font-family: monospace; font-size: 11px; margin-bottom: 15px; border-radius: 6px; border-left: 5px solid var(--accent); }
+        body { font-family: sans-serif; margin: 0; background: #f0f2f5; }
+        .header { background: #2c3e50; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .container { padding: 20px; }
+        .status-bar { background: #1a1a1a; color: #0f0; padding: 10px; font-family: monospace; font-size: 12px; border-radius: 5px; margin-bottom: 15px; border-left: 5px solid #2ecc71; }
+        .chart-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); height: 500px; }
     </style>
 </head>
 <body>
 
-<div class="top-bar">
-    <strong>❄️ MONITORING SYSTEM - <span style="color:#2ecc71">V.4.2 READY</span></strong>
-    <span id="update-status" style="font-size: 12px; color: #888;">Menunggu data...</span>
+<div class="header">
+    <strong>❄️ MONITORING SYSTEM <span style="color:#f1c40f">V5.0 FINAL</span></strong>
+    <div id="live-clock" style="font-size: 12px;"></div>
 </div>
 
-<div class="main">
-    <div id="status-info">Inisialisasi koneksi...</div>
-    
-    <div class="card">
-        <div style="height: 550px;"><canvas id="combinedChart"></canvas></div>
+<div class="container">
+    <div id="status-bar">🚀 System Booting...</div>
+    <div class="chart-card">
+        <canvas id="myChart"></canvas>
     </div>
 </div>
 
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
-    let chart;
+    const URL_API = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
+    let myChart;
 
-    async function loadData() {
-        const log = document.getElementById('status-info');
+    async function fetchData() {
+        const stat = document.getElementById('status-bar');
         try {
-            log.innerText = "Mengambil data dari Google Sheets...";
-            const response = await fetch(API_URL);
-            const rawData = await response.json();
+            stat.innerText = "⏳ Memanggil Data Google Sheets...";
+            const res = await fetch(URL_API);
+            const raw = await res.json();
             
-            if (!rawData || rawData.length === 0) {
-                log.innerText = "Data kosong!";
+            if (!raw || raw.length === 0) {
+                stat.innerText = "⚠️ Data Kosong!";
                 return;
             }
 
-            log.innerText = "Data diterima! Memproses grafik...";
+            stat.innerText = "✅ Data Diterima, Menyusun Grafik...";
 
-            // Ambil 100 data terbaru saja agar cepat
-            const data = rawData.slice(0, 100).reverse();
-            const rows = data.map(d => Object.values(d));
-
-            const labels = rows.map(r => {
-                const jam = new Date(r[1]);
-                return isNaN(jam) ? "N/A" : jam.getHours() + ":" + jam.getMinutes().toString().padStart(2,'0');
+            // Ambil 80 baris terbaru
+            const data = raw.slice(0, 80).reverse();
+            
+            const labels = data.map(d => {
+                const r = Object.values(d);
+                return r[1] ? r[1].toString().split('T')[0].substring(0,5) : "??"; 
             });
 
-            const parse = (v) => {
-                if(v === undefined || v === null) return null;
-                let n = parseFloat(v.toString().replace(',', '.'));
+            // Fungsi ambil angka yang sangat aman
+            const g = (obj, idx) => {
+                const arr = Object.values(obj);
+                if (!arr[idx]) return null;
+                const n = parseFloat(arr[idx].toString().replace(',', '.'));
                 return isNaN(n) ? null : n;
             };
 
-            const datasets = [
-                // CS1 - Indeks 15-19
-                { label: 'CS1-R1', data: rows.map(r => parse(r[15])), borderColor: '#e74c3c' },
-                { label: 'CS1-R2', data: rows.map(r => parse(r[16])), borderColor: '#3498db' },
-                { label: 'CS1-R3', data: rows.map(r => parse(r[17])), borderColor: '#f1c40f' },
-                { label: 'CS1-R4', data: rows.map(r => parse(r[18])), borderColor: '#9b59b6' },
-                { label: 'CS1-Ante', data: rows.map(r => parse(r[19])), borderColor: '#2ecc71' },
-                // CS2 - Indeks 20-23 (Sesuai kalibrasi Anda)
-                { label: 'CS2-RA', data: rows.map(r => parse(r[20])), borderColor: '#c0392b', borderDash: [5, 5] },
-                { label: 'CS2-RB', data: rows.map(r => parse(r[21])), borderColor: '#2980b9', borderDash: [5, 5] },
-                { label: 'CS2-RC', data: rows.map(r => parse(r[22])), borderColor: '#f39c12', borderDash: [5, 5] },
-                { label: 'CS2-Ante', data: rows.map(r => parse(r[23])), borderColor: '#27ae60', borderDash: [5, 5] }
-            ].map(ds => ({ ...ds, fill: false, tension: 0.1, borderWidth: 2, pointRadius: 2 }));
+            const sets = [
+                { label: 'CS1-R1', data: data.map(d => g(d, 15)), borderColor: '#e74c3c' },
+                { label: 'CS1-R2', data: data.map(d => g(d, 16)), borderColor: '#3498db' },
+                { label: 'CS1-R3', data: data.map(d => g(d, 17)), borderColor: '#f1c40f' },
+                { label: 'CS1-R4', data: data.map(d => g(d, 18)), borderColor: '#9b59b6' },
+                { label: 'CS1-Ant', data: data.map(d => g(d, 19)), borderColor: '#2ecc71' },
+                
+                // CS2 (INDURAN BARU 20-23)
+                { label: 'CS2-RA', data: data.map(d => g(d, 20)), borderColor: '#c0392b', borderDash: [5,5] },
+                { label: 'CS2-RB', data: data.map(d => g(d, 21)), borderColor: '#2980b9', borderDash: [5,5] },
+                { label: 'CS2-RC', data: data.map(d => g(d, 22)), borderColor: '#f39c12', borderDash: [5,5] },
+                { label: 'CS2-Ant', data: data.map(d => g(d, 23)), borderColor: '#27ae60', borderDash: [5,5] }
+            ];
 
-            if (chart) chart.destroy();
-            chart = new Chart(document.getElementById('combinedChart'), {
+            if (myChart) myChart.destroy();
+            const ctx = document.getElementById('myChart').getContext('2d');
+            myChart = new Chart(ctx, {
                 type: 'line',
-                data: { labels, datasets },
+                data: { labels, datasets: sets.map(s => ({...s, fill:false, tension:0.1, borderWidth:2, pointRadius:2})) },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { position: 'bottom' } },
                     scales: { y: { suggestedMin: -25, suggestedMax: 15 } }
                 }
             });
 
-            log.innerText = `AKTIF | ${data.length} Poin Terdeteksi | Terakhir: ${new Date().toLocaleTimeString()}`;
-            document.getElementById('update-status').innerText = "Update: " + new Date().toLocaleTimeString();
+            stat.innerText = "🟢 SYSTEM ACTIVE | Update: " + new Date().toLocaleTimeString();
 
-        } catch (e) {
-            log.innerText = "Koneksi Gagal: " + e.message;
-            console.error(e);
+        } catch (err) {
+            stat.innerText = "❌ ERROR: " + err.message;
+            console.error(err);
         }
     }
 
-    loadData();
-    // Refresh otomatis setiap 1 menit
-    setInterval(loadData, 60000);
+    setInterval(() => { 
+        document.getElementById('live-clock').innerText = new Date().toLocaleString('id-ID'); 
+    }, 1000);
+
+    fetchData();
+    setInterval(fetchData, 60000);
 </script>
 </body>
 </html>
