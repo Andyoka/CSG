@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CS MONITORING V5.3 - FULL FILTER</title>
+    <title>CS MONITORING V5.4 - FIX DATE</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2c3e50; --accent: #1abc9c; --bg: #f4f7f9; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); }
-        .header { background: var(--primary); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+        .header { background: var(--primary); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
         .container { padding: 20px; max-width: 1400px; margin: 0 auto; }
         .status-bar { background: #1a1a1a; color: #0f0; padding: 12px; font-family: monospace; font-size: 13px; border-radius: 8px; margin-bottom: 20px; border-left: 6px solid var(--accent); display: flex; justify-content: space-between; align-items: center; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; }
@@ -16,24 +16,22 @@
         .filter-group { display: flex; flex-direction: column; gap: 5px; }
         label { font-size: 11px; font-weight: bold; color: #555; }
         input[type="date"] { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-        button { cursor: pointer; border: none; border-radius: 4px; font-weight: bold; transition: 0.2s; }
-        .btn-apply { background: var(--accent); color: white; padding: 10px 20px; }
-        .btn-reset { background: #95a5a6; color: white; padding: 10px 20px; }
-        .btn-refresh { background: #2ecc71; color: white; padding: 5px 10px; font-size: 11px; }
-        button:hover { opacity: 0.8; }
+        button { cursor: pointer; border: none; border-radius: 4px; font-weight: bold; padding: 10px 20px; }
+        .btn-apply { background: var(--accent); color: white; }
+        .btn-reset { background: #95a5a6; color: white; }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <strong>❄️ MONITORING SYSTEM <span style="color:var(--accent)">V5.3 FULL</span></strong>
+    <strong>❄️ MONITORING SYSTEM <span style="color:var(--accent)">V5.4 DATE-FIX</span></strong>
     <div id="live-clock" style="font-size: 14px; font-family: monospace;"></div>
 </div>
 
 <div class="container">
     <div class="status-bar">
-        <span id="stat-text">🚀 Menyiapkan sistem...</span>
-        <button class="btn-refresh" onclick="fetchData()">🔄 REFRESH DATA</button>
+        <span id="stat-text">🚀 Memproses data tanggal...</span>
+        <span id="live-update" style="color: #aaa; font-size: 11px;"></span>
     </div>
 
     <div class="card">
@@ -49,7 +47,6 @@
             <button class="btn-apply" onclick="applyFilter()">TAMPILKAN FILTER</button>
             <button class="btn-reset" onclick="resetFilter()">RESET (2 HARI)</button>
         </div>
-
         <div style="height: 500px;"><canvas id="myChart"></canvas></div>
     </div>
 </div>
@@ -62,19 +59,12 @@
     async function fetchData() {
         const stat = document.getElementById('stat-text');
         try {
-            stat.innerText = "⏳ Mengambil data terbaru...";
-            // Cache Buster agar tidak lemot
+            stat.innerText = "⏳ Sinkronisasi data...";
             const res = await fetch(URL_API + "?t=" + new Date().getTime());
             rawDataGlobal = await res.json();
-            
-            if (!rawDataGlobal || rawDataGlobal.length === 0) {
-                stat.innerText = "⚠️ Data Kosong!"; return;
-            }
-
-            resetFilter(); // Default view saat loading pertama kali
+            resetFilter();
         } catch (err) {
             stat.innerText = "❌ GAGAL: " + err.message;
-            setTimeout(fetchData, 10000); // Coba lagi dalam 10 detik
         }
     }
 
@@ -84,8 +74,18 @@
         
         const labels = batch.map(d => {
             const r = Object.values(d);
-            const dt = new Date(r[1]);
-            return isNaN(dt) ? "" : dt.getDate() + "/" + (dt.getMonth()+1) + " " + dt.getHours().toString().padStart(2,'0') + ":" + dt.getMinutes().toString().padStart(2,'0');
+            // PERBAIKAN LOGIKA TANGGAL: Ambil string asli, bersihkan simbol aneh
+            let dateStr = r[0] ? r[0].toString().split('T')[0] : ""; 
+            let timeStr = r[1] ? r[1].toString() : "";
+            
+            // Coba parsing manual jika Date object gagal
+            const dt = new Date(r[0]); 
+            const jam = new Date(r[1]);
+
+            if (isNaN(dt.getTime())) return "Err";
+            
+            // Format: Tgl/Bln Jam:Menit
+            return `${dt.getDate()}/${dt.getMonth()+1} ${jam.getHours().toString().padStart(2,'0')}:${jam.getMinutes().toString().padStart(2,'0')}`;
         });
 
         const g = (obj, idx) => {
@@ -111,54 +111,49 @@
             type: 'line',
             data: { 
                 labels, 
-                datasets: sets.map(s => ({
-                    ...s, 
-                    fill:false, 
-                    tension:0.2, 
-                    pointRadius:0, // Titik bulat dihilangkan
-                    borderWidth:3 
-                })) 
+                datasets: sets.map(s => ({ ...s, fill:false, tension:0.2, pointRadius:0, borderWidth:3 })) 
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
                 interaction: { mode: 'index', intersect: false },
                 plugins: { legend: { position: 'bottom' } },
-                scales: { y: { suggestedMin: -25, suggestedMax: 15 } }
+                scales: { 
+                    x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } },
+                    y: { suggestedMin: -25, suggestedMax: 15 } 
+                }
             }
         });
-
-        stat.innerText = `🟢 TERHUBUNG | Menampilkan ${filteredData.length} baris data`;
+        stat.innerText = `🟢 AKTIF | Menampilkan ${filteredData.length} data`;
     }
 
     function applyFilter() {
         const sStr = document.getElementById('startDate').value;
         const eStr = document.getElementById('endDate').value;
-        if(!sStr || !eStr) { alert("Pilih kedua tanggal!"); return; }
+        if(!sStr || !eStr) return;
 
         const start = new Date(sStr); start.setHours(0,0,0,0);
         const end = new Date(eStr); end.setHours(23,59,59,999);
 
         const filtered = rawDataGlobal.filter(d => {
-            const cur = new Date(Object.values(d)[0]);
+            const r = Object.values(d);
+            const cur = new Date(r[0]);
             return cur >= start && cur <= end;
         });
-
         processAndDisplay(filtered);
     }
 
     function resetFilter() {
-        // Tampilkan data 48 jam terakhir
-        const allT = rawDataGlobal.map(d => new Date(Object.values(d)[0]).getTime());
+        const allT = rawDataGlobal.map(d => new Date(Object.values(d)[0]).getTime()).filter(t => !isNaN(t));
+        if(allT.length === 0) return;
         const latest = new Date(Math.max(...allT));
         const cutoff = latest.getTime() - (48 * 60 * 60 * 1000);
-        
         const filtered = rawDataGlobal.filter(d => new Date(Object.values(d)[0]).getTime() >= cutoff);
         processAndDisplay(filtered);
     }
 
     setInterval(() => { document.getElementById('live-clock').innerText = new Date().toLocaleString('id-ID'); }, 1000);
     fetchData();
-    setInterval(fetchData, 600000); // Auto update setiap 10 menit
+    setInterval(fetchData, 600000);
 </script>
 </body>
 </html>
