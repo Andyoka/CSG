@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MONITORING SYSTEM - PHOTO GALLERY</title>
+    <style>
+        :root { --primary: #2c3e50; --accent: #e67e22; --bg: #f4f7f9; --sidebar: #1e2b37; --sub: #162129; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        /* Header */
+        .header { background: var(--primary); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .main-wrapper { display: flex; flex: 1; overflow: hidden; }
+        
+        /* Sidebar */
+        .sidebar { width: 260px; background: var(--sidebar); color: #ecf0f1; display: flex; flex-direction: column; border-right: 1px solid #2c3e50; }
+        .logo-area { padding: 25px; text-align: center; background: #162129; border-bottom: 1px solid #2c3e50; }
+        .logo-box { font-size: 22px; font-weight: bold; color: white; border: 2px solid var(--accent); display: inline-block; padding: 5px 15px; border-radius: 8px; background: rgba(230, 126, 34, 0.1); text-transform: uppercase; }
+        
+        .menu-section { padding: 15px 20px 5px 20px; font-size: 11px; color: #7f8c8d; font-weight: bold; text-transform: uppercase; }
+        .nav-item { padding: 12px 20px; cursor: pointer; display: flex; align-items: center; font-size: 14px; transition: 0.2s; border-left: 4px solid transparent; color: #bdc3c7; text-decoration: none; }
+        .nav-item:hover { background: var(--sub); color: white; }
+        .nav-item.active { background: var(--sub); border-left-color: var(--accent); color: var(--accent); }
+
+        /* Content Area */
+        .content { flex: 1; overflow-y: auto; padding: 20px; }
+        .area-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 25px; }
+        .area-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; margin-bottom: 15px; padding-bottom: 10px; }
+        .area-title { font-size: 18px; font-weight: bold; color: var(--primary); }
+        .area-date { font-size: 12px; color: #7f8c8d; }
+
+        .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
+        .photo-box { border: 1px solid #eee; border-radius: 8px; overflow: hidden; background: #f9f9f9; position: relative; transition: 0.3s; }
+        .photo-box:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .photo-box img { width: 100%; height: 180px; object-fit: cover; cursor: pointer; display: block; }
+        .photo-label { padding: 8px; font-size: 11px; text-align: center; background: white; font-weight: bold; color: #555; }
+
+        @media print { .sidebar, .header { display: none !important; } .content { padding: 0; } }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <strong>❄️ DOCUMENTATION <span style="color:var(--accent)">SYSTEM</span></strong>
+    <div id="live-clock" style="font-family: monospace; font-weight: bold;"></div>
+</div>
+
+<div class="main-wrapper">
+    <div class="sidebar">
+        <div class="logo-area">
+            <div class="logo-box">FOTO</div>
+            <div style="font-size: 10px; color: #7f8c8d; margin-top:5px;">DOCUMENTATION SYSTEM</div>
+        </div>
+
+        <div class="menu-section">Navigation</div>
+        <a href="index.html" class="nav-item"><span>📊 KEMBALI KE SUHU</span></a>
+        <div class="nav-item active"><span>📷 GALLERY KEBERSIHAN</span></div>
+    </div>
+
+    <div class="content" id="gallery-container">
+        <div style="text-align: center; padding: 50px;">
+            <p>Menghubungkan ke database foto...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // URL API FOTO YANG ANDA BERIKAN TADI
+    const URL_API_FOTO = "https://script.google.com/macros/s/AKfycbwes3tRQrHvDhE_l88WieD-ptVuHd2JXM-dq9jdb9M3xwuzQ9eMTjityjxNNc9Jt_mebQ/exec";
+
+    const AREA_CONFIG = [
+        { name: "RUANG 1", start: 0, tgl: 5, jam: 6 },
+        { name: "RUANG 2", start: 7, tgl: 12, jam: 13 },
+        { name: "RUANG 3", start: 14, tgl: 19, jam: 20 },
+        { name: "RUANG 4", start: 21, tgl: 26, jam: 27 },
+        { name: "RUANG A", start: 28, tgl: 33, jam: 34 },
+        { name: "RUANG B", start: 35, tgl: 40, jam: 41 },
+        { name: "RUANG C", start: 42, tgl: 47, jam: 48 }
+    ];
+
+    async function loadPhotos() {
+        try {
+            const res = await fetch(URL_API_FOTO + "?t=" + new Date().getTime());
+            const data = await res.json();
+            renderGallery(data);
+        } catch (e) {
+            document.getElementById('gallery-container').innerHTML = "<p>Gagal memuat data foto.</p>";
+        }
+    }
+
+    function renderGallery(data) {
+        const container = document.getElementById('gallery-container');
+        container.innerHTML = "";
+
+        AREA_CONFIG.forEach(area => {
+            // Cari data terbaru untuk area ini
+            const latestEntry = data.find(row => Object.values(row)[area.start]);
+            
+            if(latestEntry) {
+                const vals = Object.values(latestEntry);
+                let html = `
+                <div class="area-card">
+                    <div class="area-header">
+                        <span class="area-title">${area.name}</span>
+                        <span class="area-date">📅 ${vals[area.tgl]} | 🕒 ${vals[area.jam]}</span>
+                    </div>
+                    <div class="photo-grid">`;
+
+                for(let i = area.start; i < area.start + 4; i++) {
+                    if(vals[i]) {
+                        // Link AppSheet Image
+                        const imgUrl = `https://www.appsheet.com/template/gettablefileurl?appName=LS2Foto-XXXXXX&tableName=Foto%20Ruang%20%26%20Gudang&fileName=${encodeURIComponent(vals[i])}`;
+                        html += `
+                        <div class="photo-box">
+                            <img src="${imgUrl}" onerror="this.src='https://via.placeholder.com/400x300?text=No+Image'" onclick="window.open(this.src)">
+                            <div class="photo-label">BAGIAN ${i - area.start + 1}</div>
+                        </div>`;
+                    }
+                }
+                html += `</div></div>`;
+                container.innerHTML += html;
+            }
+        });
+    }
+
+    setInterval(() => { document.getElementById('live-clock').innerText = new Date().toLocaleString('id-ID'); }, 1000);
+    loadPhotos();
+</script>
+</body>
+</html>
