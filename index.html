@@ -3,25 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CS MONITORING V5</title>
+    <title>CS MONITORING V5.1 - Clean View</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: sans-serif; margin: 0; background: #f0f2f5; }
-        .header { background: #2c3e50; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-        .container { padding: 20px; }
-        .status-bar { background: #1a1a1a; color: #0f0; padding: 10px; font-family: monospace; font-size: 12px; border-radius: 5px; margin-bottom: 15px; border-left: 5px solid #2ecc71; }
-        .chart-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); height: 500px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f0f2f5; color: #333; }
+        .header { background: #2c3e50; color: white; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+        .container { padding: 20px; max-width: 1600px; margin: 0 auto; }
+        .status-bar { background: #1a1a1a; color: #0f0; padding: 12px 20px; font-family: 'Courier New', monospace; font-size: 13px; border-radius: 8px; margin-bottom: 20px; border-left: 6px solid #2ecc71; display: flex; justify-content: space-between; }
+        .chart-card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); height: 600px; }
+        .badge { background: #e74c3c; padding: 2px 8px; border-radius: 4px; font-size: 10px; margin-left: 10px; }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <strong>❄️ MONITORING SYSTEM <span style="color:#f1c40f">V5.0 FINAL</span></strong>
-    <div id="live-clock" style="font-size: 12px;"></div>
+    <div>
+        <strong style="font-size: 18px;">❄️ MONITORING SYSTEM</strong>
+        <span class="badge">V5.1 FINAL (NO DOTS)</span>
+    </div>
+    <div id="live-clock" style="font-weight: bold; letter-spacing: 1px;"></div>
 </div>
 
 <div class="container">
-    <div id="status-bar">🚀 System Booting...</div>
+    <div id="status-bar">
+        <span id="stat-text">🚀 Memulai koneksi aman...</span>
+        <span id="data-count" style="color: #aaa;"></span>
+    </div>
+    
     <div class="chart-card">
         <canvas id="myChart"></canvas>
     </div>
@@ -32,28 +40,28 @@
     let myChart;
 
     async function fetchData() {
-        const stat = document.getElementById('status-bar');
+        const stat = document.getElementById('stat-text');
+        const countStat = document.getElementById('data-count');
+        
         try {
-            stat.innerText = "⏳ Memanggil Data Google Sheets...";
             const res = await fetch(URL_API);
             const raw = await res.json();
             
             if (!raw || raw.length === 0) {
-                stat.innerText = "⚠️ Data Kosong!";
+                stat.innerText = "⚠️ Data tidak ditemukan di Sheets";
                 return;
             }
 
-            stat.innerText = "✅ Data Diterima, Menyusun Grafik...";
-
-            // Ambil 80 baris terbaru
-            const data = raw.slice(0, 80).reverse();
+            // Ambil 100 data terbaru (sekitar 8-10 jam terakhir jika interval 5 menit)
+            const data = raw.slice(0, 100).reverse();
             
             const labels = data.map(d => {
                 const r = Object.values(d);
-                return r[1] ? r[1].toString().split('T')[0].substring(0,5) : "??"; 
+                if(!r[1]) return "";
+                const dateObj = new Date(r[1]);
+                return dateObj.getHours().toString().padStart(2, '0') + ":" + dateObj.getMinutes().toString().padStart(2, '0');
             });
 
-            // Fungsi ambil angka yang sangat aman
             const g = (obj, idx) => {
                 const arr = Object.values(obj);
                 if (!arr[idx]) return null;
@@ -62,46 +70,32 @@
             };
 
             const sets = [
+                // CS1 - GARIS SOLID
                 { label: 'CS1-R1', data: data.map(d => g(d, 15)), borderColor: '#e74c3c' },
                 { label: 'CS1-R2', data: data.map(d => g(d, 16)), borderColor: '#3498db' },
                 { label: 'CS1-R3', data: data.map(d => g(d, 17)), borderColor: '#f1c40f' },
                 { label: 'CS1-R4', data: data.map(d => g(d, 18)), borderColor: '#9b59b6' },
                 { label: 'CS1-Ant', data: data.map(d => g(d, 19)), borderColor: '#2ecc71' },
                 
-                // CS2 (INDURAN BARU 20-23)
-                { label: 'CS2-RA', data: data.map(d => g(d, 20)), borderColor: '#c0392b', borderDash: [5,5] },
-                { label: 'CS2-RB', data: data.map(d => g(d, 21)), borderColor: '#2980b9', borderDash: [5,5] },
-                { label: 'CS2-RC', data: data.map(d => g(d, 22)), borderColor: '#f39c12', borderDash: [5,5] },
-                { label: 'CS2-Ant', data: data.map(d => g(d, 23)), borderColor: '#27ae60', borderDash: [5,5] }
+                // CS2 - GARIS PUTUS-PUTUS (DASHED)
+                { label: 'CS2-RA', data: data.map(d => g(d, 20)), borderColor: '#c0392b', borderDash: [6, 4] },
+                { label: 'CS2-RB', data: data.map(d => g(d, 21)), borderColor: '#2980b9', borderDash: [6, 4] },
+                { label: 'CS2-RC', data: data.map(d => g(d, 22)), borderColor: '#f39c12', borderDash: [6, 4] },
+                { label: 'CS2-Ant', data: data.map(d => g(d, 23)), borderColor: '#27ae60', borderDash: [6, 4] }
             ];
 
             if (myChart) myChart.destroy();
             const ctx = document.getElementById('myChart').getContext('2d');
+            
             myChart = new Chart(ctx, {
                 type: 'line',
-                data: { labels, datasets: sets.map(s => ({...s, fill:false, tension:0.1, borderWidth:2, pointRadius:2})) },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom' } },
-                    scales: { y: { suggestedMin: -25, suggestedMax: 15 } }
-                }
-            });
-
-            stat.innerText = "🟢 SYSTEM ACTIVE | Update: " + new Date().toLocaleTimeString();
-
-        } catch (err) {
-            stat.innerText = "❌ ERROR: " + err.message;
-            console.error(err);
-        }
-    }
-
-    setInterval(() => { 
-        document.getElementById('live-clock').innerText = new Date().toLocaleString('id-ID'); 
-    }, 1000);
-
-    fetchData();
-    setInterval(fetchData, 60000);
-</script>
-</body>
-</html>
+                data: { 
+                    labels, 
+                    datasets: sets.map(s => ({
+                        ...s, 
+                        fill: false, 
+                        tension: 0.3, 
+                        borderWidth: 3, 
+                        pointRadius: 0,      // Menghilangkan titik bulat
+                        pointHitRadius: 10,  // Tetap bisa dideteksi saat mouse mendekat
+                        hover
