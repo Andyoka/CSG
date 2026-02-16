@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MONITORING SYSTEM V6.0 - MULTI UNIT</title>
+    <title>MONITORING SYSTEM V6.1 - SEAMLESS</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2c3e50; --accent: #1abc9c; --bg: #f4f7f9; }
@@ -16,8 +16,8 @@
         select, input, button { padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
         button { cursor: pointer; font-weight: bold; border: none; border-radius: 4px; transition: 0.2s; }
         .btn-view { background: var(--accent); color: white; }
-        .btn-print { background: #34495e; color: white; }
         .btn-reset { background: #95a5a6; color: white; }
+        .btn-print { background: #34495e; color: white; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; }
         .table-wrapper { margin-top: 20px; overflow-x: auto; max-height: 400px; overflow-y: auto; border: 1px solid #eee; }
         table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; }
@@ -30,7 +30,7 @@
 <body>
 
 <div class="header">
-    <strong>❄️ MONITORING SYSTEM <span style="color:var(--accent)">V6.0</span></strong>
+    <strong>❄️ MONITORING SYSTEM <span style="color:var(--accent)">V6.1 SEAMLESS</span></strong>
     <div id="live-clock" style="font-family: monospace; font-weight: bold;"></div>
 </div>
 
@@ -48,7 +48,7 @@
             <select id="unitSelector" onchange="updateUI()">
                 <option value="CS1">Unit CS1 (R1 - Ante)</option>
                 <option value="CS2">Unit CS2 (RA - Ante)</option>
-                <option value="P2">Produksi 2 (Cleaning - Stemer)</option>
+                <option value="P2">Produksi 2 (Full Active)</option>
                 <option value="CWP">CWP (1 & 2)</option>
             </select>
         </div>
@@ -63,7 +63,7 @@
     </div>
 
     <div class="card">
-        <h3 id="tableTitle" style="margin-top:0; color:#2c3e50; font-size:16px;">Tabel Data Suhu</h3>
+        <h3 id="tableTitle" style="margin-top:0; color:#2c3e50; font-size:16px;">Tabel Data Suhu Aktif</h3>
         <div class="table-wrapper">
             <table id="dataTable">
                 <thead id="tableHead"></thead>
@@ -113,9 +113,8 @@
 
     function updateUI() {
         const unit = document.getElementById('unitSelector').value;
-        const batch = [...currentData].reverse();
-        
         let config = {};
+        
         if(unit === 'CS1') {
             config = { indices: [15,16,17,18,19], labels: ['R1','R2','R3','R4','Ante'], colors: ['#e74c3c','#3498db','#f1c40f','#9b59b6','#2ecc71'] };
         } else if(unit === 'CS2') {
@@ -126,22 +125,34 @@
             config = { indices: [11,12], labels: ['CWP 1','CWP 2'], colors: ['#e74c3c','#3498db'] };
         }
 
+        // FILTER TAHAP 1: Buang baris yang isinya 0 atau kosong di kategori terpilih
+        const activeRows = currentData.filter(d => {
+            const r = Object.values(d);
+            return config.indices.some(idx => {
+                const val = parseFloat(r[idx]?.toString().replace(',','.'));
+                return !isNaN(val) && val !== 0;
+            });
+        });
+
+        const batch = [...activeRows].reverse();
+
+        // 1. Persiapkan Labels Sumbu X (Hanya yang ada datanya)
         const labelsX = batch.map(d => {
             const r = Object.values(d);
             const dt = new Date(r[0]); const jam = new Date(r[1]);
             return `${dt.getDate()}/${dt.getMonth()+1} ${jam.getHours().toString().padStart(2,'0')}:${jam.getMinutes().toString().padStart(2,'0')}`;
         });
 
+        // 2. Persiapkan Dataset
         const datasets = config.labels.map((l, i) => ({
             label: l,
             data: batch.map(d => {
                 const val = Object.values(d)[config.indices[i]];
                 const n = parseFloat(val?.toString().replace(',','.'));
-                // FILTER: Jika 0 atau NaN, kirim null agar tidak muncul di garis
                 return (isNaN(n) || n === 0) ? null : n;
             }),
             borderColor: config.colors[i],
-            fill: false, tension: 0.2, pointRadius: 0, borderWidth: 3, spanGaps: false
+            fill: false, tension: 0.2, pointRadius: 0, borderWidth: 3, spanGaps: true
         }));
 
         if (myChart) myChart.destroy();
@@ -152,35 +163,28 @@
                 responsive: true, maintainAspectRatio: false, 
                 interaction: { mode: 'index', intersect: false },
                 plugins: { legend: { position: 'bottom' } },
-                scales: { y: { suggestedMin: 0 } }
+                scales: { 
+                    x: { ticks: { autoSkip: true, maxTicksLimit: 12 } },
+                    y: { suggestedMin: 0 } 
+                }
             }
         });
 
-        // Update Tabel (Hanya baris yang punya data non-nol yang muncul)
-        document.getElementById('tableTitle').innerText = `Laporan Suhu ${unit}`;
+        // 3. Update Tabel
+        document.getElementById('tableTitle').innerText = `Data Suhu Aktif ${unit} (Nol Dihilangkan)`;
         const head = document.getElementById('tableHead');
         const body = document.getElementById('tableBody');
         head.innerHTML = `<tr><th>Waktu</th>${config.labels.map(l => `<th>${l}</th>`).join('')}</tr>`;
         
-        let tableHTML = "";
-        batch.forEach(d => {
+        body.innerHTML = batch.map(d => {
             const r = Object.values(d);
-            // Cek apakah di baris ini ada data yang bukan nol
-            const hasData = config.indices.some(idx => {
-                const val = parseFloat(r[idx]?.toString().replace(',','.'));
-                return !isNaN(val) && val !== 0;
-            });
-
-            if(hasData) {
-                const dt = new Date(r[0]); const jam = new Date(r[1]);
-                const timeStr = `${dt.getDate()}/${dt.getMonth()+1} ${jam.getHours().toString().padStart(2,'0')}:${jam.getMinutes().toString().padStart(2,'0')}`;
-                tableHTML += `<tr><td>${timeStr}</td>${config.indices.map(idx => {
-                    const v = r[idx];
-                    return `<td>${(v == 0 || !v) ? '-' : v}</td>`;
-                }).join('')}</tr>`;
-            }
-        });
-        body.innerHTML = tableHTML;
+            const dt = new Date(r[0]); const jam = new Date(r[1]);
+            const timeStr = `${dt.getDate()}/${dt.getMonth()+1} ${jam.getHours().toString().padStart(2,'0')}:${jam.getMinutes().toString().padStart(2,'0')}`;
+            return `<tr><td>${timeStr}</td>${config.indices.map(idx => {
+                const v = r[idx];
+                return `<td>${(v == 0 || !v) ? '-' : v}</td>`;
+            }).join('')}</tr>`;
+        }).join('');
     }
 
     setInterval(() => { document.getElementById('live-clock').innerText = new Date().toLocaleString('id-ID'); }, 1000);
