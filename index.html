@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MONITORING SYSTEM V8.9.4 - FINAL FIX</title>
+    <title>MONITORING SYSTEM V8.9.4 - TEMPERATURE ONLY</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2c3e50; --accent: #1abc9c; --bg: #f4f7f9; --sidebar: #1e2b37; --sub: #162129; }
@@ -13,7 +13,7 @@
         .sidebar { width: 260px; background: var(--sidebar); color: #ecf0f1; display: flex; flex-direction: column; overflow-y: auto; border-right: 1px solid #2c3e50; }
         .logo-area { padding: 20px; text-align: center; background: #162129; }
         .logo-box { font-size: 20px; font-weight: bold; color: white; border: 2px solid var(--accent); padding: 5px 15px; border-radius: 8px; }
-        .nav-item { padding: 12px 20px; cursor: pointer; display: flex; justify-content: space-between; font-size: 14px; border-left: 4px solid transparent; }
+        .nav-item { padding: 12px 20px; cursor: pointer; display: flex; font-size: 14px; border-left: 4px solid transparent; color: #bdc3c7; }
         .nav-item.active { background: var(--sub); border-left-color: var(--accent); color: var(--accent); }
         .lvl-3 { background: #162129; }
         .deep-item { padding: 10px 20px 10px 60px; cursor: pointer; font-size: 12px; color: #95a5a6; }
@@ -23,12 +23,8 @@
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; }
         .table-wrapper { overflow-x: auto; max-height: 400px; }
         table { width: 100%; border-collapse: collapse; font-size: 11px; }
-        th { background: #f8f9fa; position: sticky; top: 0; padding: 10px; border-bottom: 2px solid #dee2e6; }
+        th { background: #f8f9fa; position: sticky; top: 0; padding: 10px; border-bottom: 2px solid #dee2e6; text-align: center; }
         td { padding: 8px; border-bottom: 1px solid #eee; text-align: center; }
-        .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
-        .photo-card { border: 1px solid #ddd; border-radius: 8px; overflow: hidden; background: white; margin-bottom: 10px;}
-        .photo-card img { width: 100%; height: 150px; object-fit: cover; cursor: pointer; background: #eee; }
-        .area-label { background: var(--primary); color: white; padding: 5px 10px; border-radius: 4px; display: inline-block; margin-bottom: 10px; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -41,63 +37,47 @@
 <div class="main-wrapper">
     <div class="sidebar">
         <div class="logo-area"><div class="logo-box">MYCOM</div></div>
-        <div class="nav-item active" onclick="switchTab('MYCOM', this)"><span>📊 MONITORING SUHU</span></div>
+        <div class="nav-item active"><span>📊 MONITORING SUHU</span></div>
         <div class="lvl-3">
             <div class="deep-item active" onclick="changeUnit('P2', this)">Suhu P2</div>
             <div class="deep-item" onclick="changeUnit('CWP', this)">Suhu CWP</div>
             <div class="deep-item" onclick="changeUnit('CS1', this)">Suhu CS1</div>
             <div class="deep-item" onclick="changeUnit('CS2', this)">Suhu CS2</div>
         </div>
-        <div class="nav-item" onclick="switchTab('FOTO', this)"><span>📷 FOTO KEBERSIHAN</span></div>
     </div>
 
     <div class="content">
-        <div id="sec-MYCOM">
-            <div class="toolbar">
-                <input type="date" id="startDate">
-                <input type="date" id="endDate">
-                <button onclick="applyFilter()" style="background:var(--accent); color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer;">FILTER</button>
-            </div>
-            <div class="card"><div style="height: 400px;"><canvas id="myChart"></canvas></div></div>
-            <div class="card"><div class="table-wrapper"><table><thead id="tableHead"></thead><tbody id="tableBody"></tbody></table></div></div>
+        <div class="toolbar">
+            <input type="date" id="startDate">
+            <input type="date" id="endDate">
+            <button onclick="applyFilter()" style="background:var(--accent); color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer;">FILTER</button>
         </div>
-        <div id="sec-FOTO" style="display:none;"><div id="gallery-content"></div></div>
+        <div class="card"><div style="height: 400px;"><canvas id="myChart"></canvas></div></div>
+        <div class="card"><div class="table-wrapper"><table><thead id="tableHead"></thead><tbody id="tableBody"></tbody></table></div></div>
     </div>
 </div>
 
 <script>
     const URL_SUHU = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
-    const URL_FOTO = "https://script.google.com/macros/s/AKfycbwes3tRQrHvDhE_l88WieD-ptVuHd2JXM-dq9jdb9M3xwuzQ9eMTjityjxNNc9Jt_mebQ/exec";
-    const APP_NAME = "CSGempol-782466966"; // Perbaikan Nama App
 
     let myChart, rawDataSuhu = [], currentDataSuhu = [], activeUnit = 'P2';
-
-    // --- LOGIKA FOTO SCANNER ---
-    const CONFIG_FOTO = [
-        { name: "RUANG 1", table: "RUANG 1", pattern: "RUANG 1_Images/" },
-        { name: "RUANG 2", table: "RUANG 2", pattern: "RUANG 2_Images/" },
-        { name: "RUANG 3", table: "RUANG 3", pattern: "RUANG 3_Images/" },
-        { name: "RUANG 4", table: "RUANG 4", pattern: "RUANG 4_Images/" },
-        { name: "RUANG A", table: "RUANG A", pattern: "RUANG A_Images/" },
-        { name: "RUANG B", table: "RUANG B", pattern: "RUANG B_Images/" },
-        { name: "RUANG C", table: "RUANG C", pattern: "RUANG C_Images/" },
-        { name: "ANTEROOM SELATAN", table: "ANTEROOM SELATAN", pattern: "Anteroom selatan" },
-        { name: "ANTEROOM UTARA", table: "ANTEROOM UTARA", pattern: "Anteroom utara" }
-    ];
 
     async function fetchSuhu() {
         try {
             const res = await fetch(URL_SUHU + "?t=" + new Date().getTime());
             rawDataSuhu = await res.json();
+            
             if(rawDataSuhu.length > 0) {
+                // Ambil data 2 hari terakhir secara otomatis
                 const lastDateStr = Object.values(rawDataSuhu[0])[0];
                 const lastDate = new Date(lastDateStr);
                 const threshold = new Date(lastDate);
                 threshold.setDate(lastDate.getDate() - 2);
+
                 currentDataSuhu = rawDataSuhu.filter(d => new Date(Object.values(d)[0]) >= threshold);
             }
             updateUI();
-        } catch (err) { console.error(err); }
+        } catch (err) { console.error("Gagal load data suhu:", err); }
     }
 
     function changeUnit(unit, el) {
@@ -109,10 +89,18 @@
 
     function updateUI() {
         let cfg = {};
-        if(activeUnit === 'P2') cfg = { idx: [2,3,4,5,6,7,8,9,10], lbl: ['Clean1','Clean2','Pack1','Pack2','Pre1','Pre2','Seas1','Seas2','Stemer'], clr: ['#1abc9c','#16a085','#2ecc71','#27ae60','#3498db','#2980b9','#9b59b6','#8e44ad','#e67e22'] };
-        else if(activeUnit === 'CWP') cfg = { idx: [11,12], lbl: ['CWP 1','CWP 2'], clr: ['#e74c3c','#3498db'] };
-        else if(activeUnit === 'CS1') cfg = { idx: [13,14,15,16,17], lbl: ['R1','R2','R3','R4','Ante'], clr: ['#e74c3c','#3498db','#f1c40f','#9b59b6','#2ecc71'] };
-        else if(activeUnit === 'CS2') cfg = { idx: [18,19,20,21], lbl: ['RA','RB','RC','Ante'], clr: ['#c0392b','#2980b9','#f39c12','#27ae60'] };
+        // Perbaikan Indeks Kolom agar sesuai dengan urutan Google Sheet Anda
+        if(activeUnit === 'P2') {
+            cfg = { idx: [2,3,4,5,6,7,8,9,10], lbl: ['Clean1','Clean2','Pack1','Pack2','Pre1','Pre2','Seas1','Seas2','Stemer'], clr: ['#1abc9c','#16a085','#2ecc71','#27ae60','#3498db','#2980b9','#9b59b6','#8e44ad','#e67e22'] };
+        } else if(activeUnit === 'CWP') {
+            cfg = { idx: [11,12], lbl: ['CWP 1','CWP 2'], clr: ['#e74c3c','#3498db'] };
+        } else if(activeUnit === 'CS1') {
+            // Ruang 1-4 dan Anteroom Selatan
+            cfg = { idx: [4,11,18,25,50], lbl: ['R1','R2','R3','R4','Ante S'], clr: ['#e74c3c','#3498db','#f1c40f','#9b59b6','#2ecc71'] };
+        } else if(activeUnit === 'CS2') {
+            // Ruang A-C dan Anteroom Utara
+            cfg = { idx: [32,39,46,54], lbl: ['RA','RB','RC','Ante U'], clr: ['#c0392b','#2980b9','#f39c12','#27ae60'] };
+        }
 
         const batch = [...currentDataSuhu].reverse();
         const labelsX = batch.map(d => {
@@ -127,14 +115,24 @@
                 if(!val || val === "" || val === 0) return null;
                 return parseFloat(val.toString().replace(',','.'));
             }),
-            borderColor: cfg.clr[i], tension: 0.3, pointRadius: 2, fill: false, spanGaps: true 
+            borderColor: cfg.clr[i], 
+            backgroundColor: cfg.clr[i],
+            tension: 0.3, 
+            pointRadius: 2, 
+            fill: false, 
+            spanGaps: true 
         }));
 
         if (myChart) myChart.destroy();
         myChart = new Chart(document.getElementById('myChart'), {
             type: 'line',
             data: { labels: labelsX, datasets },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false } } }
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                scales: { y: { beginAtZero: false, title: { display: true, text: 'Suhu (°C)' } } },
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
+            }
         });
 
         document.getElementById('tableHead').innerHTML = `<tr><th>Waktu</th>${cfg.lbl.map(l => `<th>${l}</th>`).join('')}</tr>`;
@@ -142,49 +140,6 @@
             const v = Object.values(d);
             return `<tr><td>${v[0].toString().substring(0,10)} ${v[1].toString().substring(11,16)}</td>${cfg.idx.map(i => `<td>${v[i] || '-'}</td>`).join('')}</tr>`;
         }).join('');
-    }
-
-    async function loadPhotos() {
-        const res = await fetch(URL_FOTO + "?t=" + new Date().getTime());
-        const data = await res.json();
-        const out = document.getElementById('gallery-content');
-        out.innerHTML = "";
-        
-        const revData = [...data].reverse();
-
-        CONFIG_FOTO.forEach(area => {
-            let photoFiles = [];
-            let dateStr = "";
-
-            // Scanner: cari baris terbaru untuk area ini
-            for (let row of revData) {
-                const cells = Object.values(row);
-                const matches = cells.filter(c => c && c.toString().includes(area.pattern));
-                if (matches.length > 0) {
-                    photoFiles = matches;
-                    const dateCell = cells.find(c => c && c.toString().includes("/202"));
-                    dateStr = dateCell || "";
-                    break;
-                }
-            }
-
-            if(photoFiles.length > 0) {
-                let h = `<div style="margin-bottom:30px;"><div class="area-label">${area.name} (${dateStr})</div><div class="photo-grid">`;
-                photoFiles.forEach(file => {
-                    const imgUrl = `https://www.appsheet.com/template/gettablefileurl?appName=${APP_NAME}&tableName=${encodeURIComponent(area.table)}&fileName=${encodeURIComponent(file.trim())}`;
-                    h += `<div class="photo-card"><img src="${imgUrl}" onclick="window.open(this.src)" onerror="this.src='https://via.placeholder.com/200x150?text=Izin+Ditolak'"></div>`;
-                });
-                out.innerHTML += h + `</div></div>`;
-            }
-        });
-    }
-
-    function switchTab(t, el) {
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        el.classList.add('active');
-        document.getElementById('sec-MYCOM').style.display = t==='MYCOM'?'block':'none';
-        document.getElementById('sec-FOTO').style.display = t==='FOTO'?'block':'none';
-        if(t === 'FOTO') loadPhotos();
     }
 
     function applyFilter() {
