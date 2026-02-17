@@ -3,190 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MONITORING SYSTEM V8.1</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>MONITORING SYSTEM - ALL PHOTO AREAS</title>
     <style>
-        :root { --primary: #2c3e50; --accent: #1abc9c; --bg: #f4f7f9; --sidebar: #1e2b37; --sub: #162129; }
+        :root { --primary: #2c3e50; --accent: #1abc9c; --bg: #f4f7f9; --sidebar: #1e2b37; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         .header { background: var(--primary); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .main-wrapper { display: flex; flex: 1; overflow: hidden; }
-        .sidebar { width: 260px; background: var(--sidebar); color: #ecf0f1; display: flex; flex-direction: column; overflow-y: auto; border-right: 1px solid #2c3e50; }
+        .sidebar { width: 260px; background: var(--sidebar); color: #ecf0f1; display: flex; flex-direction: column; border-right: 1px solid #2c3e50; }
         .logo-area { padding: 25px; text-align: center; background: #162129; border-bottom: 1px solid #2c3e50; }
-        .logo-box { font-size: 22px; font-weight: bold; color: white; border: 2px solid var(--accent); display: inline-block; padding: 5px 15px; border-radius: 8px; background: rgba(26, 188, 156, 0.1); text-transform: uppercase; }
-        .menu-section { padding: 15px 20px 5px 20px; font-size: 11px; color: #7f8c8d; font-weight: bold; text-transform: uppercase; }
-        .nav-item { padding: 12px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 14px; transition: 0.2s; border-left: 4px solid transparent; }
-        .nav-item:hover { background: var(--sub); }
-        .nav-item.active { background: var(--sub); border-left-color: var(--accent); color: var(--accent); }
-        .lvl-2 { background: #162129; display: none; } 
-        .lvl-3 { background: #0d141a; display: none; } 
-        .show { display: block !important; }
-        .sub-item { padding: 10px 20px 10px 40px; cursor: pointer; font-size: 13px; color: #bdc3c7; display: flex; justify-content: space-between; transition: 0.2s; }
-        .sub-item:hover { color: var(--accent); }
-        .deep-item { padding: 8px 20px 8px 60px; cursor: pointer; font-size: 12px; color: #95a5a6; transition: 0.2s; }
-        .deep-item.active { color: white; background: var(--accent); font-weight: bold; }
-        .arrow { font-size: 10px; transition: 0.3s; opacity: 0.5; }
-        .rotate { transform: rotate(180deg); }
-        .content { flex: 1; overflow-y: auto; padding: 20px; }
-        .toolbar { display: flex; gap: 10px; margin-bottom: 20px; background: #fff; padding: 15px; border-radius: 8px; align-items: flex-end; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; }
-        th { background: #f8f9fa; position: sticky; top: 0; padding: 12px; border-bottom: 2px solid #dee2e6; }
-        td { padding: 8px; border-bottom: 1px solid #eee; }
+        .logo-box { font-size: 22px; font-weight: bold; color: white; border: 2px solid var(--accent); display: inline-block; padding: 5px 15px; border-radius: 8px; text-transform: uppercase; }
+        .content { flex: 1; overflow-y: auto; padding: 20px; scroll-behavior: smooth; }
+        .area-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 25px; border-top: 5px solid var(--accent); }
+        .area-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; margin-bottom: 15px; padding-bottom: 10px; }
+        .area-title { font-size: 18px; font-weight: bold; color: var(--primary); }
+        .area-date { font-size: 11px; color: #7f8c8d; background: #eee; padding: 4px 8px; border-radius: 4px; }
+        .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+        .photo-box { border: 1px solid #eee; border-radius: 8px; overflow: hidden; background: #fff; position: relative; }
+        .photo-box img { width: 100%; height: 180px; object-fit: cover; cursor: pointer; display: block; background: #f0f0f0; }
+        .photo-label { padding: 8px; font-size: 9px; text-align: center; color: #7f8c8d; border-top: 1px solid #f9f9f9; word-break: break-all; }
+        #loader { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <strong>❄️ ENGINEERING <span style="color:var(--accent)">SYSTEM</span></strong>
+    <strong>❄️ DOCUMENTATION <span style="color:var(--accent)">SYSTEM</span></strong>
     <div id="live-clock"></div>
 </div>
 
 <div class="main-wrapper">
     <div class="sidebar">
-        <div class="logo-area">
-            <div class="logo-box" id="dynamicLogo">MYCOM</div>
-            <div id="logoSubtext" style="font-size: 10px; color: #7f8c8d;">MONITORING DASHBOARD</div>
-        </div>
-
-        <div class="menu-section">Main Modules</div>
-        
-        <div class="nav-item active" onclick="toggleMenu('mycom-lvl2', this)">
-            <span>📊 MYCOM</span>
-            <span class="arrow">▼</span>
-        </div>
-        <div id="mycom-lvl2" class="lvl-2 show">
-            <div class="sub-item" onclick="toggleMenu('suhu-lvl3', this)">
-                <span>🌡️ Suhu</span>
-                <span class="arrow">▼</span>
-            </div>
-            <div id="suhu-lvl3" class="lvl-3 show">
-                <div class="deep-item active" onclick="changeUnit('P2', this)">Suhu P2</div>
-                <div class="deep-item" onclick="changeUnit('CWP', this)">Suhu CWP</div>
-                <div class="deep-item" onclick="changeUnit('CS1', this)">Suhu CS1</div>
-                <div class="deep-item" onclick="changeUnit('CS2', this)">Suhu CS2</div>
-            </div>
-        </div>
-
-        <div class="nav-item" onclick="toggleMenu('foto-lvl2', this)">
-            <span>📷 FOTO</span>
-            <span class="arrow">▼</span>
-        </div>
-        <div id="foto-lvl2" class="lvl-2">
-            <div class="sub-item" onclick="window.location.href='foto.html'">
-                <span>🖼️ Gallery Kebersihan</span>
-            </div>
-        </div>
+        <div class="logo-area"><div class="logo-box">PHOTO</div></div>
+        <div style="padding: 20px; font-size: 12px; color: #7f8c8d;">NAVIGASI</div>
+        <div style="padding: 12px 25px; color: var(--accent); background: #162129; border-left: 4px solid var(--accent);">📷 SEMUA RUANGAN</div>
+        <div style="padding: 12px 25px; opacity: 0.5; cursor: not-allowed;">📊 DASHBOARD SUHU</div>
     </div>
-
-    <div class="content">
-        <div class="toolbar">
-            <input type="date" id="startDate">
-            <input type="date" id="endDate">
-            <button onclick="applyFilter()">PROSES</button>
-            <button onclick="resetToTwoDays()">RESET</button>
-        </div>
-        <div class="card"><div style="height: 400px;"><canvas id="myChart"></canvas></div></div>
-        <div class="card">
-            <h3 id="tableTitle">Tabel Data</h3>
-            <table id="dataTable"><thead id="tableHead"></thead><tbody id="tableBody"></tbody></table>
-        </div>
+    <div class="content" id="gallery-container">
+        <div id="loader">Sedang memindai data terbaru dari seluruh kolom...</div>
     </div>
 </div>
 
 <script>
-    const URL_API = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
-    let myChart, rawDataGlobal = [], currentData = [], activeUnit = 'P2';
+    const URL_API = "https://script.google.com/macros/s/AKfycbwes3tRQrHvDhE_l88WieD-ptVuHd2JXM-dq9jdb9M3xwuzQ9eMTjityjxNNc9Jt_mebQ/exec";
+    const APP_NAME = "CSGempol-782466966";
+
+    // Pola folder foto sesuai dengan folder di AppSheet/Google Drive
+    const AREAS = [
+        { name: "RUANG 1", table: "RUANG 1", pattern: "RUANG 1_Images/" },
+        { name: "RUANG 2", table: "RUANG 2", pattern: "RUANG 2_Images/" },
+        { name: "RUANG 3", table: "RUANG 3", pattern: "RUANG 3_Images/" },
+        { name: "RUANG 4", table: "RUANG 4", pattern: "RUANG 4_Images/" },
+        { name: "RUANG A", table: "RUANG A", pattern: "RUANG A_Images/" },
+        { name: "RUANG B", table: "RUANG B", pattern: "RUANG B_Images/" },
+        { name: "RUANG C", table: "RUANG C", pattern: "RUANG C_Images/" },
+        { name: "ANTEROOM SELATAN", table: "ANTEROOM SELATAN", pattern: "Anteroom selatan" },
+        { name: "ANTEROOM UTARA", table: "ANTEROOM UTARA", pattern: "Anteroom utara" }
+    ];
 
     async function fetchData() {
         try {
-            const res = await fetch(URL_API + "?t=" + new Date().getTime());
-            rawDataGlobal = await res.json();
-            resetToTwoDays();
-        } catch (err) { console.error(err); }
+            const response = await fetch(URL_API + "?t=" + new Date().getTime());
+            const data = await response.json();
+            buildGallery(data);
+        } catch (err) {
+            document.getElementById('gallery-container').innerHTML = "Gagal memuat data dari Spreadsheet.";
+        }
     }
 
-    function toggleMenu(id, el) {
-        const menu = document.getElementById(id);
-        menu.classList.toggle('show');
-        const arrow = el.querySelector('.arrow');
-        if(arrow) arrow.classList.toggle('rotate');
-    }
+    function buildGallery(data) {
+        const container = document.getElementById('gallery-container');
+        container.innerHTML = "";
+        
+        // Membalik data: Mencari dari baris paling bawah (Input Terbaru)
+        const reversedRows = [...data].reverse();
 
-    function changeUnit(unit, element) {
-        activeUnit = unit;
-        document.querySelectorAll('.deep-item').forEach(el => el.classList.remove('active'));
-        element.classList.add('active');
-        updateUI();
-    }
+        AREAS.forEach(area => {
+            let photoFiles = [];
+            let dateInfo = "N/A";
 
-    function resetToTwoDays() {
-        const allT = rawDataGlobal.map(d => new Date(Object.values(d)[0]).getTime()).filter(t => !isNaN(t));
-        if (allT.length === 0) return;
-        const cutoff = Math.max(...allT) - (48 * 60 * 60 * 1000); 
-        currentData = rawDataGlobal.filter(d => new Date(Object.values(d)[0]).getTime() >= cutoff);
-        updateUI();
-    }
+            // SCANNER LOGIC: Memeriksa setiap baris sampai ketemu foto terbaru area tersebut
+            for (let row of reversedRows) {
+                const cells = Object.values(row);
+                // Cari semua sel di baris ini yang mengandung pattern folder foto
+                const foundPhotos = cells.filter(c => c && c.toString().includes(area.pattern));
+                
+                if (foundPhotos.length > 0) {
+                    photoFiles = foundPhotos;
+                    // Ambil sel terdekat yang berisi format tanggal
+                    const dateCell = cells.find(c => c && c.toString().includes("/202"));
+                    const timeCell = cells.find(c => c && c.toString().includes("."));
+                    dateInfo = `${dateCell || ''} ${timeCell || ''}`;
+                    break; // Berhenti mencari karena sudah dapat baris TERBARU
+                }
+            }
 
-    function applyFilter() {
-        const s = document.getElementById('startDate').value, e = document.getElementById('endDate').value;
-        if(!s || !e) return;
-        const start = new Date(s), end = new Date(e); end.setHours(23,59,59);
-        currentData = rawDataGlobal.filter(d => {
-            const cur = new Date(Object.values(d)[0]);
-            return cur >= start && cur <= end;
+            if (photoFiles.length > 0) {
+                let cardHtml = `
+                <div class="area-card">
+                    <div class="area-header">
+                        <span class="area-title">${area.name}</span>
+                        <span class="area-date">🕒 ${dateInfo}</span>
+                    </div>
+                    <div class="photo-grid">`;
+
+                photoFiles.forEach(fileName => {
+                    const imgUrl = `https://www.appsheet.com/template/gettablefileurl?appName=${APP_NAME}&tableName=${encodeURIComponent(area.table)}&fileName=${encodeURIComponent(fileName.toString().trim())}`;
+                    
+                    cardHtml += `
+                    <div class="photo-box">
+                        <img src="${imgUrl}" onerror="this.src='https://via.placeholder.com/400x300?text=Izin+AppSheet+Ditolak'" onclick="window.open(this.src)">
+                        <div class="photo-label">${fileName.toString().split('/').pop()}</div>
+                    </div>`;
+                });
+
+                cardHtml += `</div></div>`;
+                container.innerHTML += cardHtml;
+            }
         });
-        updateUI();
-    }
-
-    function updateUI() {
-        let config = {};
-        if(activeUnit === 'CS1') config = { indices: [13,14,15,16,17], labels: ['R1','R2','R3','R4','Ante'], colors: ['#e74c3c','#3498db','#f1c40f','#9b59b6','#2ecc71'] };
-        else if(activeUnit === 'CS2') config = { indices: [18,19,20,21], labels: ['RA','RB','RC','Ante'], colors: ['#c0392b','#2980b9','#f39c12','#27ae60'] };
-        else if(activeUnit === 'P2') config = { indices: [2,3,4,5,6,7,8,9,10], labels: ['Clean1','Clean2','Pack1','Pack2','Pre1','Pre2','Seas1','Seas2','Stemer'], colors: ['#1abc9c','#16a085','#2ecc71','#27ae60','#3498db','#2980b9','#9b59b6','#8e44ad','#e67e22'] };
-        else if(activeUnit === 'CWP') config = { indices: [11,12], labels: ['CWP 1','CWP 2'], colors: ['#e74c3c','#3498db'] };
-
-        const activeRows = currentData.filter(d => {
-            const r = Object.values(d);
-            return config.indices.some(idx => {
-                const val = parseFloat(r[idx]?.toString().replace(',','.'));
-                return !isNaN(val) && val !== 0;
-            });
-        });
-
-        const batch = [...activeRows].reverse();
-        const labelsX = batch.map(d => {
-            const r = Object.values(d);
-            const dt = new Date(r[0]), jam = new Date(r[1]);
-            return `${dt.getDate()}/${dt.getMonth()+1} ${jam.getHours().toString().padStart(2,'0')}:00`;
-        });
-
-        const datasets = config.labels.map((l, i) => ({
-            label: l,
-            data: batch.map(d => {
-                const val = Object.values(d)[config.indices[i]];
-                const n = parseFloat(val?.toString().replace(',','.'));
-                return (isNaN(n) || n === 0) ? null : n;
-            }),
-            borderColor: config.colors[i],
-            fill: false, tension: 0.2, pointRadius: 0, borderWidth: 3, spanGaps: true
-        }));
-
-        if (myChart) myChart.destroy();
-        myChart = new Chart(document.getElementById('myChart'), {
-            type: 'line',
-            data: { labels: labelsX, datasets },
-            options: { responsive: true, maintainAspectRatio: false }
-        });
-
-        document.getElementById('tableTitle').innerText = `Data Riwayat: ${activeUnit}`;
-        const head = document.getElementById('tableHead'), body = document.getElementById('tableBody');
-        head.innerHTML = `<tr><th>Waktu</th>${config.labels.map(l => `<th>${l}</th>`).join('')}</tr>`;
-        body.innerHTML = batch.map(d => {
-            const r = Object.values(d);
-            const dt = new Date(r[0]), jam = new Date(r[1]);
-            const tStr = `${dt.getDate()}/${dt.getMonth()+1} ${jam.getHours().toString().padStart(2,'0')}:00`;
-            return `<tr><td>${tStr}</td>${config.indices.map(idx => `<td>${r[idx] || '-'}</td>`).join('')}</tr>`;
-        }).join('');
     }
 
     setInterval(() => { document.getElementById('live-clock').innerText = new Date().toLocaleString('id-ID'); }, 1000);
