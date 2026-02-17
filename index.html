@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MONITORING SYSTEM V8.9.4</title>
+    <title>MONITORING SYSTEM V8.9.4 - FINAL FIX</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2c3e50; --accent: #1abc9c; --bg: #f4f7f9; --sidebar: #1e2b37; --sub: #162129; }
@@ -26,8 +26,9 @@
         th { background: #f8f9fa; position: sticky; top: 0; padding: 10px; border-bottom: 2px solid #dee2e6; }
         td { padding: 8px; border-bottom: 1px solid #eee; text-align: center; }
         .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
-        .photo-card { border: 1px solid #ddd; border-radius: 8px; overflow: hidden; background: white; }
-        .photo-card img { width: 100%; height: 150px; object-fit: cover; cursor: pointer; }
+        .photo-card { border: 1px solid #ddd; border-radius: 8px; overflow: hidden; background: white; margin-bottom: 10px;}
+        .photo-card img { width: 100%; height: 150px; object-fit: cover; cursor: pointer; background: #eee; }
+        .area-label { background: var(--primary); color: white; padding: 5px 10px; border-radius: 4px; display: inline-block; margin-bottom: 10px; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -67,21 +68,32 @@
 <script>
     const URL_SUHU = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
     const URL_FOTO = "https://script.google.com/macros/s/AKfycbwes3tRQrHvDhE_l88WieD-ptVuHd2JXM-dq9jdb9M3xwuzQ9eMTjityjxNNc9Jt_mebQ/exec";
+    const APP_NAME = "CSGempol-782466966"; // Perbaikan Nama App
 
     let myChart, rawDataSuhu = [], currentDataSuhu = [], activeUnit = 'P2';
+
+    // --- LOGIKA FOTO SCANNER ---
+    const CONFIG_FOTO = [
+        { name: "RUANG 1", table: "RUANG 1", pattern: "RUANG 1_Images/" },
+        { name: "RUANG 2", table: "RUANG 2", pattern: "RUANG 2_Images/" },
+        { name: "RUANG 3", table: "RUANG 3", pattern: "RUANG 3_Images/" },
+        { name: "RUANG 4", table: "RUANG 4", pattern: "RUANG 4_Images/" },
+        { name: "RUANG A", table: "RUANG A", pattern: "RUANG A_Images/" },
+        { name: "RUANG B", table: "RUANG B", pattern: "RUANG B_Images/" },
+        { name: "RUANG C", table: "RUANG C", pattern: "RUANG C_Images/" },
+        { name: "ANTEROOM SELATAN", table: "ANTEROOM SELATAN", pattern: "Anteroom selatan" },
+        { name: "ANTEROOM UTARA", table: "ANTEROOM UTARA", pattern: "Anteroom utara" }
+    ];
 
     async function fetchSuhu() {
         try {
             const res = await fetch(URL_SUHU + "?t=" + new Date().getTime());
             rawDataSuhu = await res.json();
-            
-            // LOGIKA 2 HARI DARI DATA TERAKHIR
             if(rawDataSuhu.length > 0) {
-                const lastDateStr = Object.values(rawDataSuhu[0])[0]; // GSheet di reverse di script, jadi [0] adalah terbaru
+                const lastDateStr = Object.values(rawDataSuhu[0])[0];
                 const lastDate = new Date(lastDateStr);
                 const threshold = new Date(lastDate);
                 threshold.setDate(lastDate.getDate() - 2);
-
                 currentDataSuhu = rawDataSuhu.filter(d => new Date(Object.values(d)[0]) >= threshold);
             }
             updateUI();
@@ -115,7 +127,7 @@
                 if(!val || val === "" || val === 0) return null;
                 return parseFloat(val.toString().replace(',','.'));
             }),
-            borderColor: cfg.clr[i], tension: 0.3, pointRadius: 2, fill: false, spanGaps: true // SpanGaps agar garis tidak putus
+            borderColor: cfg.clr[i], tension: 0.3, pointRadius: 2, fill: false, spanGaps: true 
         }));
 
         if (myChart) myChart.destroy();
@@ -132,37 +144,36 @@
         }).join('');
     }
 
-    function applyFilter() {
-        const s = document.getElementById('startDate').value, e = document.getElementById('endDate').value;
-        if(!s || !e) return;
-        currentDataSuhu = rawDataSuhu.filter(d => {
-            const cur = Object.values(d)[0].toString().substring(0,10);
-            return cur >= s && cur <= e;
-        });
-        updateUI();
-    }
-
-    // --- LOGIKA FOTO ---
-    const FOTO_MAP = [
-        { name: "RUANG 1", start: 0, tgl: 5 }, { name: "RUANG 2", start: 7, tgl: 12 },
-        { name: "RUANG 3", start: 14, tgl: 19 }, { name: "RUANG 4", start: 21, tgl: 26 },
-        { name: "RUANG A", start: 28, tgl: 33 }, { name: "RUANG B", start: 35, tgl: 40 },
-        { name: "RUANG C", start: 42, tgl: 47 }
-    ];
-
     async function loadPhotos() {
         const res = await fetch(URL_FOTO + "?t=" + new Date().getTime());
         const data = await res.json();
         const out = document.getElementById('gallery-content');
         out.innerHTML = "";
-        FOTO_MAP.forEach(area => {
-            const entry = data.find(r => Object.values(r)[area.start]);
-            if(entry) {
-                const v = Object.values(entry);
-                let h = `<div style="margin-bottom:20px;"><b>${area.name}</b> (${v[area.tgl]})<div class="photo-grid">`;
-                for(let i=area.start; i<area.start+4; i++) {
-                    if(v[i]) h += `<div class="photo-card"><img src="https://www.appsheet.com/template/gettablefileurl?appName=LS2Foto-XXXXXX&tableName=Foto%20Ruang%20%26%20Gudang&fileName=${encodeURIComponent(v[i])}" onclick="window.open(this.src)"></div>`;
+        
+        const revData = [...data].reverse();
+
+        CONFIG_FOTO.forEach(area => {
+            let photoFiles = [];
+            let dateStr = "";
+
+            // Scanner: cari baris terbaru untuk area ini
+            for (let row of revData) {
+                const cells = Object.values(row);
+                const matches = cells.filter(c => c && c.toString().includes(area.pattern));
+                if (matches.length > 0) {
+                    photoFiles = matches;
+                    const dateCell = cells.find(c => c && c.toString().includes("/202"));
+                    dateStr = dateCell || "";
+                    break;
                 }
+            }
+
+            if(photoFiles.length > 0) {
+                let h = `<div style="margin-bottom:30px;"><div class="area-label">${area.name} (${dateStr})</div><div class="photo-grid">`;
+                photoFiles.forEach(file => {
+                    const imgUrl = `https://www.appsheet.com/template/gettablefileurl?appName=${APP_NAME}&tableName=${encodeURIComponent(area.table)}&fileName=${encodeURIComponent(file.trim())}`;
+                    h += `<div class="photo-card"><img src="${imgUrl}" onclick="window.open(this.src)" onerror="this.src='https://via.placeholder.com/200x150?text=Izin+Ditolak'"></div>`;
+                });
                 out.innerHTML += h + `</div></div>`;
             }
         });
@@ -174,6 +185,16 @@
         document.getElementById('sec-MYCOM').style.display = t==='MYCOM'?'block':'none';
         document.getElementById('sec-FOTO').style.display = t==='FOTO'?'block':'none';
         if(t === 'FOTO') loadPhotos();
+    }
+
+    function applyFilter() {
+        const s = document.getElementById('startDate').value, e = document.getElementById('endDate').value;
+        if(!s || !e) return;
+        currentDataSuhu = rawDataSuhu.filter(d => {
+            const cur = Object.values(d)[0].toString().substring(0,10);
+            return cur >= s && cur <= e;
+        });
+        updateUI();
     }
 
     setInterval(() => { document.getElementById('live-clock').innerText = new Date().toLocaleString('id-ID'); }, 1000);
