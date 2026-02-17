@@ -3,69 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MONITORING SYSTEM V8.1 - DYNAMIC LOGO</title>
+    <title>MONITORING SYSTEM V8.1</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2c3e50; --accent: #1abc9c; --bg: #f4f7f9; --sidebar: #1e2b37; --sub: #162129; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        
-        /* Header */
         .header { background: var(--primary); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .main-wrapper { display: flex; flex: 1; overflow: hidden; }
-        
-        /* Sidebar */
         .sidebar { width: 260px; background: var(--sidebar); color: #ecf0f1; display: flex; flex-direction: column; overflow-y: auto; border-right: 1px solid #2c3e50; }
-        .logo-area { padding: 25px; text-align: center; background: #162129; transition: 0.5s; border-bottom: 1px solid #2c3e50; }
-        .logo-box { font-size: 22px; font-weight: bold; color: white; border: 2px solid var(--accent); display: inline-block; padding: 5px 15px; border-radius: 8px; margin-bottom: 5px; background: rgba(26, 188, 156, 0.1); min-width: 120px; text-transform: uppercase; }
-        
+        .logo-area { padding: 25px; text-align: center; background: #162129; border-bottom: 1px solid #2c3e50; }
+        .logo-box { font-size: 22px; font-weight: bold; color: white; border: 2px solid var(--accent); display: inline-block; padding: 5px 15px; border-radius: 8px; background: rgba(26, 188, 156, 0.1); text-transform: uppercase; }
         .menu-section { padding: 15px 20px 5px 20px; font-size: 11px; color: #7f8c8d; font-weight: bold; text-transform: uppercase; }
         .nav-item { padding: 12px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 14px; transition: 0.2s; border-left: 4px solid transparent; }
         .nav-item:hover { background: var(--sub); }
         .nav-item.active { background: var(--sub); border-left-color: var(--accent); color: var(--accent); }
-
-        /* Multi Level Menu */
         .lvl-2 { background: #162129; display: none; } 
         .lvl-3 { background: #0d141a; display: none; } 
         .show { display: block !important; }
-
         .sub-item { padding: 10px 20px 10px 40px; cursor: pointer; font-size: 13px; color: #bdc3c7; display: flex; justify-content: space-between; transition: 0.2s; }
         .sub-item:hover { color: var(--accent); }
         .deep-item { padding: 8px 20px 8px 60px; cursor: pointer; font-size: 12px; color: #95a5a6; transition: 0.2s; }
-        .deep-item:hover { color: white; background: var(--accent); }
         .deep-item.active { color: white; background: var(--accent); font-weight: bold; }
-
         .arrow { font-size: 10px; transition: 0.3s; opacity: 0.5; }
         .rotate { transform: rotate(180deg); }
-
-        /* Content Area */
-        .content { flex: 1; overflow-y: auto; padding: 20px; transition: 0.3s; }
+        .content { flex: 1; overflow-y: auto; padding: 20px; }
         .toolbar { display: flex; gap: 10px; margin-bottom: 20px; background: #fff; padding: 15px; border-radius: 8px; align-items: flex-end; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; }
-        .table-wrapper { margin-top: 20px; overflow-x: auto; max-height: 400px; overflow-y: auto; border: 1px solid #eee; }
         table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; }
         th { background: #f8f9fa; position: sticky; top: 0; padding: 12px; border-bottom: 2px solid #dee2e6; }
         td { padding: 8px; border-bottom: 1px solid #eee; }
-
-        @media print { .sidebar, .toolbar, .header { display: none !important; } .content { padding: 0; } }
     </style>
 </head>
 <body>
 
 <div class="header">
     <strong>❄️ ENGINEERING <span style="color:var(--accent)">SYSTEM</span></strong>
-    <div id="live-clock" style="font-family: monospace; font-weight: bold;"></div>
+    <div id="live-clock"></div>
 </div>
 
 <div class="main-wrapper">
     <div class="sidebar">
-        <div class="logo-area" id="logoArea">
+        <div class="logo-area">
             <div class="logo-box" id="dynamicLogo">MYCOM</div>
             <div id="logoSubtext" style="font-size: 10px; color: #7f8c8d;">MONITORING DASHBOARD</div>
         </div>
 
         <div class="menu-section">Main Modules</div>
         
-        <div class="nav-item active" id="nav-mycom" onclick="activateModule('MYCOM', 'mycom-lvl2', this)">
+        <div class="nav-item active" onclick="toggleMenu('mycom-lvl2', this)">
             <span>📊 MYCOM</span>
             <span class="arrow">▼</span>
         </div>
@@ -80,62 +65,30 @@
                 <div class="deep-item" onclick="changeUnit('CS1', this)">Suhu CS1</div>
                 <div class="deep-item" onclick="changeUnit('CS2', this)">Suhu CS2</div>
             </div>
-            <div class="sub-item" onclick="toggleMenu('comp-lvl3', this)">
-                <span>⚙️ Compressor</span>
-                <span class="arrow">▼</span>
-            </div>
-            <div id="comp-lvl3" class="lvl-3">
-                <div class="deep-item" onclick="alert('Module Run Hours')">Run Hours</div>
-                <div class="deep-item" onclick="alert('Module Ampere')">Ampere Meter</div>
-            </div>
         </div>
 
-        <div class="nav-item" id="nav-stock" onclick="activateModule('STOCK', 'stock-lvl2', this)">
-            <span>📦 STOCK</span>
-            <span class="arrow">▼</span>
-        </div>
-        <div id="stock-lvl2" class="lvl-2">
-            <div class="sub-item" onclick="alert('Opening Stock Module...')">Inventory Data</div>
-            <div class="sub-item" onclick="alert('Opening Stock Module...')">Stock Report</div>
-        </div>
-
-        <div class="nav-item" id="nav-foto" onclick="activateModule('FOTO', 'foto-lvl2', this)">
+        <div class="nav-item" onclick="toggleMenu('foto-lvl2', this)">
             <span>📷 FOTO</span>
             <span class="arrow">▼</span>
         </div>
         <div id="foto-lvl2" class="lvl-2">
-            <div class="sub-item" onclick="alert('Opening Photo Gallery...')">Daily CCTV</div>
-            <div class="sub-item" onclick="alert('Opening Photo Gallery...')">Upload Photo</div>
+            <div class="sub-item" onclick="window.location.href='foto.html'">
+                <span>🖼️ Gallery Kebersihan</span>
+            </div>
         </div>
     </div>
 
     <div class="content">
         <div class="toolbar">
-            <div style="display:flex; flex-direction:column; gap:5px;">
-                <label>FILTER TANGGAL</label>
-                <div style="display:flex; gap:5px;">
-                    <input type="date" id="startDate">
-                    <input type="date" id="endDate">
-                    <button class="btn-view" onclick="applyFilter()">PROSES</button>
-                    <button class="btn-reset" onclick="resetToTwoDays()">RESET</button>
-                </div>
-            </div>
-            <div style="flex-grow: 1;"></div>
-            <button class="btn-print" onclick="window.print()">🖨️ PRINT</button>
+            <input type="date" id="startDate">
+            <input type="date" id="endDate">
+            <button onclick="applyFilter()">PROSES</button>
+            <button onclick="resetToTwoDays()">RESET</button>
         </div>
-
+        <div class="card"><div style="height: 400px;"><canvas id="myChart"></canvas></div></div>
         <div class="card">
-            <div style="height: 400px;"><canvas id="myChart"></canvas></div>
-        </div>
-
-        <div class="card">
-            <h3 id="tableTitle" style="margin:0 0 15px 0; color:#2c3e50; font-size:16px;">Tabel Data</h3>
-            <div class="table-wrapper">
-                <table id="dataTable">
-                    <thead id="tableHead"></thead>
-                    <tbody id="tableBody"></tbody>
-                </table>
-            </div>
+            <h3 id="tableTitle">Tabel Data</h3>
+            <table id="dataTable"><thead id="tableHead"></thead><tbody id="tableBody"></tbody></table>
         </div>
     </div>
 </div>
@@ -149,50 +102,14 @@
             const res = await fetch(URL_API + "?t=" + new Date().getTime());
             rawDataGlobal = await res.json();
             resetToTwoDays();
-        } catch (err) { console.error("Error", err); }
-    }
-
-    // FUNGSI LOGO DINAMIS
-    function activateModule(moduleName, subId, el) {
-        // Ganti Teks Logo
-        document.getElementById('dynamicLogo').innerText = moduleName;
-        
-        // Ganti Subteks & Warna sesuai Modul
-        const subText = document.getElementById('logoSubtext');
-        const logoBox = document.getElementById('dynamicLogo');
-        
-        if(moduleName === 'MYCOM') {
-            subText.innerText = 'MONITORING DASHBOARD';
-            logoBox.style.borderColor = '#1abc9c';
-        } else if(moduleName === 'STOCK') {
-            subText.innerText = 'INVENTORY MANAGEMENT';
-            logoBox.style.borderColor = '#3498db';
-        } else if(moduleName === 'FOTO') {
-            subText.innerText = 'DOCUMENTATION SYSTEM';
-            logoBox.style.borderColor = '#e67e22';
-        }
-
-        // Jalankan toggle menu
-        toggleMenu(subId, el);
-        
-        // Highlight menu utama
-        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-        el.classList.add('active');
+        } catch (err) { console.error(err); }
     }
 
     function toggleMenu(id, el) {
         const menu = document.getElementById(id);
-        const isCurrentlyShow = menu.classList.contains('show');
-        
-        // Jika modul utama yang diklik, kita biarkan yang lain menutup (opsional)
-        // menu.classList.toggle('show');
-        
-        // Khusus untuk level-level dalam
-        if(el.classList.contains('sub-item') || el.classList.contains('nav-item')) {
-            menu.classList.toggle('show');
-            const arrow = el.querySelector('.arrow');
-            if(arrow) arrow.classList.toggle('rotate');
-        }
+        menu.classList.toggle('show');
+        const arrow = el.querySelector('.arrow');
+        if(arrow) arrow.classList.toggle('rotate');
     }
 
     function changeUnit(unit, element) {
@@ -202,7 +119,6 @@
         updateUI();
     }
 
-    // --- LOGIKA DATA (Sama seperti sebelumnya) ---
     function resetToTwoDays() {
         const allT = rawDataGlobal.map(d => new Date(Object.values(d)[0]).getTime()).filter(t => !isNaN(t));
         if (allT.length === 0) return;
@@ -259,7 +175,7 @@
         myChart = new Chart(document.getElementById('myChart'), {
             type: 'line',
             data: { labels: labelsX, datasets },
-            options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false } }
+            options: { responsive: true, maintainAspectRatio: false }
         });
 
         document.getElementById('tableTitle').innerText = `Data Riwayat: ${activeUnit}`;
@@ -275,7 +191,6 @@
 
     setInterval(() => { document.getElementById('live-clock').innerText = new Date().toLocaleString('id-ID'); }, 1000);
     fetchData();
-    setInterval(fetchData, 600000);
 </script>
 </body>
 </html>
