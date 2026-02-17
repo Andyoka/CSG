@@ -5,14 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MONITORING SYSTEM - PHOTO GALLERY</title>
     <style>
-        :root { --primary: #2c3e50; --accent: #e67e22; --bg: #f4f7f9; --sidebar: #1e2b37; --sub: #162129; }
+        :root { --primary: #2c3e50; --accent: #1abc9c; --bg: #f4f7f9; --sidebar: #1e2b37; --sub: #162129; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         .header { background: var(--primary); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .main-wrapper { display: flex; flex: 1; overflow: hidden; }
         .sidebar { width: 260px; background: var(--sidebar); color: #ecf0f1; display: flex; flex-direction: column; border-right: 1px solid #2c3e50; }
         .logo-area { padding: 25px; text-align: center; background: #162129; border-bottom: 1px solid #2c3e50; }
-        .logo-box { font-size: 22px; font-weight: bold; color: white; border: 2px solid var(--accent); display: inline-block; padding: 5px 15px; border-radius: 8px; background: rgba(230, 126, 34, 0.1); text-transform: uppercase; }
-        .menu-section { padding: 15px 20px 5px 20px; font-size: 11px; color: #7f8c8d; font-weight: bold; text-transform: uppercase; }
+        .logo-box { font-size: 22px; font-weight: bold; color: white; border: 2px solid var(--accent); display: inline-block; padding: 5px 15px; border-radius: 8px; background: rgba(26, 188, 156, 0.1); text-transform: uppercase; }
         .nav-item { padding: 12px 20px; cursor: pointer; display: flex; align-items: center; font-size: 14px; transition: 0.2s; border-left: 4px solid transparent; color: #bdc3c7; text-decoration: none; }
         .nav-item:hover { background: var(--sub); color: white; }
         .nav-item.active { background: var(--sub); border-left-color: var(--accent); color: var(--accent); }
@@ -36,39 +35,31 @@
 
 <div class="main-wrapper">
     <div class="sidebar">
-        <div class="logo-area">
-            <div class="logo-box">FOTO</div>
-            <div style="font-size: 10px; color: #7f8c8d; margin-top:5px;">DOCUMENTATION SYSTEM</div>
-        </div>
+        <div class="logo-area"><div class="logo-box">FOTO</div></div>
         <div class="menu-section">Navigation</div>
         <a href="index.html" class="nav-item"><span>📊 KEMBALI KE SUHU</span></a>
         <div class="nav-item active"><span>📷 GALLERY KEBERSIHAN</span></div>
     </div>
     <div class="content" id="gallery-container">
-        <div style="text-align: center; padding: 50px;">
-            <p>Memuat database gabungan...</p>
-        </div>
+        <p style="text-align:center;">Mengkoneksikan ke Tabel AppSheet...</p>
     </div>
 </div>
 
 <script>
     const URL_API_FOTO = "https://script.google.com/macros/s/AKfycbwes3tRQrHvDhE_l88WieD-ptVuHd2JXM-dq9jdb9M3xwuzQ9eMTjityjxNNc9Jt_mebQ/exec";
+    const APP_NAME = "CSGempol-782466966";
 
-    const CONFIG = {
-        appName: "CSGempol-782466966",
-        // TIPS: Jika foto berasal dari banyak tabel asal, 
-        // pastikan tabel 'utama' yang Anda pakai di AppSheet terdaftar di sini.
-        tableName: "Foto%20Ruang%20%26%20Gudang" 
-    };
-
+    // Konfigurasi berdasarkan urutan kolom yang Anda berikan
     const AREA_CONFIG = [
-        { name: "RUANG 1", start: 0, tgl: 5, jam: 6 },
-        { name: "RUANG 2", start: 7, tgl: 12, jam: 13 },
-        { name: "RUANG 3", start: 14, tgl: 19, jam: 20 },
-        { name: "RUANG 4", start: 21, tgl: 26, jam: 27 },
-        { name: "RUANG A", start: 28, tgl: 33, jam: 34 },
-        { name: "RUANG B", start: 35, tgl: 40, jam: 41 },
-        { name: "RUANG C", start: 42, tgl: 47, jam: 48 }
+        { name: "RUANG 1", table: "RUANG 1", start: 0, tgl: 5, jam: 6, count: 4 },
+        { name: "RUANG 2", table: "RUANG 2", start: 7, tgl: 12, jam: 13, count: 4 },
+        { name: "RUANG 3", table: "RUANG 3", start: 14, tgl: 19, jam: 20, count: 4 },
+        { name: "RUANG 4", table: "RUANG 4", start: 21, tgl: 26, jam: 27, count: 4 },
+        { name: "RUANG A", table: "RUANG A", start: 28, tgl: 33, jam: 34, count: 4 },
+        { name: "RUANG B", table: "RUANG B", start: 35, tgl: 40, jam: 41, count: 4 },
+        { name: "RUANG C", table: "RUANG C", start: 42, tgl: 47, jam: 48, count: 4 },
+        { name: "ANTEROOM UTARA", table: "ANTEROOM UTARA", start: 49, tgl: 51, jam: 52, count: 1 },
+        { name: "ANTEROOM SELATAN", table: "ANTEROOM SELATAN", start: 53, tgl: 55, jam: 56, count: 1 }
     ];
 
     async function loadPhotos() {
@@ -84,15 +75,13 @@
     function renderGallery(data) {
         const container = document.getElementById('gallery-container');
         container.innerHTML = "";
-        
-        // Membalik urutan agar yang terbaru di atas
         const sortedData = [...data].reverse();
 
         AREA_CONFIG.forEach(area => {
-            // Mencari baris di mana kolom foto (start) tidak kosong
+            // Cari baris terbaru yang kolom pertamanya ada isinya
             const latestEntry = sortedData.find(row => {
                 const val = Object.values(row)[area.start];
-                return val && val !== "" && val !== "0";
+                return val && val.toString().includes("_Images/");
             });
             
             if(latestEntry) {
@@ -105,16 +94,15 @@
                     </div>
                     <div class="photo-grid">`;
 
-                for(let i = area.start; i < area.start + 4; i++) {
+                for(let i = area.start; i < area.start + area.count; i++) {
                     const fileName = vals[i];
-                    if(fileName && fileName.includes(".")) {
-                        // Membuat URL AppSheet
-                        const imgUrl = `https://www.appsheet.com/template/gettablefileurl?appName=${CONFIG.appName}&tableName=${CONFIG.tableName}&fileName=${encodeURIComponent(fileName)}`;
+                    if(fileName && fileName.toString().includes("_Images/")) {
+                        const imgUrl = `https://www.appsheet.com/template/gettablefileurl?appName=${APP_NAME}&tableName=${encodeURIComponent(area.table)}&fileName=${encodeURIComponent(fileName)}`;
                         
                         html += `
                         <div class="photo-box">
-                            <img src="${imgUrl}" onerror="this.src='https://via.placeholder.com/400x300?text=Foto+Tidak+Ditemukan'" onclick="window.open(this.src)">
-                            <div class="photo-label">BAGIAN ${i - area.start + 1}</div>
+                            <img src="${imgUrl}" onerror="this.src='https://via.placeholder.com/400x300?text=Izin+AppSheet+Ditolak'" onclick="window.open(this.src)">
+                            <div class="photo-label">FOTO ${i - area.start + 1}</div>
                         </div>`;
                     }
                 }
