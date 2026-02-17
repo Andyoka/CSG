@@ -21,9 +21,9 @@
         .area-title { font-size: 18px; font-weight: bold; color: var(--primary); }
         .area-date { font-size: 12px; color: #7f8c8d; }
         .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
-        .photo-box { border: 1px solid #eee; border-radius: 8px; overflow: hidden; background: #f9f9f9; position: relative; }
-        .photo-box img { width: 100%; height: 180px; object-fit: cover; cursor: pointer; display: block; }
-        .photo-label { padding: 8px; font-size: 11px; text-align: center; background: white; font-weight: bold; color: #555; word-break: break-all; }
+        .photo-box { border: 1px solid #eee; border-radius: 8px; overflow: hidden; background: #f9f9f9; position: relative; min-height: 180px; display: flex; flex-direction: column; }
+        .photo-box img { width: 100%; height: 180px; object-fit: cover; cursor: pointer; display: block; background: #eee; }
+        .photo-label { padding: 8px; font-size: 10px; text-align: center; background: white; font-weight: bold; color: #555; word-break: break-all; flex-grow: 1; }
     </style>
 </head>
 <body>
@@ -41,7 +41,7 @@
         <div class="nav-item active"><span>📷 GALLERY KEBERSIHAN</span></div>
     </div>
     <div class="content" id="gallery-container">
-        <p style="text-align:center;">Memuat data dan verifikasi tabel...</p>
+        <p style="text-align:center; padding-top: 50px;">Menganalisa urutan kolom dan mengambil foto terbaru...</p>
     </div>
 </div>
 
@@ -49,16 +49,17 @@
     const URL_API_FOTO = "https://script.google.com/macros/s/AKfycbwes3tRQrHvDhE_l88WieD-ptVuHd2JXM-dq9jdb9M3xwuzQ9eMTjityjxNNc9Jt_mebQ/exec";
     const APP_NAME = "CSGempol-782466966";
 
+    // PERBAIKAN INDEKS BERDASARKAN LAPORAN GESER ANDA
     const AREA_CONFIG = [
         { name: "RUANG 1", table: "RUANG 1", start: 0, tgl: 5, jam: 6 },
         { name: "RUANG 2", table: "RUANG 2", start: 7, tgl: 12, jam: 13 },
-        { name: "RUANG 3", table: "RUANG 3", start: 14, tgl: 19, jam: 20 },
-        { name: "RUANG 4", table: "RUANG 4", start: 21, tgl: 26, jam: 27 },
-        { name: "RUANG A", table: "RUANG A", start: 28, tgl: 33, jam: 34 },
-        { name: "RUANG B", table: "RUANG B", start: 35, tgl: 40, jam: 41 },
-        { name: "RUANG C", table: "RUANG C", start: 42, tgl: 47, jam: 48 },
-        { name: "ANTEROOM UTARA", table: "ANTEROOM UTARA", start: 49, tgl: 51, jam: 52 },
-        { name: "ANTEROOM SELATAN", table: "ANTEROOM SELATAN", start: 53, tgl: 55, jam: 56 }
+        { name: "RUANG 3", table: "RUANG 3", start: 13, tgl: 19, jam: 20 }, // Mundur 1
+        { name: "RUANG 4", table: "RUANG 4", start: 20, tgl: 26, jam: 27 }, // Mundur 1
+        { name: "RUANG A", table: "RUANG A", start: 27, tgl: 33, jam: 34 }, // Mundur 1
+        { name: "RUANG B", table: "RUANG B", start: 34, tgl: 40, jam: 41 }, 
+        { name: "RUANG C", table: "RUANG C", start: 41, tgl: 47, jam: 48 },
+        { name: "ANTE UTARA", table: "ANTEROOM UTARA", start: 49, tgl: 51, jam: 52 },
+        { name: "ANTE SELATAN", table: "ANTEROOM SELATAN", start: 53, tgl: 55, jam: 56 }
     ];
 
     async function loadPhotos() {
@@ -75,41 +76,46 @@
         const container = document.getElementById('gallery-container');
         container.innerHTML = "";
         
-        // Ambil baris terakhir (data terbaru)
-        const row = data[data.length - 1]; 
-        if(!row) return;
-        const vals = Object.values(row);
+        // Membalik urutan agar data yang di-input terakhir (paling baru) diproses duluan
+        const reverseData = [...data].reverse();
 
         AREA_CONFIG.forEach(area => {
-            let html = `
-            <div class="area-card">
-                <div class="area-header">
-                    <span class="area-title">${area.name}</span>
-                    <span class="area-date">📅 ${vals[area.tgl] || 'N/A'} | 🕒 ${vals[area.jam] || 'N/A'}</span>
-                </div>
-                <div class="photo-grid">`;
+            // Cari baris terbaru yang punya data foto di area ini
+            const latestEntry = reverseData.find(row => {
+                const val = Object.values(row)[area.start];
+                return val && val.toString().includes("_Images/");
+            });
+            
+            if(latestEntry) {
+                const vals = Object.values(latestEntry);
+                let html = `
+                <div class="area-card">
+                    <div class="area-header">
+                        <span class="area-title">${area.name}</span>
+                        <span class="area-date">📅 ${vals[area.tgl] || ''} | 🕒 ${vals[area.jam] || ''}</span>
+                    </div>
+                    <div class="photo-grid">`;
 
-            // Cek 4 kolom foto untuk setiap area
-            for(let i = area.start; i < area.start + 4; i++) {
-                const fileName = vals[i];
-                // Syarat: Kolom tidak boleh kosong dan harus ada nama file
-                if(fileName && fileName.toString().length > 5) {
-                    const imgUrl = `https://www.appsheet.com/template/gettablefileurl?appName=${APP_NAME}&tableName=${encodeURIComponent(area.table)}&fileName=${encodeURIComponent(fileName)}`;
-                    
-                    html += `
-                    <div class="photo-box">
-                        <img src="${imgUrl}" 
-                             onerror="this.src='https://via.placeholder.com/400x300?text=Error+TableName+atau+Izin'" 
-                             onclick="window.open(this.src)">
-                        <div class="photo-label">${fileName.split('/').pop()}</div>
-                    </div>`;
-                } else {
-                    // Jika data di kolom tersebut kosong menurut hitungan kode
-                    html += `<div class="photo-box" style="display:flex; align-items:center; justify-content:center; font-size:10px; color:#ccc; border:1px dashed #ccc;">Kolom ${i} Kosong</div>`;
+                // Tampilkan 4 foto (atau 1 untuk Anteroom)
+                let limit = (area.name.includes("ANTE")) ? 1 : 4;
+
+                for(let i = area.start; i < area.start + limit; i++) {
+                    const fileName = vals[i];
+                    if(fileName && fileName.toString().includes("_Images/")) {
+                        const imgUrl = `https://www.appsheet.com/template/gettablefileurl?appName=${APP_NAME}&tableName=${encodeURIComponent(area.table)}&fileName=${encodeURIComponent(fileName)}`;
+                        
+                        html += `
+                        <div class="photo-box">
+                            <img src="${imgUrl}" 
+                                 onerror="this.src='https://via.placeholder.com/400x300?text=Izin+AppSheet+Ditolak'" 
+                                 onclick="window.open(this.src)">
+                            <div class="photo-label">${fileName.split('/').pop()}</div>
+                        </div>`;
+                    }
                 }
+                html += `</div></div>`;
+                container.innerHTML += html;
             }
-            html += `</div></div>`;
-            container.innerHTML += html;
         });
     }
 
