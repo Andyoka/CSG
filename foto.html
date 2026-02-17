@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GALLERY MONITORING - VISUAL DASHBOARD</title>
+    <style>
+        :root { --primary: #1e2b37; --accent: #1abc9c; --bg: #f4f7f9; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); color: #333; }
+        
+        /* Header & Toolbar */
+        .header-nav { background: var(--primary); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+        .toolbar { background: white; padding: 15px 20px; display: flex; gap: 10px; flex-wrap: wrap; border-bottom: 1px solid #ddd; }
+        
+        input, button { padding: 8px 12px; border-radius: 5px; border: 1px solid #ccc; outline: none; }
+        .btn-search { background: var(--accent); color: white; border: none; cursor: pointer; font-weight: bold; }
+        .btn-search:hover { background: #16a085; }
+
+        /* Gallery Layout */
+        .container { padding: 20px; max-width: 1300px; margin: 0 auto; }
+        .room-card { background: white; border-radius: 10px; padding: 20px; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .room-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid var(--bg); padding-bottom: 10px; }
+        .room-name { font-size: 1.2rem; font-weight: bold; color: var(--primary); }
+        .room-time { font-size: 0.9rem; color: #7f8c8d; }
+
+        .photo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 15px; }
+        .photo-box { position: relative; border-radius: 8px; overflow: hidden; background: #eee; aspect-ratio: 16/9; cursor: pointer; border: 1px solid #eee; }
+        .photo-box img { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }
+        .photo-box:hover img { transform: scale(1.05); }
+        .cam-tag { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.6); color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+
+        .no-data { text-align: center; padding: 50px; font-size: 1.2rem; color: #95a5a6; }
+        
+        @media (max-width: 600px) { .photo-grid { grid-template-columns: 1fr 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="header-nav">
+    <strong>📷 MONITORING <span style="color:var(--accent)">FOTO</span></strong>
+    <div id="clock"></div>
+</div>
+
+<div class="toolbar">
+    <div style="display:flex; flex-direction:column;">
+        <label style="font-size: 10px; font-weight: bold;">CARI TANGGAL</label>
+        <input type="date" id="filterDate">
+    </div>
+    <div style="display:flex; flex-direction:column;">
+        <label style="font-size: 10px; font-weight: bold;">NAMA RUANG</label>
+        <input type="text" id="filterRoom" placeholder="Contoh: Ruang 1">
+    </div>
+    <button class="btn-search" style="align-self: flex-end;" onclick="applyFilter()">PROSES CARI</button>
+    <button style="align-self: flex-end;" onclick="location.reload()">REFRESH</button>
+</div>
+
+<div class="container" id="galleryContainer">
+    <div class="no-data">Sedang memproses foto terbaru...</div>
+</div>
+
+<script>
+    // URL Web App Google Script Anda
+    const API_URL = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
+
+    let allData = [];
+
+    // Fungsi mengubah Link Google Drive menjadi Direct Image
+    function fixDriveLink(url) {
+        if (!url || url === "" || !url.includes("drive.google.com")) return url;
+        const id = url.split('/d/')[1]?.split('/')[0] || url.split('id=')[1]?.split('&')[0];
+        return id ? `https://lh3.googleusercontent.com/d/${id}` : url;
+    }
+
+    async function loadData() {
+        try {
+            const res = await fetch(API_URL);
+            allData = await res.json();
+            renderGallery(allData.slice(0, 20)); // Default tampilkan 20 baris terbaru
+        } catch (err) {
+            document.getElementById('galleryContainer').innerHTML = "Gagal memuat data. Periksa URL API.";
+        }
+    }
+
+    function renderGallery(data) {
+        const container = document.getElementById('galleryContainer');
+        if (data.length === 0) {
+            container.innerHTML = '<div class="no-data">Tidak ada foto ditemukan untuk filter ini.</div>';
+            return;
+        }
+
+        container.innerHTML = data.map(row => {
+            const val = Object.values(row);
+            const tgl = val[0]; 
+            const jam = val[1];
+            const ruang = val[2];
+            const photos = [val[3], val[4], val[5], val[6]];
+
+            return `
+                <div class="room-card">
+                    <div class="room-info">
+                        <span class="room-name">${ruang}</span>
+                        <span class="room-time">📅 ${tgl} | 🕒 ${jam}</span>
+                    </div>
+                    <div class="photo-grid">
+                        ${photos.map((link, i) => link ? `
+                            <div class="photo-box" onclick="window.open('${fixDriveLink(link)}')">
+                                <img src="${fixDriveLink(link)}" loading="lazy">
+                                <div class="cam-tag">CAM ${i+1}</div>
+                            </div>
+                        ` : '').join('')}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function applyFilter() {
+        const dateVal = document.getElementById('filterDate').value; // Format: YYYY-MM-DD
+        const roomVal = document.getElementById('filterRoom').value.toLowerCase();
+
+        // Convert date format DD/MM/YYYY dari data ke YYYY-MM-DD untuk dicocokkan
+        const filtered = allData.filter(row => {
+            const v = Object.values(row);
+            const rawDate = v[0]; // 18/02/2026
+            const parts = rawDate.split('/');
+            const formattedDate = `${parts[2]}-${parts[1]}-${parts[0]}`; 
+            
+            const matchDate = dateVal ? (formattedDate === dateVal) : true;
+            const matchRoom = roomVal ? v[2].toLowerCase().includes(roomVal) : true;
+            
+            return matchDate && matchRoom;
+        });
+
+        renderGallery(filtered);
+    }
+
+    setInterval(() => {
+        document.getElementById('clock').innerText = new Date().toLocaleString('id-ID');
+    }, 1000);
+
+    loadData();
+</script>
+</body>
+</html>
