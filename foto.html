@@ -31,8 +31,6 @@
         .photo-box:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
         .photo-box img { width: 100%; height: 180px; object-fit: cover; cursor: pointer; display: block; }
         .photo-label { padding: 8px; font-size: 11px; text-align: center; background: white; font-weight: bold; color: #555; }
-        
-        .loading-state { text-align: center; padding: 50px; color: #7f8c8d; }
 
         @media print { .sidebar, .header { display: none !important; } .content { padding: 0; } }
     </style>
@@ -57,7 +55,7 @@
     </div>
 
     <div class="content" id="gallery-container">
-        <div class="loading-state">
+        <div style="text-align: center; padding: 50px;">
             <p>Menghubungkan ke database foto...</p>
         </div>
     </div>
@@ -65,11 +63,11 @@
 
 <script>
     const URL_API_FOTO = "https://script.google.com/macros/s/AKfycbwes3tRQrHvDhE_l88WieD-ptVuHd2JXM-dq9jdb9M3xwuzQ9eMTjityjxNNc9Jt_mebQ/exec";
-    
-    // Konfigurasi AppSheet (SESUAIKAN APPNAME ANDA)
+
+    // Update sesuai permintaan Anda
     const CONFIG = {
-        appName: "LS2Foto-XXXXXX", // <--- Ganti XXXXXX dengan ID AppSheet Anda
-        tableName: "Foto%20Ruang%20%26%20Gudang"
+        appName: "CSGempol-782466966", 
+        tableName: "Foto%20Ruang%20%26%20Gudang" // <--- PASTIKAN INI SAMA DENGAN NAMA SHEET/TABEL
     };
 
     const AREA_CONFIG = [
@@ -88,32 +86,25 @@
             const data = await res.json();
             renderGallery(data);
         } catch (e) {
-            document.getElementById('gallery-container').innerHTML = "<p style='text-align:center; padding:20px;'>Gagal memuat data dari Google Sheets.</p>";
+            document.getElementById('gallery-container').innerHTML = "<p>Gagal memuat data foto.</p>";
         }
     }
 
     function getImageUrl(fileName) {
         if (!fileName) return null;
+        if (fileName.startsWith('http')) return fileName;
         
-        // 1. Jika sudah berupa link (http), langsung gunakan
-        if (fileName.startsWith('http')) {
-            // Jika link Google Drive, ubah ke format direct link (opsional tapi disarankan)
-            return fileName.replace("file/d/", "uc?export=view&id=").replace("/view?usp=sharing", "");
-        }
-        
-        // 2. Jika hanya nama file, rakit URL AppSheet
+        // Menggunakan appName Anda: CSGempol-782466966
         return `https://www.appsheet.com/template/gettablefileurl?appName=${CONFIG.appName}&tableName=${CONFIG.tableName}&fileName=${encodeURIComponent(fileName)}`;
     }
 
     function renderGallery(data) {
         const container = document.getElementById('gallery-container');
         container.innerHTML = "";
-
-        // Sort data berdasarkan baris terbaru (asumsi baris bawah adalah data terbaru)
+        
         const sortedData = [...data].reverse();
 
         AREA_CONFIG.forEach(area => {
-            // Cari entri terbaru yang memiliki foto di kolom 'start' area ini
             const latestEntry = sortedData.find(row => Object.values(row)[area.start]);
             
             if(latestEntry) {
@@ -122,19 +113,16 @@
                 <div class="area-card">
                     <div class="area-header">
                         <span class="area-title">${area.name}</span>
-                        <span class="area-date">📅 ${vals[area.tgl] || '-'} | 🕒 ${vals[area.jam] || '-'}</span>
+                        <span class="area-date">📅 ${vals[area.tgl] || ''} | 🕒 ${vals[area.jam] || ''}</span>
                     </div>
                     <div class="photo-grid">`;
 
-                // Tampilkan 4 foto per area (indeks start sampai start + 3)
                 for(let i = area.start; i < area.start + 4; i++) {
-                    const imgSource = getImageUrl(vals[i]);
-                    if(imgSource) {
+                    const imgUrl = getImageUrl(vals[i]);
+                    if(imgUrl) {
                         html += `
                         <div class="photo-box">
-                            <img src="${imgSource}" 
-                                 onerror="this.src='https://via.placeholder.com/400x300?text=Gambar+Privat/Rusak'" 
-                                 onclick="window.open(this.src)">
+                            <img src="${imgUrl}" onerror="this.src='https://via.placeholder.com/400x300?text=Izin+Foto+Ditolak'" onclick="window.open(this.src)">
                             <div class="photo-label">BAGIAN ${i - area.start + 1}</div>
                         </div>`;
                     }
@@ -143,17 +131,9 @@
                 container.innerHTML += html;
             }
         });
-
-        if (container.innerHTML === "") {
-            container.innerHTML = "<p style='text-align:center;'>Tidak ada data foto yang ditemukan.</p>";
-        }
     }
 
-    setInterval(() => { 
-        const now = new Date();
-        document.getElementById('live-clock').innerText = now.toLocaleString('id-ID'); 
-    }, 1000);
-    
+    setInterval(() => { document.getElementById('live-clock').innerText = new Date().toLocaleString('id-ID'); }, 1000);
     loadPhotos();
 </script>
 </body>
