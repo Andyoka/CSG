@@ -3,119 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GALLERY MONITORING - FINAL REPAIR</title>
+    <title>DEBUG MONITORING FOTO</title>
     <style>
-        :root { --primary: #1e2b37; --accent: #1abc9c; --bg: #f4f7f9; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); padding: 15px; }
-        
-        .toolbar { background: white; padding: 12px; display: flex; gap: 10px; align-items: center; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        input[type="date"] { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
-        .btn-search { background: var(--accent); color: white; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-
-        .room-card { background: white; border-radius: 8px; padding: 12px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 5px solid var(--accent); }
-        .room-info { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; flex-wrap: wrap; }
-        .room-name { font-weight: bold; color: var(--primary); text-transform: uppercase; }
-        .room-time { color: #7f8c8d; font-family: monospace; }
-
+        :root { --accent: #1abc9c; --bg: #f4f7f9; }
+        body { font-family: sans-serif; background: var(--bg); padding: 15px; }
+        .toolbar { background: white; padding: 12px; display: flex; gap: 10px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .debug-box { background: #fee; border: 1px dashed red; padding: 10px; font-size: 10px; margin-bottom: 10px; max-height: 100px; overflow: auto; }
+        .room-card { background: white; border-radius: 8px; padding: 12px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .photo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-        .photo-box { position: relative; border-radius: 4px; overflow: hidden; background: #eee; aspect-ratio: 16/9; border: 1px solid #ddd; }
-        .photo-box img { width: 100%; height: 100%; object-fit: cover; display: block; background: #fff; }
-        .cam-tag { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.6); color: white; padding: 1px 5px; border-radius: 3px; font-size: 9px; }
-
-        .no-data { text-align: center; padding: 40px; color: #95a5a6; }
-        @media (max-width: 600px) { .photo-grid { grid-template-columns: repeat(2, 1fr); } }
+        .photo-box { background: #ddd; aspect-ratio: 16/9; border-radius: 4px; overflow: hidden; position: relative; }
+        .photo-box img { width: 100%; height: 100%; object-fit: cover; }
+        .cam-tag { position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.5); color: white; font-size: 8px; padding: 2px; }
+        @media (max-width: 600px) { .photo-grid { grid-template-columns: 1fr 1fr; } }
     </style>
 </head>
 <body>
 
 <div class="toolbar">
     <input type="date" id="filterDate">
-    <button class="btn-search" onclick="applyFilter()">CARI FOTO</button>
-    <button onclick="location.reload()" style="background:none; border:none; color:#999; cursor:pointer;">Refresh</button>
+    <button onclick="applyFilter()" style="background:var(--accent); color:white; border:none; padding:8px 15px; border-radius:4px;">CARI</button>
+    <button onclick="location.reload()">REFRESH</button>
 </div>
 
-<div id="galleryContainer"><div class="no-data">Sedang memindai database...</div></div>
+<div id="debugInfo" class="debug-box">Menunggu data dari Google Script...</div>
+
+<div id="galleryContainer"></div>
 
 <script>
     // URL API LS 2 FOTO
     const API_URL = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
-    let allData = [];
 
-    // Fungsi konversi link Drive (Menggunakan thumbnail agar lebih ringan & pasti muncul)
-    function getDirectImg(url) {
-        if (!url || typeof url !== 'string' || !url.includes("drive.google.com")) return "";
-        const id = url.split('/d/')[1]?.split('/')[0] || url.split('id=')[1]?.split('&')[0];
-        return id ? `https://drive.google.com/thumbnail?id=${id}&sz=w800` : "";
+    function getImg(url) {
+        if (!url || typeof url !== 'string' || !url.includes("id=")) return url;
+        const id = url.split('id=')[1].split('&')[0];
+        return `https://drive.google.com/thumbnail?id=${id}&sz=w800`;
     }
 
     async function loadData() {
+        const debug = document.getElementById('debugInfo');
         try {
-            const res = await fetch(API_URL + "?t=" + new Date().getTime());
-            const json = await res.json();
+            const res = await fetch(API_URL + "?nocache=" + new Date().getTime());
+            const data = await res.json();
             
-            // Perbaikan filter: Ambil baris yang minimal mengandung link drive
-            allData = json.filter(row => JSON.stringify(row).includes("drive.google.com"));
+            // Tampilkan cuplikan data pertama di box debug
+            debug.innerText = "DATA DITERIMA! Contoh Baris 1: " + JSON.stringify(data[0]);
+            debug.style.background = "#efe";
+            debug.style.borderColor = "green";
 
-            renderGallery(allData);
+            renderGallery(data);
         } catch (err) {
-            document.getElementById('galleryContainer').innerHTML = `<div class="no-data">Koneksi Gagal.</div>`;
+            debug.innerText = "ERROR: Gagal narik data. Pastikan URL Script benar dan sudah di-Deploy sebagai 'Anyone'.";
         }
     }
 
     function renderGallery(data) {
         const container = document.getElementById('galleryContainer');
-        if (!data || data.length === 0) {
-            container.innerHTML = '<div class="no-data">Tidak ada foto ditemukan.</div>';
-            return;
-        }
+        container.innerHTML = "";
 
-        container.innerHTML = data.map(row => {
+        data.forEach(row => {
             const v = Object.values(row);
+            // Ambil link drive yang ada di baris ini
+            const links = v.filter(val => val && val.toString().includes("drive.google.com"));
             
-            // Mencari link foto di semua kolom secara otomatis
-            const photoLinks = v.filter(val => val && val.toString().includes("drive.google.com"));
-            
-            // Format Tanggal & Jam
-            const tgl = v[0] || "-";
-            const jam = v[1] || "-";
-            const asal = v[2] || "RUANGAN";
-
-            return `
-                <div class="room-card">
-                    <div class="room-info">
-                        <span class="room-name">📍 ${asal}</span>
-                        <span class="room-time">📅 ${tgl.toString().split('T')[0]} | 🕒 ${jam}</span>
+            if (links.length > 0) {
+                const card = document.createElement('div');
+                card.className = 'room-card';
+                card.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:12px;">
+                        <strong>📍 ${v[2] || 'RUANG'}</strong>
+                        <span style="color:#666;">📅 ${v[0]} | 🕒 ${v[1]}</span>
                     </div>
                     <div class="photo-grid">
-                        ${photoLinks.slice(0,4).map((link, i) => `
-                            <div class="photo-box" onclick="window.open('${link}')">
-                                <img src="${getDirectImg(link)}" loading="lazy">
+                        ${links.slice(0, 4).map((l, i) => `
+                            <div class="photo-box">
+                                <img src="${getImg(l)}" onerror="this.src='https://via.placeholder.com/200x150?text=Error+Link'">
                                 <div class="cam-tag">CAM ${i+1}</div>
                             </div>
                         `).join('')}
                     </div>
-                </div>
-            `;
-        }).join('');
+                `;
+                container.appendChild(card);
+            }
+        });
     }
 
     function applyFilter() {
-        const selDate = document.getElementById('filterDate').value; // YYYY-MM-DD
-        if (!selDate) { renderGallery(allData); return; }
-
-        const filtered = allData.filter(row => {
-            const v = Object.values(row);
-            const d = v[0].toString();
-            let rowFormat = "";
-            if(d.includes('/')) {
-                const p = d.split('/');
-                rowFormat = `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
-            } else {
-                rowFormat = d.split('T')[0];
-            }
-            return rowFormat === selDate;
-        });
-        renderGallery(filtered);
+        // Logika filter sementara dimatikan untuk memastikan data muncul dulu
+        alert("Fitur filter non-aktif sementara untuk diagnosa. Fokus agar gambar muncul dulu.");
     }
 
     loadData();
