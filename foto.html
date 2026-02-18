@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GALLERY MONITORING - FIXED</title>
+    <title>GALLERY MONITORING - FINAL REPAIR</title>
     <style>
         :root { --primary: #1e2b37; --accent: #1abc9c; --bg: #f4f7f9; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); padding: 15px; }
@@ -13,16 +13,16 @@
         .btn-search { background: var(--accent); color: white; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
 
         .room-card { background: white; border-radius: 8px; padding: 12px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 5px solid var(--accent); }
-        .room-info { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
+        .room-info { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; flex-wrap: wrap; }
         .room-name { font-weight: bold; color: var(--primary); text-transform: uppercase; }
         .room-time { color: #7f8c8d; font-family: monospace; }
 
         .photo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-        .photo-box { position: relative; border-radius: 4px; overflow: hidden; background: #dfe6e9; aspect-ratio: 16/9; border: 1px solid #ccc; }
-        .photo-box img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .photo-box { position: relative; border-radius: 4px; overflow: hidden; background: #eee; aspect-ratio: 16/9; border: 1px solid #ddd; }
+        .photo-box img { width: 100%; height: 100%; object-fit: cover; display: block; background: #fff; }
         .cam-tag { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.6); color: white; padding: 1px 5px; border-radius: 3px; font-size: 9px; }
 
-        .no-data { text-align: center; padding: 40px; color: #95a5a6; font-weight: bold; }
+        .no-data { text-align: center; padding: 40px; color: #95a5a6; }
         @media (max-width: 600px) { .photo-grid { grid-template-columns: repeat(2, 1fr); } }
     </style>
 </head>
@@ -34,19 +34,18 @@
     <button onclick="location.reload()" style="background:none; border:none; color:#999; cursor:pointer;">Refresh</button>
 </div>
 
-<div id="galleryContainer"><div class="no-data">Menghubungkan ke database...</div></div>
+<div id="galleryContainer"><div class="no-data">Sedang memindai database...</div></div>
 
 <script>
+    // URL API LS 2 FOTO
     const API_URL = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
     let allData = [];
 
-    // Fungsi sakti untuk Link Google Drive agar tampil gambar
+    // Fungsi konversi link Drive (Menggunakan thumbnail agar lebih ringan & pasti muncul)
     function getDirectImg(url) {
         if (!url || typeof url !== 'string' || !url.includes("drive.google.com")) return "";
-        let id = "";
-        if (url.includes("/d/")) { id = url.split("/d/")[1].split("/")[0]; }
-        else if (url.includes("id=")) { id = url.split("id=")[1].split("&")[0]; }
-        return id ? `https://lh3.googleusercontent.com/d/${id}` : "";
+        const id = url.split('/d/')[1]?.split('/')[0] || url.split('id=')[1]?.split('&')[0];
+        return id ? `https://drive.google.com/thumbnail?id=${id}&sz=w800` : "";
     }
 
     async function loadData() {
@@ -54,44 +53,46 @@
             const res = await fetch(API_URL + "?t=" + new Date().getTime());
             const json = await res.json();
             
-            // FILTER: Hanya ambil baris yang kolom fotonya tidak kosong atau nol
-            allData = json.filter(row => {
-                const v = Object.values(row);
-                return v[3] && v[3].toString().includes("http");
-            });
+            // Perbaikan filter: Ambil baris yang minimal mengandung link drive
+            allData = json.filter(row => JSON.stringify(row).includes("drive.google.com"));
 
             renderGallery(allData);
         } catch (err) {
-            document.getElementById('galleryContainer').innerHTML = "Gagal memuat data.";
+            document.getElementById('galleryContainer').innerHTML = `<div class="no-data">Koneksi Gagal.</div>`;
         }
     }
 
     function renderGallery(data) {
         const container = document.getElementById('galleryContainer');
         if (!data || data.length === 0) {
-            container.innerHTML = '<div class="no-data">Tidak ada data foto valid ditemukan.</div>';
+            container.innerHTML = '<div class="no-data">Tidak ada foto ditemukan.</div>';
             return;
         }
 
         container.innerHTML = data.map(row => {
             const v = Object.values(row);
+            
+            // Mencari link foto di semua kolom secara otomatis
+            const photoLinks = v.filter(val => val && val.toString().includes("drive.google.com"));
+            
+            // Format Tanggal & Jam
             const tgl = v[0] || "-";
-            const jam = v[1] ? v[1].toString().substring(0,8) : "-";
-            const ruang = v[2] || "Tanpa Nama";
+            const jam = v[1] || "-";
+            const asal = v[2] || "RUANGAN";
 
             return `
                 <div class="room-card">
                     <div class="room-info">
-                        <span class="room-name">📍 ${ruang}</span>
-                        <span class="room-time">📅 ${tgl} | 🕒 ${jam}</span>
+                        <span class="room-name">📍 ${asal}</span>
+                        <span class="room-time">📅 ${tgl.toString().split('T')[0]} | 🕒 ${jam}</span>
                     </div>
                     <div class="photo-grid">
-                        ${[3,4,5,6].map(i => v[i] && v[i].toString().includes("http") ? `
-                            <div class="photo-box" onclick="window.open('${v[i]}')">
-                                <img src="${getDirectImg(v[i])}" onerror="this.src='https://via.placeholder.com/300x200?text=Error+Link'">
-                                <div class="cam-tag">CAM ${i-2}</div>
+                        ${photoLinks.slice(0,4).map((link, i) => `
+                            <div class="photo-box" onclick="window.open('${link}')">
+                                <img src="${getDirectImg(link)}" loading="lazy">
+                                <div class="cam-tag">CAM ${i+1}</div>
                             </div>
-                        ` : '').join('')}
+                        `).join('')}
                     </div>
                 </div>
             `;
@@ -99,18 +100,20 @@
     }
 
     function applyFilter() {
-        const searchDate = document.getElementById('filterDate').value; // format YYYY-MM-DD
-        if (!searchDate) { renderGallery(allData); return; }
+        const selDate = document.getElementById('filterDate').value; // YYYY-MM-DD
+        if (!selDate) { renderGallery(allData); return; }
 
         const filtered = allData.filter(row => {
             const v = Object.values(row);
-            let d = v[0].toString();
-            let formattedRowDate = "";
-            if (d.includes('/')) {
-                let p = d.split('/');
-                formattedRowDate = `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+            const d = v[0].toString();
+            let rowFormat = "";
+            if(d.includes('/')) {
+                const p = d.split('/');
+                rowFormat = `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+            } else {
+                rowFormat = d.split('T')[0];
             }
-            return formattedRowDate === searchDate;
+            return rowFormat === selDate;
         });
         renderGallery(filtered);
     }
