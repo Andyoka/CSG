@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MONITORING FOTO - FINAL FIX</title>
+    <title>MONITORING FOTO - STABLE VERSION</title>
     <style>
         :root { --accent: #1abc9c; --bg: #f4f7f9; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); padding: 15px; }
         .toolbar { background: white; padding: 12px; display: flex; gap: 10px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .card { background: white; border-radius: 8px; padding: 12px; margin-bottom: 15px; border-left: 5px solid var(--accent); }
-        .photo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
-        .photo-box { background: #dfe6e9; aspect-ratio: 16/9; border-radius: 4px; overflow: hidden; border: 1px solid #ccc; cursor: pointer; position: relative; }
+        .card { background: white; border-radius: 8px; padding: 12px; margin-bottom: 15px; border-left: 5px solid var(--accent); overflow: hidden; }
+        .photo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 10px; }
+        .photo-box { background: #eee; aspect-ratio: 16/9; border-radius: 4px; overflow: hidden; border: 1px solid #ddd; cursor: pointer; }
         .photo-box img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .btn-search { background: var(--accent); color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
         @media (max-width: 600px) { .photo-grid { grid-template-columns: repeat(2, 1fr); } }
@@ -21,7 +21,7 @@
 <div class="toolbar">
     <input type="date" id="filterDate">
     <button class="btn-search" onclick="applyFilter()">CARI RIWAYAT</button>
-    <button onclick="loadDefault()" style="padding:8px; cursor:pointer; border-radius:4px; border:1px solid #ccc;">RELOAD DATA</button>
+    <button onclick="loadDefault()" style="padding:8px; cursor:pointer; border-radius:4px; border:1px solid #ccc;">DATA TERBARU</button>
 </div>
 
 <div id="galleryContainer"></div>
@@ -30,37 +30,40 @@
     // GANTI DENGAN URL SCRIPT FOTO ANDA
     const URL_FOTO = "https://script.google.com/macros/s/AKfycby-sskgC44AJE2RWh2Pikku6mKVuOV6vhS4gqPfRdXNnk-bz2f6vGaYTgbPUwW0fY_Kmg/exec";
 
-    // Fungsi konversi link Drive paling stabil (lh3)
+    // Fungsi konversi link Drive (Metode Thumbnail - Paling Stabil)
     function fixImg(url) {
-        if (!url || typeof url !== 'string' || !url.includes("id=")) return url;
+        if (!url || typeof url !== 'string' || !url.includes("id=")) return "";
         const id = url.split('id=')[1].split('&')[0];
-        // Jalur khusus Google agar gambar tidak abu-abu
-        return `https://lh3.googleusercontent.com/d/${id}`;
+        // Link thumbnail Google Drive dengan ukuran besar (sz=w1000)
+        return `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
     }
 
-    // Fungsi kunci tanggal agar tidak bergeser hari
+    // Fungsi Kunci Tanggal (Sangat Akurat)
     function fixDate(dateVal) {
         if (!dateVal) return "-";
+        // Jika formatnya ISO (2026-02-17T...), ambil 10 karakter pertama saja
+        if (dateVal.toString().includes('T')) {
+            return dateVal.split('T')[0];
+        }
+        // Jika format lain, konversi manual agar tidak bergeser
         let d = new Date(dateVal);
-        // Tambahkan durasi 12 jam agar tidak melompat ke hari sebelumnya akibat timezone
-        d.setMinutes(d.getMinutes() + d.getTimezoneOffset() + 720);
-        
-        let day = String(d.getDate()).padStart(2, '0');
-        let month = String(d.getMonth() + 1).padStart(2, '0');
         let year = d.getFullYear();
-        return `${year}-${month}-${day}`;
+        let month = String(d.getMonth() + 1).padStart(2, '0');
+        let day = String(d.getDate()).padStart(2, '0');
+        // Jika tahunnya 1899 (error GSheet), kita abaikan
+        return year < 1900 ? "-" : `${year}-${month}-${day}`;
     }
 
     async function loadData() {
         const cont = document.getElementById('galleryContainer');
-        cont.innerHTML = "<div style='text-align:center;'>Sedang sinkronisasi foto...</div>";
+        cont.innerHTML = "<div style='text-align:center; padding:20px;'>Menghubungkan ke Drive...</div>";
         try {
             const res = await fetch(URL_FOTO + "?t=" + new Date().getTime());
             const data = await res.json();
             window.allData = data;
             renderGallery(data);
         } catch (e) { 
-            cont.innerHTML = "Gagal memuat. Periksa koneksi atau URL Script."; 
+            cont.innerHTML = "<div style='text-align:center; color:red;'>Gagal sinkronisasi data.</div>"; 
         }
     }
 
@@ -70,25 +73,27 @@
 
         data.forEach(row => {
             const v = Object.values(row);
+            // Cari link drive di semua kolom
             const links = v.filter(val => val && val.toString().includes("drive.google.com"));
 
             if (links.length > 0) {
                 const card = document.createElement('div');
                 card.className = 'card';
                 
-                // Menentukan nama ruang & tanggal dari baris
-                const tglTampil = fixDate(v[0] || v[7]); 
+                // Ambil tanggal dari kolom pertama atau kedelapan
+                const tglRaw = v[0] || v[7];
+                const tglTampil = fixDate(tglRaw); 
                 const namaRuang = v[2] || v[9] || "LOKASI";
 
                 card.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:bold; border-bottom:1px solid #eee; padding-bottom:5px;">
-                        <span>📍 ${namaRuang}</span>
-                        <span style="color:#7f8c8d;">📅 ${tglTampil}</span>
+                    <div style="display:flex; justify-content:space-between; padding:10px; background:#fcfcfc; border-bottom:1px solid #eee; font-size:13px;">
+                        <strong>📍 ${namaRuang}</strong>
+                        <span style="color:#2c3e50; font-weight:bold;">📅 ${tglTampil}</span>
                     </div>
                     <div class="photo-grid">
                         ${links.map(l => `
                             <div class="photo-box" onclick="window.open('${l}')">
-                                <img src="${fixImg(l)}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x200?text=Sedang+Proses'">
+                                <img src="${fixImg(l)}" onerror="this.src='https://via.placeholder.com/300x200?text=File+Drive'">
                             </div>
                         `).join('')}
                     </div>
@@ -103,7 +108,10 @@
     function applyFilter() {
         const tglInput = document.getElementById('filterDate').value;
         if (!tglInput || !window.allData) return;
-        const filtered = window.allData.filter(row => fixDate(Object.values(row)[0]) === tglInput);
+        const filtered = window.allData.filter(row => {
+            const v = Object.values(row);
+            return fixDate(v[0]) === tglInput || fixDate(v[7]) === tglInput;
+        });
         renderGallery(filtered);
     }
 
