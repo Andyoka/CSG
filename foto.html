@@ -3,135 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GALLERY MONITORING - PRO</title>
+    <title>MONITORING FOTO PRO</title>
     <style>
-        :root { --primary: #1e2b37; --accent: #1abc9c; --bg: #f4f7f9; }
+        :root { --accent: #1abc9c; --bg: #f4f7f9; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); padding: 15px; }
-        
-        /* Toolbar */
-        .toolbar { background: white; padding: 12px; display: flex; gap: 10px; align-items: center; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        input[type="date"] { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
-        .btn-search { background: var(--accent); color: white; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-reset { background: #7f8c8d; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
-
-        /* Card */
-        .room-card { background: white; border-radius: 8px; padding: 12px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 5px solid var(--accent); }
-        .room-info { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px; }
-        .room-name { font-weight: bold; color: var(--primary); text-transform: uppercase; }
-        .status-tag { background: #e8f8f5; color: #1abc9c; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; }
-
-        /* Grid Foto 4 Kolom */
+        .toolbar { background: white; padding: 12px; display: flex; gap: 10px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .card { background: white; border-radius: 8px; padding: 12px; margin-bottom: 15px; border-left: 5px solid var(--accent); }
         .photo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-        .photo-box { background: #eee; aspect-ratio: 16/9; border-radius: 4px; overflow: hidden; border: 1px solid #ddd; position: relative; cursor: pointer; }
-        .photo-box img { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }
-        .photo-box:hover img { transform: scale(1.1); }
-        .cam-tag { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.6); color: white; padding: 1px 5px; border-radius: 3px; font-size: 9px; }
-
-        .no-data { text-align: center; padding: 40px; color: #95a5a6; }
+        .photo-box { background: #eee; aspect-ratio: 16/9; border-radius: 4px; overflow: hidden; border: 1px solid #ddd; }
+        .photo-box img { width: 100%; height: 100%; object-fit: cover; }
         @media (max-width: 600px) { .photo-grid { grid-template-columns: repeat(2, 1fr); } }
     </style>
 </head>
 <body>
 
 <div class="toolbar">
-    <div style="display:flex; flex-direction:column; gap:2px;">
-        <label style="font-size:10px; font-weight:bold; color:#7f8c8d;">CARI TANGGAL LALU</label>
-        <div style="display:flex; gap:5px;">
-            <input type="date" id="filterDate">
-            <button class="btn-search" onclick="applyFilter()">CARI</button>
-            <button class="btn-reset" onclick="loadTerbaru()">RESET (TERBARU)</button>
-        </div>
-    </div>
+    <input type="date" id="filterDate">
+    <button onclick="applyFilter()" style="background:var(--accent); color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer;">CARI RIWAYAT (A:G)</button>
+    <button onclick="loadTerbaru()" style="background:#7f8c8d; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer;">TERBARU (H:N)</button>
 </div>
 
-<div id="galleryContainer"><div class="no-data">Memuat data foto terbaru...</div></div>
+<div id="galleryContainer">Memuat data...</div>
 
 <script>
-    // URL Web App GSheet "LS 2 Foto"
-    const API_URL = "https://script.google.com/macros/s/AKfycby-sskgC44AJE2RWh2Pikku6mKVuOV6vhS4gqPfRdXNnk-bz2f6vGaYTgbPUwW0fY_Kmg/exec";
+    // MASUKKAN URL YANG TIDAK DIARSIPKAN DI SINI
+    const URL_FOTO = "https://script.google.com/macros/s/AKfycby-sskgC44AJE2RWh2Pikku6mKVuOV6vhS4gqPfRdXNnk-bz2f6vGaYTgbPUwW0fY_Kmg/exec";
 
-    let rawData = [];
+    let allData = [];
 
-    // Fungsi konversi link Drive yang lebih kuat
-    function getDriveImg(url) {
-        if (!url || typeof url !== 'string' || !url.includes("id=")) return "";
+    function fixImg(url) {
+        if (!url || !url.includes("id=")) return url;
         const id = url.split('id=')[1].split('&')[0];
-        // Menggunakan link preview agar tidak sering "abu-abu"
-        return `https://lh3.googleusercontent.com/u/0/d/${id}=w400-h225-p-k-no`;
+        return `https://drive.google.com/thumbnail?id=${id}&sz=w800`;
     }
 
     async function loadData() {
         try {
-            const res = await fetch(API_URL + "?t=" + new Date().getTime());
-            rawData = await res.json();
-            loadTerbaru(); // Saat pertama buka, jalankan fungsi data terbaru
-        } catch (err) {
-            document.getElementById('galleryContainer').innerHTML = "Gagal koneksi ke server.";
-        }
+            const res = await fetch(URL_FOTO + "?t=" + new Date().getTime());
+            allData = await res.json();
+            loadTerbaru();
+        } catch (e) { document.getElementById('galleryContainer').innerHTML = "Gagal memuat. Cek URL Script."; }
     }
 
-    // FUNGSI TAMPILKAN KOLOM H:N (Data Terbaru Saja)
     function loadTerbaru() {
-        document.getElementById('filterDate').value = "";
-        const container = document.getElementById('galleryContainer');
-        
-        // Asumsi GSheet: H=Idx7, I=Idx8, J=Idx9, K=Idx10, L=Idx11, M=Idx12, N=Idx13
-        // Kita filter baris yang kolom J (Asal Ruang di H:N) tidak kosong
-        const terbaru = rawData.filter(row => {
-            const v = Object.values(row);
-            return v[9] && v[9] !== "" && v[9] !== 0; 
-        });
-
-        renderView(terbaru, "H-N");
+        // Ambil data dari kolom H-N (Index 7 ke atas)
+        const terbaru = allData.filter(r => r[9] && r[9] !== "" && r[9] !== 0);
+        render(terbaru, "H-N");
     }
 
-    // FUNGSI CARI DI KOLOM A:G (Database Riwayat)
     function applyFilter() {
-        const selDate = document.getElementById('filterDate').value;
-        if (!selDate) return;
-
-        // Cari di kolom A (Idx 0)
-        const hasilCari = rawData.filter(row => {
-            const v = Object.values(row);
-            let d = v[0].toString();
-            let rowFormat = d.includes('/') ? `${d.split('/')[2]}-${d.split('/')[1].padStart(2,'0')}-${d.split('/')[0].padStart(2,'0')}` : d.split('T')[0];
-            return rowFormat === selDate;
+        const tgl = document.getElementById('filterDate').value;
+        if (!tgl) return;
+        // Cari di kolom A-G (Index 0)
+        const hasil = allData.filter(r => {
+            let d = r[0].toString();
+            let rowTgl = d.includes('/') ? `${d.split('/')[2]}-${d.split('/')[1].padStart(2,'0')}-${d.split('/')[0].padStart(2,'0')}` : d.split('T')[0];
+            return rowTgl === tgl;
         });
-
-        renderView(hasilCari, "A-G");
+        render(hasil, "A-G");
     }
 
-    function renderView(data, zona) {
-        const container = document.getElementById('galleryContainer');
-        if (!data.length) { container.innerHTML = '<div class="no-data">Data tidak ditemukan.</div>'; return; }
-
-        container.innerHTML = data.map(row => {
-            const v = Object.values(row);
-            let tgl, jam, ruang, f1, f2, f3, f4;
-
-            if (zona === "H-N") {
-                // Mapping kolom H:N (Mulai dari index 7)
-                tgl = v[7]; jam = v[8]; ruang = v[9];
-                f1 = v[10]; f2 = v[11]; f3 = v[12]; f4 = v[13];
-            } else {
-                // Mapping kolom A:G (Mulai dari index 0)
-                tgl = v[0]; jam = v[1]; ruang = v[2];
-                f1 = v[3]; f2 = v[4]; f3 = v[5]; f4 = v[6];
-            }
-
-            const photos = [f1, f2, f3, f4].filter(f => f && f.toString().includes("http"));
+    function render(data, zona) {
+        const cont = document.getElementById('galleryContainer');
+        if (!data.length) { cont.innerHTML = "Data tidak ditemukan."; return; }
+        
+        cont.innerHTML = data.map(r => {
+            // Jika H-N, index dimulai dari 7. Jika A-G, index mulai dari 0.
+            const offset = (zona === "H-N") ? 7 : 0;
+            const tgl = r[offset];
+            const jam = r[offset+1];
+            const ruang = r[offset+2];
+            const foto = [r[offset+3], r[offset+4], r[offset+5], r[offset+6]];
 
             return `
-                <div class="room-card">
-                    <div class="room-info">
-                        <div><span class="room-name">📍 ${ruang}</span> ${zona === 'H-N' ? '<span class="status-tag">LIVE</span>' : ''}</div>
-                        <span class="room-time">📅 ${tgl.toString().split('T')[0]} | 🕒 ${jam.toString().substring(0,5)}</span>
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:12px;">
+                        <strong>📍 ${ruang}</strong>
+                        <span>📅 ${tgl.toString().split('T')[0]} | 🕒 ${jam.toString().substring(0,5)}</span>
                     </div>
                     <div class="photo-grid">
-                        ${photos.map((l, i) => `
-                            <div class="photo-box" onclick="window.open('${l}')">
-                                <img src="${getDriveImg(l)}" onerror="this.src='https://via.placeholder.com/300x200?text=Memuat...'">
-                                <div class="cam-tag">CAM ${i+1}</div>
+                        ${foto.filter(f => f && f.includes("http")).map((f, i) => `
+                            <div class="photo-box" onclick="window.open('${f}')">
+                                <img src="${fixImg(f)}">
                             </div>
                         `).join('')}
                     </div>
