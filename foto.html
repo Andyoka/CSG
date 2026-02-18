@@ -3,15 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MONITORING FOTO PRO</title>
+    <title>MONITORING FOTO - SAPU BERSIH</title>
     <style>
         :root { --accent: #1abc9c; --bg: #f4f7f9; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); padding: 15px; }
         .toolbar { background: white; padding: 12px; display: flex; gap: 10px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .card { background: white; border-radius: 8px; padding: 12px; margin-bottom: 15px; border-left: 5px solid var(--accent); }
-        .photo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-        .photo-box { background: #eee; aspect-ratio: 16/9; border-radius: 4px; overflow: hidden; border: 1px solid #ddd; }
+        .photo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+        .photo-box { background: #eee; aspect-ratio: 16/9; border-radius: 4px; overflow: hidden; border: 1px solid #ddd; cursor: pointer; }
         .photo-box img { width: 100%; height: 100%; object-fit: cover; }
+        .btn-search { background: var(--accent); color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
+        .no-data { text-align: center; padding: 50px; color: #95a5a6; background: white; border-radius: 8px; }
         @media (max-width: 600px) { .photo-grid { grid-template-columns: repeat(2, 1fr); } }
     </style>
 </head>
@@ -19,20 +21,20 @@
 
 <div class="toolbar">
     <input type="date" id="filterDate">
-    <button onclick="applyFilter()" style="background:var(--accent); color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer;">CARI RIWAYAT (A:G)</button>
-    <button onclick="loadTerbaru()" style="background:#7f8c8d; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer;">TERBARU (H:N)</button>
+    <button class="btn-search" onclick="applyFilter()">CARI RIWAYAT</button>
+    <button onclick="loadDefault()" style="padding:8px; cursor:pointer;">RELOAD DATA</button>
 </div>
 
-<div id="galleryContainer">Memuat data...</div>
+<div id="galleryContainer"><div class="no-data">Sedang memindai data...</div></div>
 
 <script>
-    // MASUKKAN URL YANG TIDAK DIARSIPKAN DI SINI
+    // MASUKKAN URL SCRIPT FOTO ANDA
     const URL_FOTO = "https://script.google.com/macros/s/AKfycby-sskgC44AJE2RWh2Pikku6mKVuOV6vhS4gqPfRdXNnk-bz2f6vGaYTgbPUwW0fY_Kmg/exec";
 
     let allData = [];
 
     function fixImg(url) {
-        if (!url || !url.includes("id=")) return url;
+        if (!url || typeof url !== 'string' || !url.includes("id=")) return url;
         const id = url.split('id=')[1].split('&')[0];
         return `https://drive.google.com/thumbnail?id=${id}&sz=w800`;
     }
@@ -41,56 +43,64 @@
         try {
             const res = await fetch(URL_FOTO + "?t=" + new Date().getTime());
             allData = await res.json();
-            loadTerbaru();
-        } catch (e) { document.getElementById('galleryContainer').innerHTML = "Gagal memuat. Cek URL Script."; }
+            loadDefault();
+        } catch (e) { 
+            document.getElementById('galleryContainer').innerHTML = "<div class='no-data'>Gagal Terhubung ke Script. Pastikan URL benar dan statusnya 'Anyone'.</div>"; 
+        }
     }
 
-    function loadTerbaru() {
-        // Ambil data dari kolom H-N (Index 7 ke atas)
-        const terbaru = allData.filter(r => r[9] && r[9] !== "" && r[9] !== 0);
-        render(terbaru, "H-N");
-    }
-
-    function applyFilter() {
-        const tgl = document.getElementById('filterDate').value;
-        if (!tgl) return;
-        // Cari di kolom A-G (Index 0)
-        const hasil = allData.filter(r => {
-            let d = r[0].toString();
-            let rowTgl = d.includes('/') ? `${d.split('/')[2]}-${d.split('/')[1].padStart(2,'0')}-${d.split('/')[0].padStart(2,'0')}` : d.split('T')[0];
-            return rowTgl === tgl;
-        });
-        render(hasil, "A-G");
-    }
-
-    function render(data, zona) {
+    // Fungsi Utama: Cari baris mana saja yang ada link fotonya
+    function renderGallery(filterTgl = null) {
         const cont = document.getElementById('galleryContainer');
-        if (!data.length) { cont.innerHTML = "Data tidak ditemukan."; return; }
+        cont.innerHTML = "";
         
-        cont.innerHTML = data.map(r => {
-            // Jika H-N, index dimulai dari 7. Jika A-G, index mulai dari 0.
-            const offset = (zona === "H-N") ? 7 : 0;
-            const tgl = r[offset];
-            const jam = r[offset+1];
-            const ruang = r[offset+2];
-            const foto = [r[offset+3], r[offset+4], r[offset+5], r[offset+6]];
+        // Filter berdasarkan tanggal jika ada
+        let filtered = allData;
+        if (filterTgl) {
+            filtered = allData.filter(row => {
+                let rowStr = JSON.stringify(row);
+                return rowStr.includes(filterTgl);
+            });
+        }
 
-            return `
-                <div class="card">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:12px;">
-                        <strong>📍 ${ruang}</strong>
-                        <span>📅 ${tgl.toString().split('T')[0]} | 🕒 ${jam.toString().substring(0,5)}</span>
+        let foundCount = 0;
+
+        filtered.forEach(row => {
+            // Ambil semua nilai dalam satu baris
+            const v = Object.values(row);
+            // Cari link drive dalam baris ini
+            const links = v.filter(val => val && val.toString().includes("drive.google.com"));
+
+            if (links.length > 0) {
+                foundCount++;
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; font-size:12px;">
+                        <strong>📍 ${v[2] || v[9] || 'RUANGAN'}</strong>
+                        <span>📅 ${v[0].toString().split('T')[0]}</span>
                     </div>
                     <div class="photo-grid">
-                        ${foto.filter(f => f && f.includes("http")).map((f, i) => `
-                            <div class="photo-box" onclick="window.open('${f}')">
-                                <img src="${fixImg(f)}">
+                        ${links.map(l => `
+                            <div class="photo-box" onclick="window.open('${l}')">
+                                <img src="${fixImg(l)}" onerror="this.src='https://via.placeholder.com/200x150?text=Gambar+Drive'">
                             </div>
                         `).join('')}
                     </div>
-                </div>
-            `;
-        }).join('');
+                `;
+                cont.appendChild(card);
+            }
+        });
+
+        if (foundCount === 0) {
+            cont.innerHTML = "<div class='no-data'>Tidak ada link foto Google Drive ditemukan di Spreadsheet Anda.</div>";
+        }
+    }
+
+    function loadDefault() { renderGallery(); }
+    function applyFilter() {
+        const tgl = document.getElementById('filterDate').value;
+        if (tgl) renderGallery(tgl);
     }
 
     loadData();
