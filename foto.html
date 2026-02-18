@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MONITORING FOTO - SAPU BERSIH</title>
+    <title>MONITORING FOTO - FIXED DATE & IMAGE</title>
     <style>
         :root { --accent: #1abc9c; --bg: #f4f7f9; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); padding: 15px; }
@@ -13,7 +13,6 @@
         .photo-box { background: #eee; aspect-ratio: 16/9; border-radius: 4px; overflow: hidden; border: 1px solid #ddd; cursor: pointer; }
         .photo-box img { width: 100%; height: 100%; object-fit: cover; }
         .btn-search { background: var(--accent); color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
-        .no-data { text-align: center; padding: 50px; color: #95a5a6; background: white; border-radius: 8px; }
         @media (max-width: 600px) { .photo-grid { grid-template-columns: repeat(2, 1fr); } }
     </style>
 </head>
@@ -25,65 +24,64 @@
     <button onclick="loadDefault()" style="padding:8px; cursor:pointer;">RELOAD DATA</button>
 </div>
 
-<div id="galleryContainer"><div class="no-data">Sedang memindai data...</div></div>
+<div id="galleryContainer"></div>
 
 <script>
-    // MASUKKAN URL SCRIPT FOTO ANDA
     const URL_FOTO = "https://script.google.com/macros/s/AKfycby-sskgC44AJE2RWh2Pikku6mKVuOV6vhS4gqPfRdXNnk-bz2f6vGaYTgbPUwW0fY_Kmg/exec";
-
-    let allData = [];
 
     function fixImg(url) {
         if (!url || typeof url !== 'string' || !url.includes("id=")) return url;
         const id = url.split('id=')[1].split('&')[0];
-        return `https://drive.google.com/thumbnail?id=${id}&sz=w800`;
+        // Menggunakan URL khusus agar gambar langsung muncul tanpa diblokir
+        return `https://lh3.googleusercontent.com/d/${id}`;
+    }
+
+    // Fungsi memperbaiki tanggal agar tidak berkurang 1 hari
+    function fixDate(dateStr) {
+        if (!dateStr) return "-";
+        let d = new Date(dateStr);
+        // Menambah jam agar tidak terpotong timezone saat konversi ke lokal
+        d.setHours(d.getHours() + 12); 
+        return d.toISOString().split('T')[0];
     }
 
     async function loadData() {
+        const cont = document.getElementById('galleryContainer');
+        cont.innerHTML = "Memuat data...";
         try {
             const res = await fetch(URL_FOTO + "?t=" + new Date().getTime());
-            allData = await res.json();
-            loadDefault();
+            const data = await res.json();
+            window.allData = data;
+            renderGallery(data);
         } catch (e) { 
-            document.getElementById('galleryContainer').innerHTML = "<div class='no-data'>Gagal Terhubung ke Script. Pastikan URL benar dan statusnya 'Anyone'.</div>"; 
+            cont.innerHTML = "Gagal memuat data."; 
         }
     }
 
-    // Fungsi Utama: Cari baris mana saja yang ada link fotonya
-    function renderGallery(filterTgl = null) {
+    function renderGallery(data) {
         const cont = document.getElementById('galleryContainer');
         cont.innerHTML = "";
-        
-        // Filter berdasarkan tanggal jika ada
-        let filtered = allData;
-        if (filterTgl) {
-            filtered = allData.filter(row => {
-                let rowStr = JSON.stringify(row);
-                return rowStr.includes(filterTgl);
-            });
-        }
 
-        let foundCount = 0;
-
-        filtered.forEach(row => {
-            // Ambil semua nilai dalam satu baris
+        data.forEach(row => {
             const v = Object.values(row);
-            // Cari link drive dalam baris ini
             const links = v.filter(val => val && val.toString().includes("drive.google.com"));
 
             if (links.length > 0) {
-                foundCount++;
                 const card = document.createElement('div');
                 card.className = 'card';
+                // Gunakan fixDate agar tanggal 17 tetap 17
+                const tglTampil = fixDate(v[0] || v[7]); 
+                const namaRuang = v[9] || v[2] || "RUANGAN";
+
                 card.innerHTML = `
                     <div style="display:flex; justify-content:space-between; font-size:12px;">
-                        <strong>📍 ${v[2] || v[9] || 'RUANGAN'}</strong>
-                        <span>📅 ${v[0].toString().split('T')[0]}</span>
+                        <strong>📍 ${namaRuang}</strong>
+                        <span>📅 ${tglTampil}</span>
                     </div>
                     <div class="photo-grid">
                         ${links.map(l => `
                             <div class="photo-box" onclick="window.open('${l}')">
-                                <img src="${fixImg(l)}" onerror="this.src='https://via.placeholder.com/200x150?text=Gambar+Drive'">
+                                <img src="${fixImg(l)}" loading="lazy">
                             </div>
                         `).join('')}
                     </div>
@@ -91,16 +89,15 @@
                 cont.appendChild(card);
             }
         });
-
-        if (foundCount === 0) {
-            cont.innerHTML = "<div class='no-data'>Tidak ada link foto Google Drive ditemukan di Spreadsheet Anda.</div>";
-        }
     }
 
-    function loadDefault() { renderGallery(); }
+    function loadDefault() { renderGallery(window.allData); }
+    
     function applyFilter() {
         const tgl = document.getElementById('filterDate').value;
-        if (tgl) renderGallery(tgl);
+        if (!tgl || !window.allData) return;
+        const filtered = window.allData.filter(row => fixDate(Object.values(row)[0]) === tgl);
+        renderGallery(filtered);
     }
 
     loadData();
