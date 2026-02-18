@@ -3,122 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GALLERY MONITORING - COMPACT</title>
+    <title>GALLERY MONITORING - FIXED</title>
     <style>
         :root { --primary: #1e2b37; --accent: #1abc9c; --bg: #f4f7f9; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); color: #333; padding: 15px; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); padding: 15px; }
         
-        /* Toolbar Sederhana - Hanya Tanggal */
-        .toolbar { 
-            background: white; 
-            padding: 12px; 
-            display: flex; 
-            gap: 10px; 
-            align-items: center; 
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
-        }
+        .toolbar { background: white; padding: 12px; display: flex; gap: 10px; align-items: center; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; }
         input[type="date"] { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
         .btn-search { background: var(--accent); color: white; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-search:hover { background: #16a085; }
 
-        /* Kartu Ruangan Lebih Ringkas */
-        .room-card { 
-            background: white; 
-            border-radius: 8px; 
-            padding: 12px; 
-            margin-bottom: 15px; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
-        }
-        .room-info { 
-            display: flex; 
-            justify-content: space-between; 
-            margin-bottom: 10px; 
-            font-size: 14px;
-            border-left: 4px solid var(--accent);
-            padding-left: 10px;
-        }
-        .room-name { font-weight: bold; color: var(--primary); }
+        .room-card { background: white; border-radius: 8px; padding: 12px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 5px solid var(--accent); }
+        .room-info { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
+        .room-name { font-weight: bold; color: var(--primary); text-transform: uppercase; }
         .room-time { color: #7f8c8d; font-family: monospace; }
 
-        /* Grid Foto Lebih Kecil (4 Kolom) */
-        .photo-grid { 
-            display: grid; 
-            grid-template-columns: repeat(4, 1fr); 
-            gap: 8px; 
-        }
-        .photo-box { 
-            position: relative; 
-            border-radius: 4px; 
-            overflow: hidden; 
-            background: #eee; 
-            aspect-ratio: 16/9; 
-            cursor: pointer;
-        }
-        .photo-box img { width: 100%; height: 100%; object-fit: cover; }
-        .cam-tag { 
-            position: absolute; 
-            bottom: 4px; 
-            right: 4px; 
-            background: rgba(0,0,0,0.5); 
-            color: white; 
-            padding: 1px 5px; 
-            border-radius: 3px; 
-            font-size: 9px; 
-        }
+        .photo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .photo-box { position: relative; border-radius: 4px; overflow: hidden; background: #dfe6e9; aspect-ratio: 16/9; border: 1px solid #ccc; }
+        .photo-box img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .cam-tag { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.6); color: white; padding: 1px 5px; border-radius: 3px; font-size: 9px; }
 
-        .no-data { text-align: center; padding: 40px; color: #95a5a6; }
-
-        /* Responsif HP (Jadi 2 kolom agar tidak kekecilan) */
-        @media (max-width: 600px) {
-            .photo-grid { grid-template-columns: repeat(2, 1fr); }
-            .toolbar { flex-direction: column; align-items: stretch; }
-        }
+        .no-data { text-align: center; padding: 40px; color: #95a5a6; font-weight: bold; }
+        @media (max-width: 600px) { .photo-grid { grid-template-columns: repeat(2, 1fr); } }
     </style>
 </head>
 <body>
 
 <div class="toolbar">
-    <label style="font-size: 12px; font-weight: bold;">CARI TANGGAL:</label>
     <input type="date" id="filterDate">
     <button class="btn-search" onclick="applyFilter()">CARI FOTO</button>
-    <button onclick="location.reload()" style="background:none; border:none; color:#999; cursor:pointer; font-size:12px;">Refresh</button>
+    <button onclick="location.reload()" style="background:none; border:none; color:#999; cursor:pointer;">Refresh</button>
 </div>
 
-<div id="galleryContainer">
-    <div class="no-data">Memuat foto terbaru...</div>
-</div>
+<div id="galleryContainer"><div class="no-data">Menghubungkan ke database...</div></div>
 
 <script>
-    // URL API dari GSheet LS 2 Foto
     const API_URL = "https://script.google.com/macros/s/AKfycbyqvAX34sz4DbW3Y_-3cZ6pVa1J3521_S0TM-gt_lcUTSh3OI1ntNLZdq18YECbRR73AQ/exec";
-
     let allData = [];
 
-    // Fungsi membersihkan tampilan tanggal yang aneh
-    function formatTgl(str) {
-        if (!str) return "-";
-        if (str.includes('T')) {
-            // Jika formatnya ISO (2026-01-04T...), ambil 10 karakter depan saja
-            let parts = str.split('T')[0].split('-');
-            return `${parts[2]}/${parts[1]}/${parts[0]}`; 
-        }
-        return str; // Jika sudah normal dd/mm/yyyy
-    }
-
-    // Fungsi Direct Link GDrive
-    function fixDriveLink(url) {
-        if (!url || typeof url !== 'string' || !url.includes("drive.google.com")) return url;
-        const id = url.split('/d/')[1]?.split('/')[0] || url.split('id=')[1]?.split('&')[0];
-        return id ? `https://lh3.googleusercontent.com/d/${id}` : url;
+    // Fungsi sakti untuk Link Google Drive agar tampil gambar
+    function getDirectImg(url) {
+        if (!url || typeof url !== 'string' || !url.includes("drive.google.com")) return "";
+        let id = "";
+        if (url.includes("/d/")) { id = url.split("/d/")[1].split("/")[0]; }
+        else if (url.includes("id=")) { id = url.split("id=")[1].split("&")[0]; }
+        return id ? `https://lh3.googleusercontent.com/d/${id}` : "";
     }
 
     async function loadData() {
         try {
             const res = await fetch(API_URL + "?t=" + new Date().getTime());
-            allData = await res.json();
-            renderGallery(allData); 
+            const json = await res.json();
+            
+            // FILTER: Hanya ambil baris yang kolom fotonya tidak kosong atau nol
+            allData = json.filter(row => {
+                const v = Object.values(row);
+                return v[3] && v[3].toString().includes("http");
+            });
+
+            renderGallery(allData);
         } catch (err) {
             document.getElementById('galleryContainer').innerHTML = "Gagal memuat data.";
         }
@@ -127,27 +69,27 @@
     function renderGallery(data) {
         const container = document.getElementById('galleryContainer');
         if (!data || data.length === 0) {
-            container.innerHTML = '<div class="no-data">Tidak ada foto.</div>';
+            container.innerHTML = '<div class="no-data">Tidak ada data foto valid ditemukan.</div>';
             return;
         }
 
         container.innerHTML = data.map(row => {
             const v = Object.values(row);
-            // v[0]=Tanggal, v[1]=Jam, v[2]=Asal, v[3-6]=Link Foto
-            const tglClean = formatTgl(v[0]);
-            const jamClean = v[1] ? v[1].substring(0,8) : "--:--";
-            
+            const tgl = v[0] || "-";
+            const jam = v[1] ? v[1].toString().substring(0,8) : "-";
+            const ruang = v[2] || "Tanpa Nama";
+
             return `
                 <div class="room-card">
                     <div class="room-info">
-                        <span class="room-name">${v[2]}</span>
-                        <span class="room-time">📅 ${tglClean} | 🕒 ${jamClean}</span>
+                        <span class="room-name">📍 ${ruang}</span>
+                        <span class="room-time">📅 ${tgl} | 🕒 ${jam}</span>
                     </div>
                     <div class="photo-grid">
-                        ${[3,4,5,6].map(idx => v[idx] ? `
-                            <div class="photo-box" onclick="window.open('${fixDriveLink(v[idx])}')">
-                                <img src="${fixDriveLink(v[idx])}" loading="lazy">
-                                <div class="cam-tag">CAM ${idx-2}</div>
+                        ${[3,4,5,6].map(i => v[i] && v[i].toString().includes("http") ? `
+                            <div class="photo-box" onclick="window.open('${v[i]}')">
+                                <img src="${getDirectImg(v[i])}" onerror="this.src='https://via.placeholder.com/300x200?text=Error+Link'">
+                                <div class="cam-tag">CAM ${i-2}</div>
                             </div>
                         ` : '').join('')}
                     </div>
@@ -157,26 +99,19 @@
     }
 
     function applyFilter() {
-        const searchDate = document.getElementById('filterDate').value; // YYYY-MM-DD
-        if (!searchDate) {
-            renderGallery(allData);
-            return;
-        }
+        const searchDate = document.getElementById('filterDate').value; // format YYYY-MM-DD
+        if (!searchDate) { renderGallery(allData); return; }
 
         const filtered = allData.filter(row => {
             const v = Object.values(row);
-            let rowDate = v[0];
-            // Samakan format ke YYYY-MM-DD untuk pengecekan
-            let checkDate = "";
-            if (rowDate.includes('T')) {
-                checkDate = rowDate.split('T')[0];
-            } else if (rowDate.includes('/')) {
-                let p = rowDate.split('/');
-                checkDate = `${p[2]}-${p[1]}-${p[0]}`;
+            let d = v[0].toString();
+            let formattedRowDate = "";
+            if (d.includes('/')) {
+                let p = d.split('/');
+                formattedRowDate = `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
             }
-            return checkDate === searchDate;
+            return formattedRowDate === searchDate;
         });
-
         renderGallery(filtered);
     }
 
