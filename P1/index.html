@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P1 - Home</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Transisi halus untuk sidebar */
+        #sidebar { transition: transform 0.3s ease-in-out; }
+        .sidebar-closed { transform: translateX(-100%); }
+        .main-content { transition: margin-left 0.3s ease-in-out; }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans overflow-x-hidden">
+
+    <aside id="sidebar" class="fixed top-0 left-0 h-screen w-48 bg-slate-800 text-white z-50 shadow-xl">
+        <div class="p-5 flex justify-between items-center border-b border-slate-700">
+            <span class="text-xl font-bold">P1 Menu</span>
+            <button onclick="toggleSidebar()" class="text-white hover:text-gray-400">✕</button>
+        </div>
+        <nav class="mt-5">
+            <a href="index.html" class="block py-3 px-6 bg-blue-600 border-l-4 border-blue-400">Home</a>
+            <a href="cs.html" class="block py-3 px-6 hover:bg-slate-700 border-l-4 border-transparent hover:border-blue-400 transition">CS</a>
+            <a href="fj.html" class="block py-3 px-6 hover:bg-slate-700 border-l-4 border-transparent hover:border-blue-400 transition">FJ</a>
+            <a href="fm.html" class="block py-3 px-6 hover:bg-slate-700 border-l-4 border-transparent hover:border-blue-400 transition">FM</a>
+            <a href="rm.html" class="block py-3 px-6 hover:bg-slate-700 border-l-4 border-transparent hover:border-blue-400 transition">RM</a>
+        </nav>
+    </aside>
+
+    <main id="mainContent" class="ml-48 p-8 main-content">
+        <header class="flex items-center mb-10">
+            <button onclick="toggleSidebar()" class="bg-slate-800 text-white p-2 rounded-md mr-4 shadow-md">
+                ☰ Menu
+            </button>
+            <h1 class="text-3xl font-bold text-slate-800">Dashboard P1</h1>
+        </header>
+
+        <section class="bg-white p-10 rounded-2xl shadow-sm border border-gray-200">
+            <h2 class="text-2xl font-semibold mb-4 text-blue-600">Selamat Datang di Sistem P1</h2>
+            <p class="text-gray-600 leading-relaxed">
+                Gunakan sidebar di sebelah kiri untuk mengakses menu **CS, FJ, FM,** dan **RM**. 
+                Struktur file sekarang sudah terbagi secara modular untuk memudahkan pengelolaan kode Anda.
+            </p>
+        </section>
+    </main>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            
+            sidebar.classList.toggle('sidebar-closed');
+            
+            // Atur margin konten saat sidebar ditutup
+            if (sidebar.classList.contains('sidebar-closed')) {
+                mainContent.style.marginLeft = "0";
+            } else {
+                mainContent.style.marginLeft = "12rem"; // Sesuai lebar w-48 (12rem)
+            }
+        }
+    </script>
+</body>
+</html>
