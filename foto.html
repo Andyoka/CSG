@@ -3,20 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MONITORING FOTO - APPSHEET MODE</title>
+    <title>MONITORING FOTO LS 2</title>
     <style>
-        :root { --accent: #1abc9c; --bg: #f4f7f9; --dark: #2c3e50; }
+        :root { --accent: #1abc9c; --bg: #f4f7f9; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); padding: 15px; }
-        .toolbar { background: white; padding: 12px; display: flex; gap: 10px; align-items: center; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .toolbar { background: white; padding: 12px; display: flex; gap: 10px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .card { background: white; border-radius: 8px; padding: 0; margin-bottom: 15px; border-left: 5px solid var(--accent); box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden; }
-        .card-header { padding: 10px 15px; background: #fafafa; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; color: var(--dark); }
+        .card-header { padding: 10px 15px; background: #fafafa; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; }
         .photo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 15px; }
-        .photo-box { background: #f0f0f0; aspect-ratio: 16/9; border-radius: 6px; overflow: hidden; border: 1px solid #ddd; cursor: pointer; transition: 0.2s; }
-        .photo-box:hover { transform: scale(1.02); border-color: var(--accent); }
+        .photo-box { background: #eee; aspect-ratio: 16/9; border-radius: 6px; overflow: hidden; border: 1px solid #ddd; cursor: pointer; }
         .photo-box img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        input[type="date"] { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
         button { background: var(--accent); color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .no-data { text-align: center; padding: 40px; color: #95a5a6; }
         @media (max-width: 600px) { .photo-grid { grid-template-columns: repeat(2, 1fr); } }
     </style>
 </head>
@@ -25,64 +22,65 @@
 <div class="toolbar">
     <input type="date" id="filterDate">
     <button onclick="applyFilter()">CARI RIWAYAT</button>
-    <button onclick="loadDefault()" style="background:#7f8c8d;">DATA TERBARU</button>
+    <button onclick="loadDefault()" style="background:#7f8c8d;">FOTO TERBARU</button>
 </div>
 
-<div id="galleryContainer"><div class="no-data">Menghubungkan ke server...</div></div>
+<div id="galleryContainer"></div>
 
 <script>
-    // URL SCRIPT FOTO ANDA
+    // MASUKKAN URL SCRIPT FOTO YANG BARU SAJA DI-DEPLOY
     const URL_FOTO = "https://script.google.com/macros/s/AKfycby-sskgC44AJE2RWh2Pikku6mKVuOV6vhS4gqPfRdXNnk-bz2f6vGaYTgbPUwW0fY_Kmg/exec";
 
-    // KARENA PAKAI LINK APPSHEET, KITA TIDAK PERLU FIXER DRIVE LAGI
-    function fixImg(url) {
-        if (!url) return "";
-        // Jika link sudah lengkap (http...), langsung pakai. 
-        // Jika hanya nama file, Anda mungkin perlu menambahkan prefix URL AppSheet di sini.
-        return url.toString().trim();
+    // Fungsi Pengambil ID Drive agar gambar tidak abu-abu
+    function fixImg(val) {
+        if (!val || typeof val !== 'string') return "";
+        let id = "";
+        if (val.includes("id=")) {
+            id = val.split("id=")[1].split("&")[0];
+        } else if (val.includes("/d/")) {
+            id = val.split("/d/")[1].split("/")[0];
+        }
+        return id ? `https://drive.google.com/thumbnail?id=${id}&sz=w600` : "";
     }
 
-    // FIX TANGGAL: Memastikan 17 tetap 17
+    // Fungsi Kunci Tanggal (Memaksa Tanggal Tetap Sesuai Sheet)
     function fixDate(dateVal) {
         if (!dateVal) return "-";
         let str = dateVal.toString();
+        // Jika format ISO (2026-02-17T...), ambil 10 huruf depan saja
         if (str.includes('T')) return str.split('T')[0];
         
         let d = new Date(dateVal);
-        let y = d.getFullYear();
-        let m = String(d.getMonth() + 1).padStart(2, '0');
-        let day = String(d.getDate()).padStart(2, '0');
-        return (y < 1900) ? "-" : `${y}-${m}-${day}`;
+        if (isNaN(d.getTime())) return "-";
+        return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
     }
 
     async function loadData() {
+        const cont = document.getElementById('galleryContainer');
+        cont.innerHTML = "<div style='text-align:center;'>Menyambungkan ke folder foto...</div>";
         try {
             const res = await fetch(URL_FOTO + "?t=" + new Date().getTime());
             window.allData = await res.json();
-            renderGallery(window.allData);
-        } catch (e) { 
-            document.getElementById('galleryContainer').innerHTML = "Gagal memuat data."; 
-        }
+            loadDefault();
+        } catch (e) { cont.innerHTML = "Gagal memuat. Pastikan URL Script benar."; }
     }
 
-    function renderGallery(data) {
+    function renderGallery(data, mode) {
         const cont = document.getElementById('galleryContainer');
         cont.innerHTML = "";
 
-        // Urutkan data agar yang terbaru di atas (opsional)
-        const reversedData = [...data].reverse();
-
-        reversedData.forEach(row => {
+        data.forEach(row => {
             const v = Object.values(row);
-            // Mencari link (biasanya kolom yang mengandung "http" atau berakhiran ekstensi gambar)
-            const links = v.filter(val => val && val.toString().includes("http"));
+            // Pilih kolom berdasarkan Mode: H-N (index 7+) atau A-G (index 0+)
+            const offset = (mode === "HN") ? 7 : 0;
+            
+            const tgl = fixDate(v[offset]);
+            const ruang = v[offset+2] || "LOKASI";
+            const links = [v[offset+3], v[offset+4], v[offset+5], v[offset+6]].filter(l => l && l.toString().includes("drive.google.com"));
 
             if (links.length > 0) {
                 const card = document.createElement('div');
                 card.className = 'card';
-                const tgl = fixDate(v[0] || v[7]);
-                const ruang = v[2] || v[9] || "LOKASI";
-
                 card.innerHTML = `
                     <div class="card-header">
                         <span>📍 ${ruang}</span>
@@ -91,7 +89,7 @@
                     <div class="photo-grid">
                         ${links.map(l => `
                             <div class="photo-box" onclick="window.open('${l}')">
-                                <img src="${fixImg(l)}" onerror="this.src='https://via.placeholder.com/300x200?text=Format+Bukan+Gambar'">
+                                <img src="${fixImg(l)}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x200?text=Cek+Izin+Folder'">
                             </div>
                         `).join('')}
                     </div>
@@ -99,22 +97,19 @@
                 cont.appendChild(card);
             }
         });
-
-        if (cont.innerHTML === "") {
-            cont.innerHTML = "<div class='no-data'>Tidak ada data foto ditemukan.</div>";
-        }
     }
 
-    function loadDefault() { renderGallery(window.allData); }
-    
+    function loadDefault() { 
+        // Default menampilkan data dari kolom H-N (Data Terbaru)
+        renderGallery(window.allData, "HN"); 
+    }
+
     function applyFilter() {
         const input = document.getElementById('filterDate').value;
         if (!input) return;
-        const filtered = window.allData.filter(row => {
-            const v = Object.values(row);
-            return fixDate(v[0]) === input || fixDate(v[7]) === input;
-        });
-        renderGallery(filtered);
+        // Cari di kolom A-G berdasarkan input tanggal
+        const filtered = window.allData.filter(row => fixDate(Object.values(row)[0]) === input);
+        renderGallery(filtered, "AG");
     }
 
     loadData();
