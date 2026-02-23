@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MONITORING FOTO LS 2</title>
+    <title>GALLERY FOTO LS 2</title>
     <style>
         :root { --accent: #1abc9c; --bg: #f4f7f9; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); padding: 15px; }
@@ -21,75 +21,78 @@
 
 <div class="toolbar">
     <input type="date" id="filterDate">
-    <button onclick="applyFilter()">CARI RIWAYAT</button>
-    <button onclick="loadDefault()" style="background:#7f8c8d;">FOTO TERBARU</button>
+    <button onclick="applyFilter()">CARI RIWAYAT (A:G)</button>
+    <button onclick="loadTerbaru()" style="background:#7f8c8d;">FOTO TERBARU (H:N)</button>
 </div>
 
 <div id="galleryContainer"></div>
 
 <script>
-    // MASUKKAN URL SCRIPT FOTO YANG BARU SAJA DI-DEPLOY
+    // MASUKKAN URL SCRIPT FOTO ANDA
     const URL_FOTO = "https://script.google.com/macros/s/AKfycby-sskgC44AJE2RWh2Pikku6mKVuOV6vhS4gqPfRdXNnk-bz2f6vGaYTgbPUwW0fY_Kmg/exec";
 
-    // Fungsi Pengambil ID Drive agar gambar tidak abu-abu
-    function fixImg(val) {
-        if (!val || typeof val !== 'string') return "";
+    let rawData = [];
+
+    function getImg(url) {
+        if (!url || typeof url !== 'string') return "";
         let id = "";
-        if (val.includes("id=")) {
-            id = val.split("id=")[1].split("&")[0];
-        } else if (val.includes("/d/")) {
-            id = val.split("/d/")[1].split("/")[0];
-        }
+        if (url.includes("id=")) id = url.split("id=")[1].split("&")[0];
+        else if (url.includes("/d/")) id = url.split("/d/")[1].split("/")[0];
         return id ? `https://drive.google.com/thumbnail?id=${id}&sz=w600` : "";
     }
 
-    // Fungsi Kunci Tanggal (Memaksa Tanggal Tetap Sesuai Sheet)
-    function fixDate(dateVal) {
-        if (!dateVal) return "-";
-        let str = dateVal.toString();
-        // Jika format ISO (2026-02-17T...), ambil 10 huruf depan saja
-        if (str.includes('T')) return str.split('T')[0];
-        
-        let d = new Date(dateVal);
-        if (isNaN(d.getTime())) return "-";
+    function fixDate(val) {
+        if (!val) return "-";
+        let str = val.toString();
+        if (str.includes('T')) return str.split('T')[0]; // Kunci tanggal 17 tetap 17
+        let d = new Date(val);
         return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
     }
 
     async function loadData() {
         const cont = document.getElementById('galleryContainer');
-        cont.innerHTML = "<div style='text-align:center;'>Menyambungkan ke folder foto...</div>";
+        cont.innerHTML = "<div style='text-align:center;'>Sedang memindai data...</div>";
         try {
             const res = await fetch(URL_FOTO + "?t=" + new Date().getTime());
-            window.allData = await res.json();
-            loadDefault();
-        } catch (e) { cont.innerHTML = "Gagal memuat. Pastikan URL Script benar."; }
+            rawData = await res.json();
+            loadTerbaru(); // Default buka H:N
+        } catch (e) { cont.innerHTML = "Gagal memuat."; }
     }
 
-    function renderGallery(data, mode) {
+    function render(data, isHN = false) {
         const cont = document.getElementById('galleryContainer');
         cont.innerHTML = "";
-
+        
         data.forEach(row => {
-            const v = Object.values(row);
-            // Pilih kolom berdasarkan Mode: H-N (index 7+) atau A-G (index 0+)
-            const offset = (mode === "HN") ? 7 : 0;
+            const v = Array.isArray(row) ? row : Object.values(row);
             
-            const tgl = fixDate(v[offset]);
-            const ruang = v[offset+2] || "LOKASI";
-            const links = [v[offset+3], v[offset+4], v[offset+5], v[offset+6]].filter(l => l && l.toString().includes("drive.google.com"));
+            // Logika pemisahan: H:N (index 7-13) atau A:G (index 0-6)
+            let tgl, ruang, photos;
+            if (isHN) {
+                tgl = fixDate(v[7]);
+                ruang = v[9] || "LOKASI";
+                photos = [v[10], v[11], v[12], v[13]];
+            } else {
+                tgl = fixDate(v[0]);
+                ruang = v[2] || "LOKASI";
+                photos = [v[3], v[4], v[5], v[6]];
+            }
 
-            if (links.length > 0) {
+            // Hanya tampilkan jika ada minimal satu link foto
+            const validPhotos = photos.filter(p => p && p.toString().includes("drive.google.com"));
+
+            if (validPhotos.length > 0) {
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.innerHTML = `
                     <div class="card-header">
-                        <span>📍 ${ruang}</span>
+                        <span>📍 ${ruang} ${isHN ? '<small style="color:red">(LATEST)</small>' : ''}</span>
                         <span>📅 ${tgl}</span>
                     </div>
                     <div class="photo-grid">
-                        ${links.map(l => `
-                            <div class="photo-box" onclick="window.open('${l}')">
-                                <img src="${fixImg(l)}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x200?text=Cek+Izin+Folder'">
+                        ${validPhotos.map(p => `
+                            <div class="photo-box" onclick="window.open('${p}')">
+                                <img src="${getImg(p)}" loading="lazy">
                             </div>
                         `).join('')}
                     </div>
@@ -97,19 +100,16 @@
                 cont.appendChild(card);
             }
         });
+        if (cont.innerHTML === "") cont.innerHTML = "<div style='text-align:center;'>Data tidak ditemukan di kolom ini.</div>";
     }
 
-    function loadDefault() { 
-        // Default menampilkan data dari kolom H-N (Data Terbaru)
-        renderGallery(window.allData, "HN"); 
-    }
-
+    function loadTerbaru() { render(rawData, true); }
+    
     function applyFilter() {
-        const input = document.getElementById('filterDate').value;
-        if (!input) return;
-        // Cari di kolom A-G berdasarkan input tanggal
-        const filtered = window.allData.filter(row => fixDate(Object.values(row)[0]) === input);
-        renderGallery(filtered, "AG");
+        const inputTgl = document.getElementById('filterDate').value;
+        if (!inputTgl) return;
+        const filtered = rawData.filter(row => fixDate(Object.values(row)[0]) === inputTgl);
+        render(filtered, false);
     }
 
     loadData();
