@@ -3,16 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MONITORING FOTO - FINAL REPAIR</title>
+    <title>MONITORING FOTO - APPSHEET MODE</title>
     <style>
-        :root { --accent: #1abc9c; --bg: #f4f7f9; }
+        :root { --accent: #1abc9c; --bg: #f4f7f9; --dark: #2c3e50; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); padding: 15px; }
-        .toolbar { background: white; padding: 12px; display: flex; gap: 10px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .card { background: white; border-radius: 8px; padding: 12px; margin-bottom: 15px; border-left: 5px solid var(--accent); }
-        .photo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 10px; }
-        .photo-box { background: #eee; aspect-ratio: 16/9; border-radius: 4px; overflow: hidden; border: 1px solid #ddd; cursor: pointer; }
+        .toolbar { background: white; padding: 12px; display: flex; gap: 10px; align-items: center; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .card { background: white; border-radius: 8px; padding: 0; margin-bottom: 15px; border-left: 5px solid var(--accent); box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden; }
+        .card-header { padding: 10px 15px; background: #fafafa; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; color: var(--dark); }
+        .photo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 15px; }
+        .photo-box { background: #f0f0f0; aspect-ratio: 16/9; border-radius: 6px; overflow: hidden; border: 1px solid #ddd; cursor: pointer; transition: 0.2s; }
+        .photo-box:hover { transform: scale(1.02); border-color: var(--accent); }
         .photo-box img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        input[type="date"] { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
         button { background: var(--accent); color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .no-data { text-align: center; padding: 40px; color: #95a5a6; }
         @media (max-width: 600px) { .photo-grid { grid-template-columns: repeat(2, 1fr); } }
     </style>
 </head>
@@ -20,35 +24,30 @@
 
 <div class="toolbar">
     <input type="date" id="filterDate">
-    <button onclick="applyFilter()">CARI</button>
+    <button onclick="applyFilter()">CARI RIWAYAT</button>
     <button onclick="loadDefault()" style="background:#7f8c8d;">DATA TERBARU</button>
 </div>
 
-<div id="galleryContainer"></div>
+<div id="galleryContainer"><div class="no-data">Menghubungkan ke server...</div></div>
 
 <script>
     // URL SCRIPT FOTO ANDA
-    const URL_FOTO = "https://script.google.com/macros/s/AKfycby-sskgC44AJE2RWh2Pikku6mKVuOV6vhS4gqPfRdXNnk-bz2f6vGaYTgbPUwW0fY_Kmg/exec";
+    const URL_FOTO = "PASTE_URL_SCRIPT_FOTO_ANDA_DI_SINI";
 
-    // FUNGSI GAMBAR: Menggunakan jalur Google UserContent yang lebih stabil
+    // KARENA PAKAI LINK APPSHEET, KITA TIDAK PERLU FIXER DRIVE LAGI
     function fixImg(url) {
-        if (!url || typeof url !== 'string' || !url.includes("id=")) return "";
-        const id = url.split('id=')[1].split('&')[0];
-        // Menggunakan format link profil/preview yang jarang diblokir
-        return `https://lh3.googleusercontent.com/u/0/d/${id}=w400-h225-p-k-no`;
+        if (!url) return "";
+        // Jika link sudah lengkap (http...), langsung pakai. 
+        // Jika hanya nama file, Anda mungkin perlu menambahkan prefix URL AppSheet di sini.
+        return url.toString().trim();
     }
 
-    // FUNGSI TANGGAL: Memastikan tanggal tetap sesuai (17 tetap 17)
+    // FIX TANGGAL: Memastikan 17 tetap 17
     function fixDate(dateVal) {
         if (!dateVal) return "-";
         let str = dateVal.toString();
+        if (str.includes('T')) return str.split('T')[0];
         
-        // Jika dari GSheet kirim format ISO (2026-02-17T...)
-        if (str.includes('T')) {
-            return str.split('T')[0]; // Ambil bagian tanggal saja (2026-02-17)
-        }
-        
-        // Jika format lain (seperti tanggal lokal)
         let d = new Date(dateVal);
         let y = d.getFullYear();
         let m = String(d.getMonth() + 1).padStart(2, '0');
@@ -57,41 +56,42 @@
     }
 
     async function loadData() {
-        const cont = document.getElementById('galleryContainer');
-        cont.innerHTML = "<div style='text-align:center;'>Menghubungkan ke database...</div>";
         try {
             const res = await fetch(URL_FOTO + "?t=" + new Date().getTime());
             window.allData = await res.json();
             renderGallery(window.allData);
-        } catch (e) { cont.innerHTML = "Gagal memuat. Pastikan URL Script benar."; }
+        } catch (e) { 
+            document.getElementById('galleryContainer').innerHTML = "Gagal memuat data."; 
+        }
     }
 
     function renderGallery(data) {
         const cont = document.getElementById('galleryContainer');
         cont.innerHTML = "";
 
-        data.forEach(row => {
+        // Urutkan data agar yang terbaru di atas (opsional)
+        const reversedData = [...data].reverse();
+
+        reversedData.forEach(row => {
             const v = Object.values(row);
-            // Mencari semua link drive di baris tersebut
-            const links = v.filter(val => val && val.toString().includes("drive.google.com"));
+            // Mencari link (biasanya kolom yang mengandung "http" atau berakhiran ekstensi gambar)
+            const links = v.filter(val => val && val.toString().includes("http"));
 
             if (links.length > 0) {
                 const card = document.createElement('div');
                 card.className = 'card';
-                
-                // Cek kolom pertama (A) atau kedelapan (H) untuk tanggal
                 const tgl = fixDate(v[0] || v[7]);
-                const ruang = v[2] || v[9] || "RUANGAN";
+                const ruang = v[2] || v[9] || "LOKASI";
 
                 card.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; padding:10px; font-size:13px; font-weight:bold;">
+                    <div class="card-header">
                         <span>📍 ${ruang}</span>
                         <span>📅 ${tgl}</span>
                     </div>
                     <div class="photo-grid">
                         ${links.map(l => `
                             <div class="photo-box" onclick="window.open('${l}')">
-                                <img src="${fixImg(l)}" onerror="this.src='https://via.placeholder.com/300x200?text=Sedang+Proses'">
+                                <img src="${fixImg(l)}" onerror="this.src='https://via.placeholder.com/300x200?text=Format+Bukan+Gambar'">
                             </div>
                         `).join('')}
                     </div>
@@ -99,14 +99,17 @@
                 cont.appendChild(card);
             }
         });
+
+        if (cont.innerHTML === "") {
+            cont.innerHTML = "<div class='no-data'>Tidak ada data foto ditemukan.</div>";
+        }
     }
 
     function loadDefault() { renderGallery(window.allData); }
-
+    
     function applyFilter() {
-        const input = document.getElementById('filterDate').value; // YYYY-MM-DD
+        const input = document.getElementById('filterDate').value;
         if (!input) return;
-        
         const filtered = window.allData.filter(row => {
             const v = Object.values(row);
             return fixDate(v[0]) === input || fixDate(v[7]) === input;
