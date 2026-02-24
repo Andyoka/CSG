@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GALLERY FOTO LS 2</title>
+    <title>GALLERY FOTO LS 2 - AUTO SCAN</title>
     <style>
         :root { --accent: #1abc9c; --bg: #f4f7f9; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); padding: 15px; }
@@ -21,19 +21,19 @@
 
 <div class="toolbar">
     <input type="date" id="filterDate">
-    <button onclick="applyFilter()">CARI RIWAYAT (A:G)</button>
-    <button onclick="loadTerbaru()" style="background:#7f8c8d;">FOTO TERBARU (H:N)</button>
+    <button onclick="applyFilter()">CARI BERDASARKAN TANGGAL</button>
+    <button onclick="loadSemua()" style="background:#7f8c8d;">TAMPILKAN SEMUA</button>
 </div>
 
 <div id="galleryContainer"></div>
 
 <script>
     // MASUKKAN URL SCRIPT FOTO ANDA
-    const URL_FOTO = "https://script.google.com/macros/s/AKfycby-sskgC44AJE2RWh2Pikku6mKVuOV6vhS4gqPfRdXNnk-bz2f6vGaYTgbPUwW0fY_Kmg/exec";
+    const URL_FOTO = "";
 
     let rawData = [];
 
-    function getImg(url) {
+    function getImgId(url) {
         if (!url || typeof url !== 'string') return "";
         let id = "";
         if (url.includes("id=")) id = url.split("id=")[1].split("&")[0];
@@ -44,55 +44,50 @@
     function fixDate(val) {
         if (!val) return "-";
         let str = val.toString();
-        if (str.includes('T')) return str.split('T')[0]; // Kunci tanggal 17 tetap 17
+        // Kunci tanggal agar tidak berkurang 1 hari (17 tetap 17)
+        if (str.includes('T')) return str.split('T')[0];
         let d = new Date(val);
+        if (isNaN(d.getTime())) return "-";
         return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
     }
 
     async function loadData() {
         const cont = document.getElementById('galleryContainer');
-        cont.innerHTML = "<div style='text-align:center;'>Sedang memindai data...</div>";
+        cont.innerHTML = "<div style='text-align:center;'>Sedang memindai seluruh kolom spreadsheet...</div>";
         try {
             const res = await fetch(URL_FOTO + "?t=" + new Date().getTime());
             rawData = await res.json();
-            loadTerbaru(); // Default buka H:N
-        } catch (e) { cont.innerHTML = "Gagal memuat."; }
+            loadSemua();
+        } catch (e) { cont.innerHTML = "Gagal memuat. Periksa URL Script."; }
     }
 
-    function render(data, isHN = false) {
+    function render(data) {
         const cont = document.getElementById('galleryContainer');
         cont.innerHTML = "";
         
         data.forEach(row => {
-            const v = Array.isArray(row) ? row : Object.values(row);
+            const v = Object.values(row);
             
-            // Logika pemisahan: H:N (index 7-13) atau A:G (index 0-6)
-            let tgl, ruang, photos;
-            if (isHN) {
-                tgl = fixDate(v[7]);
-                ruang = v[9] || "LOKASI";
-                photos = [v[10], v[11], v[12], v[13]];
-            } else {
-                tgl = fixDate(v[0]);
-                ruang = v[2] || "LOKASI";
-                photos = [v[3], v[4], v[5], v[6]];
-            }
+            // CARI SEMUA LINK DRIVE DI BARIS INI (TIDAK PEDULI KOLOM MANA)
+            const links = v.filter(val => val && val.toString().includes("drive.google.com"));
 
-            // Hanya tampilkan jika ada minimal satu link foto
-            const validPhotos = photos.filter(p => p && p.toString().includes("drive.google.com"));
+            if (links.length > 0) {
+                // Ambil tanggal (biasanya kolom pertama yang isinya tanggal)
+                const tgl = fixDate(v[0] || v[7]);
+                // Ambil Nama Ruang (Kita cari teks yang bukan link dan bukan tanggal)
+                const ruang = v.find(val => val && val.length > 3 && !val.toString().includes("http") && !val.toString().includes("-")) || "LOKASI";
 
-            if (validPhotos.length > 0) {
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.innerHTML = `
                     <div class="card-header">
-                        <span>📍 ${ruang} ${isHN ? '<small style="color:red">(LATEST)</small>' : ''}</span>
+                        <span>📍 ${ruang}</span>
                         <span>📅 ${tgl}</span>
                     </div>
                     <div class="photo-grid">
-                        ${validPhotos.map(p => `
-                            <div class="photo-box" onclick="window.open('${p}')">
-                                <img src="${getImg(p)}" loading="lazy">
+                        ${links.map(l => `
+                            <div class="photo-box" onclick="window.open('${l}')">
+                                <img src="${getImgId(l)}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x200?text=Izin+Drive+Belum+Dibuka'">
                             </div>
                         `).join('')}
                     </div>
@@ -100,16 +95,20 @@
                 cont.appendChild(card);
             }
         });
-        if (cont.innerHTML === "") cont.innerHTML = "<div style='text-align:center;'>Data tidak ditemukan di kolom ini.</div>";
+
+        if (cont.innerHTML === "") {
+            cont.innerHTML = "<div style='text-align:center; padding:50px;'>Tidak ditemukan link Google Drive di baris manapun.</div>";
+        }
     }
 
-    function loadTerbaru() { render(rawData, true); }
+    function loadSemua() { render(rawData); }
     
     function applyFilter() {
         const inputTgl = document.getElementById('filterDate').value;
         if (!inputTgl) return;
-        const filtered = rawData.filter(row => fixDate(Object.values(row)[0]) === inputTgl);
-        render(filtered, false);
+        // Filter baris yang mengandung tanggal tersebut
+        const filtered = rawData.filter(row => JSON.stringify(row).includes(inputTgl));
+        render(filtered);
     }
 
     loadData();
