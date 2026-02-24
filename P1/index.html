@@ -6,114 +6,97 @@
     <title>Produksi 1 - Home</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom Colors & Transitions */
         #sidebar { transition: all 0.3s ease-in-out; }
         .sidebar-closed { transform: translateX(-100%); }
         .main-content { transition: margin-left 0.3s ease-in-out; }
         
-        /* Tema Warna: Hitam (Slate-900), Hijau (Lime-500), Abu (Gray-100) */
-        .bg-dark { bg-slate-900; }
-        .text-green { color: #84cc16; }
-        .bg-green-active { background-color: #84cc16; color: black; }
+        /* Warna Hijau yang lebih menyala sesuai gambar */
+        .text-neon-green { color: #4ade80; }
+        .bg-neon-green { background-color: #4ade80; }
+        .border-neon-green { border-color: #4ade80; }
     </style>
 </head>
 <body class="bg-gray-100 font-sans overflow-x-hidden">
 
-    <aside id="sidebar" class="fixed top-0 left-0 h-screen w-56 bg-slate-900 text-white z-50 shadow-2xl">
-        <div class="p-6 border-b border-slate-700">
-            <div class="border-2 border-lime-500 rounded-lg p-2 text-center">
-                <span class="text-xl font-extrabold tracking-widest text-lime-500">PRODUKSI 1</span>
+    <aside id="sidebar" class="fixed top-0 left-0 h-screen w-56 bg-[#1e293b] text-white z-50 shadow-2xl">
+        <div class="p-6">
+            <div class="border-2 border-neon-green rounded-md py-1 px-2 text-center">
+                <span class="text-sm font-black uppercase tracking-tighter text-neon-green">PRODUKSI 1</span>
             </div>
         </div>
         
-        <nav class="mt-6 px-3">
-            <p class="text-xs font-semibold text-gray-500 uppercase px-3 mb-2">Main Menu</p>
-            
-            <a href="index.html" class="flex items-center py-3 px-4 mb-2 bg-lime-500 text-black font-bold rounded-lg shadow-lg">
-                <span class="mr-3">🏠</span> Home
+        <nav class="mt-4 px-2">
+            <a href="index.html" class="flex items-center py-2 px-4 mb-1 bg-neon-green text-black font-bold rounded-md">
+                <span class="mr-3 text-sm">🏠</span> Home
             </a>
             
-            <a href="cs.html" class="flex items-center py-3 px-4 mb-2 hover:bg-slate-800 hover:text-lime-500 transition rounded-lg text-gray-300">
-                <span class="mr-3">❄️</span> Cold Storage
+            <a href="cs.html" class="flex items-center py-2 px-4 mb-1 hover:bg-slate-700 transition rounded-md text-gray-400 hover:text-white">
+                <span class="mr-3 text-sm">❄️</span> Cold Storage
             </a>
             
-            <a href="fj.html" class="flex items-center py-3 px-4 mb-2 hover:bg-slate-800 hover:text-lime-500 transition rounded-lg text-gray-300">
-                <span class="mr-3">🥤</span> Fish Juice
+            <a href="fj.html" class="flex items-center py-2 px-4 mb-1 hover:bg-slate-700 transition rounded-md text-gray-400 hover:text-white">
+                <span class="mr-3 text-sm">🥤</span> Fish Juice
             </a>
             
-            <a href="fm.html" class="flex items-center py-3 px-4 mb-2 hover:bg-slate-800 hover:text-lime-500 transition rounded-lg text-gray-300">
-                <span class="mr-3">🐟</span> Fish Meal
+            <a href="fm.html" class="flex items-center py-2 px-4 mb-1 hover:bg-slate-700 transition rounded-md text-gray-400 hover:text-white">
+                <span class="mr-3 text-sm">🐟</span> Fish Meal
             </a>
             
-            <a href="rm.html" class="flex items-center py-3 px-4 mb-2 hover:bg-slate-800 hover:text-lime-500 transition rounded-lg text-gray-300">
-                <span class="mr-3">📦</span> Raw Material
+            <a href="rm.html" class="flex items-center py-2 px-4 mb-1 hover:bg-slate-700 transition rounded-md text-gray-400 hover:text-white">
+                <span class="mr-3 text-sm">📦</span> Raw Material
             </a>
         </nav>
-
-        <div class="absolute bottom-5 w-full px-6 text-xs text-gray-500">
-            &copy; 2026 Produksi 1
-        </div>
     </aside>
 
-    <main id="mainContent" class="ml-56 p-6 main-content">
-        <header class="flex justify-between items-center mb-8 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+    <main id="mainContent" class="ml-56 p-4 main-content">
+        <header class="flex justify-between items-center mb-6 bg-[#1e293b] text-white p-3 rounded-lg shadow-md">
             <div class="flex items-center">
-                <button onclick="toggleSidebar()" class="bg-slate-900 text-lime-500 p-2 rounded-lg mr-4 hover:scale-105 transition">
-                    ☰ Menu
+                <button onclick="toggleSidebar()" class="bg-slate-700 p-2 rounded mr-4 hover:bg-slate-600">
+                    <span class="text-xs">☰ Menu</span>
                 </button>
-                <h1 class="text-2xl font-bold text-slate-800">Dashboard <span class="text-lime-600">Produksi 1</span> Home</h1>
+                <div>
+                    <h1 class="text-xl font-bold inline-block">Dashboard Produksi 1</h1>
+                    <span class="ml-2 text-neon-green font-bold">Home</span>
+                </div>
             </div>
-            <div class="text-sm font-medium text-gray-500 bg-gray-100 px-4 py-2 rounded-full">
-                24/2/2026, 12.00
+            <div class="text-xs font-mono text-gray-300">
+                24/2/2026, 12.15
             </div>
         </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="bg-white p-6 rounded-2xl shadow-sm border-b-4 border-lime-500">
-                <p class="text-gray-500 text-sm">Status Produksi</p>
-                <p class="text-2xl font-bold text-slate-800">Running</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-[#2d3748] p-4 rounded-lg shadow-lg border-t-4 border-neon-green">
+                <h3 class="text-white font-bold mb-4 flex justify-between">
+                    Graph Produksi Harian <span class="text-gray-500 text-xs">⚙️</span>
+                </h3>
+                <div class="bg-[#1a202c] h-48 rounded flex items-center justify-center border border-gray-700">
+                    <p class="text-gray-500 text-sm">Data grafik belum diisi</p>
+                </div>
+                <div class="mt-4 flex gap-2">
+                    <button class="bg-gray-600 text-white px-3 py-1 rounded text-xs">Proses</button>
+                    <button class="bg-gray-600 text-white px-3 py-1 rounded text-xs">Reset</button>
+                    <button class="bg-blue-500 text-white px-3 py-1 rounded text-xs">Cetak Laporan</button>
+                </div>
             </div>
-            <div class="bg-white p-6 rounded-2xl shadow-sm border-b-4 border-slate-800">
-                <p class="text-gray-500 text-sm">Total Menu</p>
-                <p class="text-2xl font-bold text-slate-800">4 Modul</p>
+
+            <div class="bg-white p-4 rounded-lg shadow-lg border border-gray-200">
+                <h3 class="text-slate-800 font-bold border-b pb-2 mb-4">Filter Data</h3>
+                <div class="space-y-3">
+                    <div class="flex gap-2">
+                        <input type="text" placeholder="Cari data..." class="bg-gray-100 border p-2 rounded text-sm w-full">
+                        <button class="bg-neon-green text-black font-bold px-4 py-2 rounded text-sm">Filter</button>
+                    </div>
+                </div>
             </div>
         </div>
-
-        <section class="bg-white p-8 rounded-3xl shadow-sm border border-gray-200 min-h-[400px]">
-            <div class="flex items-center mb-6">
-                <div class="w-2 h-8 bg-lime-500 mr-4 rounded-full"></div>
-                <h2 class="text-xl font-bold text-slate-800">Ringkasan Sistem</h2>
-            </div>
-            
-            <p class="text-gray-600 leading-relaxed mb-6">
-                Selamat datang di panel kendali **Produksi 1**. Silakan gunakan sidebar di samping kiri untuk mengelola data **Cold Storage, Fish Juice, Fish Meal,** dan **Raw Material**.
-            </p>
-
-            <div class="grid md:grid-cols-2 gap-6">
-                <div class="bg-gray-50 p-6 rounded-2xl border border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400">
-                    <span class="text-4xl mb-2">📊</span>
-                    <p>Grafik Produksi Harian</p>
-                </div>
-                <div class="bg-gray-50 p-6 rounded-2xl border border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400">
-                    <span class="text-4xl mb-2">📋</span>
-                    <p>Laporan Terbaru</p>
-                </div>
-            </div>
-        </section>
     </main>
 
     <script>
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const mainContent = document.getElementById('mainContent');
-            
             sidebar.classList.toggle('sidebar-closed');
-            
-            if (sidebar.classList.contains('sidebar-closed')) {
-                mainContent.style.marginLeft = "0";
-            } else {
-                mainContent.style.marginLeft = "14rem"; // 14rem = w-56
-            }
+            mainContent.style.marginLeft = sidebar.classList.contains('sidebar-closed') ? "0" : "14rem";
         }
     </script>
 </body>
