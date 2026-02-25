@@ -70,13 +70,16 @@
             </div>
         </header>
 
-        <section class="mb-6 grid grid-cols-1 gap-4">
+        <section class="mb-6">
             <div class="bg-[#1e293b] p-4 rounded-xl shadow-lg border border-slate-700">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-white font-bold text-sm">Stock Monitoring (MT) - Weekly Trend</h3>
-                    <span class="text-[10px] text-neon-green font-mono">B2:G3 Data Analysis</span>
+                    <h3 class="text-white font-bold text-sm">Stock Monitoring (MT)</h3>
+                    <div class="flex items-center gap-2">
+                         <span class="text-[10px] text-gray-400">Sheet aktif terdeteksi</span>
+                         <div class="w-2 h-2 bg-neon-green rounded-full"></div>
+                    </div>
                 </div>
-                <div class="h-[200px] w-full">
+                <div class="h-[220px] w-full">
                     <canvas id="lineChart"></canvas>
                 </div>
             </div>
@@ -86,7 +89,7 @@
             <div class="bg-slate-800 p-3 flex justify-between items-center border-b border-slate-700">
                 <h2 class="text-white font-bold text-sm">📦 Laporan Mingguan Terintegrasi</h2>
                 <button onclick="forceRefresh()" class="bg-neon-green hover:bg-green-400 text-black px-3 py-1 rounded text-[10px] font-black transition transform active:scale-95 shadow-md">
-                    🔄 UPDATE DATA SEKARANG
+                    🔄 UPDATE GRAFIK & TABEL
                 </button>
             </div>
             <div class="w-full bg-white">
@@ -101,52 +104,69 @@
         const MY_SHEET_ID = "2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk"; 
         // ==========================================
 
+        let lineChart;
         const frame = document.getElementById('sheetFrame');
         const loader = document.getElementById('loader');
         const statusText = document.getElementById('statusText');
 
-        // Inisialisasi Grafik
-        const ctx = document.getElementById('lineChart').getContext('2d');
-        const lineChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ['09-Feb', '10-Feb', '11-Feb', '12-Feb', '13-Feb'],
-                datasets: [{
-                    label: 'Daily Stock (MT)',
-                    data: [2811, 2822, 2833, 2827, 2827], // Data contoh dari user
-                    borderColor: '#4ade80',
-                    backgroundColor: 'rgba(74, 222, 128, 0.1)',
-                    borderWidth: 3,
-                    tension: 0.4,
-                    fill: true,
-                    pointBackgroundColor: '#4ade80',
-                    pointRadius: 5
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
+        // Inisialisasi Grafik dengan Data Awal
+        function initChart(labels = [], dataPoints = []) {
+            const ctx = document.getElementById('lineChart').getContext('2d');
+            if (lineChart) { lineChart.destroy(); }
+            
+            lineChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels.length ? labels : ['Sen', 'Sel', 'Rab', 'Kam', 'Jum'],
+                    datasets: [{
+                        label: 'Daily Stock (MT)',
+                        data: dataPoints.length ? dataPoints : [0, 0, 0, 0, 0],
+                        borderColor: '#4ade80',
+                        backgroundColor: 'rgba(74, 222, 128, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#4ade80',
+                        pointRadius: 5
+                    }]
                 },
-                scales: {
-                    y: {
-                        beginAtZero: false,
-                        grid: { color: '#334155' },
-                        ticks: { color: '#94a3b8', font: { size: 10 } }
-                    },
-                    x: {
-                        grid: { display: false },
-                        ticks: { color: '#94a3b8', font: { size: 10 } }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } }
                     }
                 }
+            });
+        }
+
+        // Fungsi mengambil data dari GSheet untuk Grafik
+        async function fetchChartData() {
+            try {
+                // Mengambil data CSV dari sheet yang dipublikasikan (B2:G3)
+                // Note: Agar ini bekerja, Anda harus mempublikasikan sheet sebagai CSV juga
+                const response = await fetch(`https://docs.google.com/spreadsheets/d/e/${MY_SHEET_ID}/pub?gid=0&single=true&range=B2:G3&output=csv&t=${new Date().getTime()}`);
+                const csvData = await response.text();
+                const rows = csvData.split('\n').map(row => row.split(','));
+                
+                // Baris 1: Tanggal (Kolom 2-6), Baris 2: Data (Kolom 2-6)
+                const labels = rows[0].slice(1, 6);
+                const values = rows[1].slice(1, 6).map(v => parseFloat(v));
+                
+                initChart(labels, values);
+            } catch (error) {
+                console.error("Gagal mengambil data grafik:", error);
+                initChart(); // Fallback ke grafik kosong
             }
-        });
+        }
 
         window.onload = function() {
             if(MY_SHEET_ID === "MASUKKAN_ID_ANDA_DISINI") {
                 alert("Peringatan: ID Google Sheets belum diisi!");
             } else {
+                initChart();
                 forceRefresh();
             }
         };
@@ -163,7 +183,12 @@
             statusText.innerText = "Syncing...";
             frame.style.opacity = "0.3";
             const timestamp = new Date().getTime();
+            
+            // Refresh Tabel Iframe
             frame.src = `https://docs.google.com/spreadsheets/d/e/${MY_SHEET_ID}/pubhtml?widget=true&headers=false&chrome=false&t=${timestamp}`;
+            
+            // Refresh Data Grafik
+            fetchChartData();
             
             frame.onload = function() {
                 loader.style.display = "none";
