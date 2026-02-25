@@ -13,8 +13,8 @@
         .bg-neon-green { background-color: #4ade80; }
         .border-neon-green { border-color: #4ade80; }
         
-        /* Menghilangkan scrollbar pada iframe agar lebih rapi */
-        iframe::-webkit-scrollbar { display: none; }
+        /* Smooth transition for iframe */
+        #sheetFrame { transition: opacity 0.3s ease; }
     </style>
 </head>
 <body class="bg-gray-100 font-sans overflow-x-hidden">
@@ -47,58 +47,82 @@
     <main id="mainContent" class="ml-56 p-4 main-content">
         <header class="flex justify-between items-center mb-6 bg-[#1e293b] text-white p-3 rounded-lg shadow-md border-l-4 border-neon-green">
             <div class="flex items-center">
-                <button onclick="toggleSidebar()" class="bg-slate-700 p-2 rounded mr-4 hover:bg-slate-600">
+                <button onclick="toggleSidebar()" class="bg-slate-700 p-2 rounded mr-4 hover:bg-slate-600 transition">
                     <span class="text-xs">☰ Menu</span>
                 </button>
                 <div>
                     <h1 class="text-xl font-bold inline-block">Dashboard Produksi 1</h1>
-                    <span class="ml-2 text-neon-green font-bold">Cold Storage</span>
+                    <span class="ml-2 text-neon-green font-bold uppercase tracking-widest text-sm">Cold Storage</span>
                 </div>
             </div>
-            <div class="hidden md:block text-[10px] text-gray-400 bg-slate-800 px-3 py-1 rounded">
-                Live Sync: Enabled
+            <div class="flex items-center gap-3">
+                <div id="syncStatus" class="hidden md:flex items-center gap-2 text-[10px] text-gray-400 bg-slate-800 px-3 py-1 rounded">
+                    <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                    Live Sync
+                </div>
             </div>
         </header>
 
         <section class="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
             <div class="bg-slate-800 p-3 flex justify-between items-center border-b border-slate-700">
                 <h2 class="text-white font-bold text-sm flex items-center gap-2">
-                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                    Data Laporan Mingguan
+                    📦 Laporan Mingguan Terintegrasi
                 </h2>
-                <span class="text-[9px] text-gray-400 uppercase tracking-widest">Gunakan Tab di Bawah Tabel untuk Pilih Minggu</span>
+                <button onclick="forceRefresh()" class="bg-neon-green hover:bg-green-400 text-black px-3 py-1 rounded text-[10px] font-black transition transform active:scale-95 shadow-md">
+                    🔄 UPDATE DATA SEKARANG
+                </button>
             </div>
             
-            <div class="w-full bg-white">
+            <div class="w-full bg-white relative">
                 <iframe 
-                    src="https://docs.google.com/spreadsheets/d/e/2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk/pubhtml?widget=true&headers=false&chrome=false" 
+                    id="sheetFrame"
+                    src="https://docs.google.com/spreadsheets/d/e/ID_SHEET_ANDA/pubhtml?widget=true&headers=false&chrome=false" 
                     class="w-full h-[650px] border-none">
                 </iframe>
             </div>
         </section>
 
         <div class="mt-4 flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-            <div class="text-xs text-gray-500 italic">
-                *Sheet W07 s/d W60 akan muncul otomatis saat Anda menambah tab baru di Google Sheets.
+            <div class="text-[10px] text-gray-500 italic">
+                *Pilih tab minggu (W07, W08, dst) di bagian bawah tabel. Jika data baru belum muncul, klik tombol hijau di atas.
             </div>
-            <div class="flex gap-2">
-                <button onclick="location.reload()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded text-xs font-bold transition">
-                    🔄 Refresh Halaman
-                </button>
+            <div class="text-[10px] font-mono text-slate-400">
+                Last Manual Sync: <span id="lastSync">Never</span>
             </div>
         </div>
     </main>
 
     <script>
+        // Pastikan Anda mengisi ID Sheet Anda di sini
+        const SHEET_ID = "2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk";
+
+        // Fungsi Sidebar
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const mainContent = document.getElementById('mainContent');
             sidebar.classList.toggle('sidebar-closed');
-            if (sidebar.classList.contains('sidebar-closed')) {
-                mainContent.style.marginLeft = "0";
-            } else {
-                mainContent.style.marginLeft = "14rem";
-            }
+            mainContent.style.marginLeft = sidebar.classList.contains('sidebar-closed') ? "0" : "14rem";
+        }
+
+        // Fungsi Paksa Refresh (Bypass Cache)
+        function forceRefresh() {
+            const frame = document.getElementById('sheetFrame');
+            const timeSpan = document.getElementById('lastSync');
+            
+            // Efek loading sederhana
+            frame.style.opacity = "0.3";
+            
+            // Tambahkan Timestamp agar browser tidak ambil data lama
+            const freshSrc = `https://docs.google.com/spreadsheets/d/e/${SHEET_ID}/pubhtml?widget=true&headers=false&chrome=false&t=${new Date().getTime()}`;
+            
+            frame.src = freshSrc;
+            
+            // Kembalikan opacity setelah sedikit jeda
+            setTimeout(() => {
+                frame.style.opacity = "1";
+                const now = new Date();
+                timeSpan.innerText = now.getHours() + ":" + now.getMinutes().toString().padStart(2, '0');
+            }, 500);
         }
     </script>
 </body>
