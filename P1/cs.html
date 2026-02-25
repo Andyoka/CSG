@@ -14,13 +14,12 @@
         .border-neon-green { border-color: #4ade80; }
         
         #sheetFrame { transition: opacity 0.3s ease; }
-        /* Animasi loading sederhana */
         .loader {
             border: 3px solid #f3f3f3;
             border-top: 3px solid #4ade80;
             border-radius: 50%;
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             animation: spin 1s linear infinite;
             display: none;
         }
@@ -65,9 +64,9 @@
                     <span class="ml-2 text-neon-green font-bold uppercase tracking-widest text-sm">Cold Storage</span>
                 </div>
             </div>
-            <div id="syncStatus" class="hidden md:flex items-center gap-2 text-[10px] text-gray-400 bg-slate-800 px-3 py-1 rounded">
+            <div class="flex items-center gap-3">
                 <div class="loader" id="loader"></div>
-                <span id="statusText">System Ready</span>
+                <div id="statusText" class="text-[10px] text-gray-400 bg-slate-800 px-3 py-1 rounded">System Ready</div>
             </div>
         </header>
 
@@ -80,37 +79,35 @@
             </div>
             
             <div class="w-full bg-white">
-                <iframe 
-                    id="sheetFrame"
-                    src="" 
-                    class="w-full h-[650px] border-none">
-                </iframe>
+                <iframe id="sheetFrame" src="" class="w-full h-[650px] border-none"></iframe>
             </div>
         </section>
 
         <div class="mt-4 flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
             <div class="text-[10px] text-gray-500 italic">
-                *Jika data baru di GSheet belum muncul, tunggu 1-2 menit lalu tekan tombol UPDATE.
+                *Cukup isi GSheet Anda, tunggu 1 menit, lalu tekan UPDATE jika belum berubah.
             </div>
             <div class="text-[10px] font-mono text-slate-400">
-                Last Update: <span id="lastSync">Memuat...</span>
+                Last Update: <span id="lastSync">Never</span>
             </div>
         </div>
     </main>
 
     <script>
-        // PENTING: GANTI DENGAN ID ASLI ANDA
+        // ==========================================
+        // SILAKAN MASUKKAN ID ANDA DI BAWAH INI:
         const MY_SHEET_ID = "2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk"; 
+        // ==========================================
 
         const frame = document.getElementById('sheetFrame');
         const loader = document.getElementById('loader');
         const statusText = document.getElementById('statusText');
         const timeSpan = document.getElementById('lastSync');
 
-        // Fungsi Load Awal agar tidak error "File tidak ada"
+        // Load awal otomatis
         window.onload = function() {
-            if(MY_SHEET_ID === "2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk") {
-                alert("Peringatan: Anda belum memasukkan ID Google Sheets di baris 94!");
+            if(MY_SHEET_ID === "MASUKKAN_ID_ANDA_DISINI" || MY_SHEET_ID === "") {
+                alert("Peringatan: ID Google Sheets belum diisi di dalam kode!");
             } else {
                 forceRefresh();
             }
@@ -128,7 +125,6 @@
             statusText.innerText = "Syncing...";
             frame.style.opacity = "0.3";
             
-            // Tambahkan parameter waktu agar Google memberikan data terbaru
             const timestamp = new Date().getTime();
             const freshSrc = `https://docs.google.com/spreadsheets/d/e/${MY_SHEET_ID}/pubhtml?widget=true&headers=false&chrome=false&t=${timestamp}`;
             
