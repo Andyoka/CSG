@@ -12,6 +12,9 @@
         .text-neon-green { color: #4ade80; }
         .bg-neon-green { background-color: #4ade80; }
         .border-neon-green { border-color: #4ade80; }
+        
+        /* Menghilangkan scrollbar pada iframe agar lebih rapi */
+        iframe::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="bg-gray-100 font-sans overflow-x-hidden">
@@ -42,7 +45,7 @@
     </aside>
 
     <main id="mainContent" class="ml-56 p-4 main-content">
-        <header class="flex justify-between items-center mb-6 bg-[#1e293b] text-white p-3 rounded-lg shadow-md">
+        <header class="flex justify-between items-center mb-6 bg-[#1e293b] text-white p-3 rounded-lg shadow-md border-l-4 border-neon-green">
             <div class="flex items-center">
                 <button onclick="toggleSidebar()" class="bg-slate-700 p-2 rounded mr-4 hover:bg-slate-600">
                     <span class="text-xs">☰ Menu</span>
@@ -52,37 +55,38 @@
                     <span class="ml-2 text-neon-green font-bold">Cold Storage</span>
                 </div>
             </div>
+            <div class="hidden md:block text-[10px] text-gray-400 bg-slate-800 px-3 py-1 rounded">
+                Live Sync: Enabled
+            </div>
         </header>
 
-        <div class="mb-4 flex items-center gap-3 bg-white p-4 rounded-lg shadow-sm border-l-4 border-neon-green">
-            <label class="text-sm font-bold text-slate-700">Pilih Laporan Mingguan:</label>
-            <select id="sheetSelector" onchange="updateTable()" class="bg-gray-50 border border-gray-300 text-slate-800 text-sm rounded-lg focus:ring-neon-green focus:border-neon-green p-2 outline-none">
-                <option value="0">W07 (09-13 FEB)</option>
-                <option value="12345678">W08 (16-20 FEB)</option>
-                <option value="98765432">W09 (23-27 FEB)</option>
-            </select>
-        </div>
-
-        <section class="bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden">
-            <div class="bg-slate-800 p-3 flex justify-between items-center">
-                <h2 class="text-white font-bold text-sm" id="tableTitle">Laporan W07 (B2:H13)</h2>
-                <div class="flex gap-2">
-                    <div class="w-3 h-3 bg-red-500 rounded-full"></div>
-                    <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                    <div class="w-3 h-3 bg-green-500 rounded-full"></div>
-                </div>
+        <section class="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
+            <div class="bg-slate-800 p-3 flex justify-between items-center border-b border-slate-700">
+                <h2 class="text-white font-bold text-sm flex items-center gap-2">
+                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    Data Laporan Mingguan
+                </h2>
+                <span class="text-[9px] text-gray-400 uppercase tracking-widest">Gunakan Tab di Bawah Tabel untuk Pilih Minggu</span>
             </div>
             
-            <div class="w-full overflow-hidden">
+            <div class="w-full bg-white">
                 <iframe 
-                    id="sheetFrame"
-                    src="https://docs.google.com/spreadsheets/d/e/ID_SHEET_ANDA/pubhtml?gid=0&single=true&range=B2:H13&widget=false&headers=false" 
-                    class="w-full h-[550px] border-none">
+                    src="https://docs.google.com/spreadsheets/d/e/2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk/pubhtml?widget=true&headers=false&chrome=false" 
+                    class="w-full h-[650px] border-none">
                 </iframe>
             </div>
         </section>
 
-        <p class="mt-3 text-[10px] text-gray-400 italic">*Data sinkron otomatis dengan Google Sheets setiap beberapa menit.</p>
+        <div class="mt-4 flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+            <div class="text-xs text-gray-500 italic">
+                *Sheet W07 s/d W60 akan muncul otomatis saat Anda menambah tab baru di Google Sheets.
+            </div>
+            <div class="flex gap-2">
+                <button onclick="location.reload()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded text-xs font-bold transition">
+                    🔄 Refresh Halaman
+                </button>
+            </div>
+        </div>
     </main>
 
     <script>
@@ -90,24 +94,11 @@
             const sidebar = document.getElementById('sidebar');
             const mainContent = document.getElementById('mainContent');
             sidebar.classList.toggle('sidebar-closed');
-            mainContent.style.marginLeft = sidebar.classList.contains('sidebar-closed') ? "0" : "14rem";
-        }
-
-        function updateTable() {
-            const selector = document.getElementById('sheetSelector');
-            const frame = document.getElementById('sheetFrame');
-            const title = document.getElementById('tableTitle');
-            
-            // Ganti ID_SHEET_ANDA dengan ID yang sama seperti di atas
-            const sheetID = "ID_SHEET_ANDA";
-            const selectedGID = selector.value;
-            const selectedText = selector.options[selector.selectedIndex].text;
-
-            // Update Link Iframe
-            frame.src = `https://docs.google.com/spreadsheets/d/e/${sheetID}/pubhtml?gid=${selectedGID}&single=true&range=B2:H13&widget=false&headers=false`;
-            
-            // Update Judul Tabel
-            title.innerText = `Laporan ${selectedText} (B2:H13)`;
+            if (sidebar.classList.contains('sidebar-closed')) {
+                mainContent.style.marginLeft = "0";
+            } else {
+                mainContent.style.marginLeft = "14rem";
+            }
         }
     </script>
 </body>
