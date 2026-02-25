@@ -35,68 +35,40 @@
             </div>
         </div>
         <nav class="mt-4 px-2">
-            <a href="index.html" class="flex items-center py-2 px-4 mb-1 hover:bg-slate-700 transition rounded-md text-gray-400 hover:text-white">
-                <span class="mr-3 text-sm">🏠</span> Home
-            </a>
-            <a href="cs.html" class="flex items-center py-2 px-4 mb-1 bg-neon-green text-black font-bold rounded-md shadow-lg">
-                <span class="mr-3 text-sm">❄️</span> Cold Storage
-            </a>
-            <a href="fj.html" class="flex items-center py-2 px-4 mb-1 hover:bg-slate-700 transition rounded-md text-gray-400 hover:text-white">
-                <span class="mr-3 text-sm">🥤</span> Fish Juice
-            </a>
-            <a href="fm.html" class="flex items-center py-2 px-4 mb-1 hover:bg-slate-700 transition rounded-md text-gray-400 hover:text-white">
-                <span class="mr-3 text-sm">🐟</span> Fish Meal
-            </a>
-            <a href="rm.html" class="flex items-center py-2 px-4 mb-1 hover:bg-slate-700 transition rounded-md text-gray-400 hover:text-white">
-                <span class="mr-3 text-sm">📦</span> Raw Material
-            </a>
+            <a href="index.html" class="flex items-center py-2 px-4 mb-1 hover:bg-slate-700 transition rounded-md text-gray-400 hover:text-white">🏠 Home</a>
+            <a href="cs.html" class="flex items-center py-2 px-4 mb-1 bg-neon-green text-black font-bold rounded-md shadow-lg">❄️ Cold Storage</a>
+            <a href="fj.html" class="flex items-center py-2 px-4 mb-1 hover:bg-slate-700 transition rounded-md text-gray-400 hover:text-white">🥤 Fish Juice</a>
+            <a href="fm.html" class="flex items-center py-2 px-4 mb-1 hover:bg-slate-700 transition rounded-md text-gray-400 hover:text-white">🐟 Fish Meal</a>
+            <a href="rm.html" class="flex items-center py-2 px-4 mb-1 hover:bg-slate-700 transition rounded-md text-gray-400 hover:text-white">📦 Raw Material</a>
         </nav>
     </aside>
 
     <main id="mainContent" class="ml-56 p-4 main-content">
         <header class="flex justify-between items-center mb-6 bg-[#1e293b] text-white p-3 rounded-lg shadow-md border-l-4 border-neon-green">
             <div class="flex items-center">
-                <button onclick="toggleSidebar()" class="bg-slate-700 p-2 rounded mr-4 hover:bg-slate-600 transition">
-                    <span class="text-xs">☰ Menu</span>
-                </button>
-                <div>
-                    <h1 class="text-xl font-bold inline-block">Dashboard Produksi 1</h1>
-                    <span class="ml-2 text-neon-green font-bold uppercase tracking-widest text-sm">Cold Storage</span>
-                </div>
+                <button onclick="toggleSidebar()" class="bg-slate-700 p-2 rounded mr-4 hover:bg-slate-600 transition text-xs">☰ Menu</button>
+                <h1 class="text-xl font-bold">Dashboard <span class="text-neon-green">Cold Storage</span></h1>
             </div>
             <div class="loader" id="loader"></div>
         </header>
 
-        <section class="mb-6">
-            <div class="bg-[#1e293b] p-4 rounded-xl shadow-lg border border-slate-700">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-                    <div>
-                        <h3 class="text-white font-bold text-sm">Stock Monitoring (MT)</h3>
-                        <p class="text-[10px] text-gray-400">Data harian periode terpilih</p>
-                    </div>
-                    
-                    <div class="flex items-center gap-2">
-                        <label class="text-white text-[10px] uppercase font-bold text-gray-500">Pilih Minggu:</label>
-                        <select id="weekSelector" onchange="updateDashboard()" class="bg-slate-800 border border-neon-green text-neon-green text-xs rounded-lg p-2 outline-none focus:ring-2 focus:ring-green-500 min-w-[150px]">
-                            <option value="W07" data-gid="0">W07 (09-13 FEB)</option>
-                            <option value="W08" data-gid="MASUKKAN_GID_W08">W08 (16-20 FEB)</option>
-                            <option value="W09" data-gid="MASUKKAN_GID_W09">W09 (23-27 FEB)</option>
-                            <option value="W10" data-gid="MASUKKAN_GID_W10">W10 (02-06 MAR)</option>
-                            </select>
-                    </div>
+        <section class="mb-6 bg-[#1e293b] p-4 rounded-xl shadow-lg border border-slate-700">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+                <div>
+                    <h3 class="text-white font-bold text-sm">Stock Monitoring (MT)</h3>
+                    <p class="text-[10px] text-gray-400">Pilih Tab di Bawah Iframe untuk Melihat Data Minggu Lain</p>
                 </div>
-                <div class="h-[220px] w-full">
-                    <canvas id="lineChart"></canvas>
-                </div>
+                <button onclick="forceRefresh()" class="bg-neon-green text-black px-4 py-1 rounded text-[10px] font-black hover:bg-green-400 transition">🔄 SYNC GRAPH</button>
+            </div>
+            <div class="h-[220px] w-full">
+                <canvas id="lineChart"></canvas>
             </div>
         </section>
 
         <section class="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
-            <div class="bg-slate-800 p-3 flex justify-between items-center border-b border-slate-700">
-                <h2 class="text-white font-bold text-sm" id="tableTitle">Laporan W07</h2>
-                <button onclick="updateDashboard()" class="bg-neon-green hover:bg-green-400 text-black px-3 py-1 rounded text-[10px] font-black transition">
-                    🔄 REFRESH DATA
-                </button>
+            <div class="bg-slate-800 p-2 flex justify-between items-center">
+                <span class="text-white text-[10px] font-bold px-2 uppercase">Live Google Sheets Table</span>
+                <span class="text-neon-green text-[9px] animate-pulse">● Connected</span>
             </div>
             <div class="w-full bg-white">
                 <iframe id="sheetFrame" src="" class="w-full h-[600px] border-none"></iframe>
@@ -105,14 +77,13 @@
     </main>
 
     <script>
-        // === GANTI ID SHEET ANDA DI SINI ===
+        // === HANYA ISI ID INI SAJA ===
         const MY_SHEET_ID = "2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk"; 
-        // ==================================
+        // ============================
 
         let lineChart;
         const frame = document.getElementById('sheetFrame');
         const loader = document.getElementById('loader');
-        const weekSelector = document.getElementById('weekSelector');
 
         function initChart(labels = [], dataPoints = []) {
             const ctx = document.getElementById('lineChart').getContext('2d');
@@ -120,17 +91,16 @@
             lineChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: labels.length ? labels : ['-', '-', '-', '-', '-'],
+                    labels: labels.length ? labels : ['Sen', 'Sel', 'Rab', 'Kam', 'Jum'],
                     datasets: [{
                         label: 'Stock (MT)',
-                        data: dataPoints.length ? dataPoints : [0, 0, 0, 0, 0],
+                        data: dataPoints.length ? dataPoints : [0,0,0,0,0],
                         borderColor: '#4ade80',
                         backgroundColor: 'rgba(74, 222, 128, 0.1)',
                         borderWidth: 3,
                         tension: 0.4,
                         fill: true,
-                        pointRadius: 5,
-                        pointHoverRadius: 8
+                        pointRadius: 4
                     }]
                 },
                 options: {
@@ -138,67 +108,45 @@
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        y: { 
-                            grid: { color: 'rgba(255,255,255,0.1)' }, 
-                            ticks: { color: '#94a3b8', font: { size: 10 } } 
-                        },
-                        x: { 
-                            grid: { display: false }, 
-                            ticks: { color: '#94a3b8', font: { size: 10 } } 
-                        }
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } }
                     }
                 }
             });
         }
 
-        async function updateDashboard() {
-            const selectedOption = weekSelector.options[weekSelector.selectedIndex];
-            const gid = selectedOption.getAttribute('data-gid');
-            const weekLabel = selectedOption.text;
-            
-            if (!gid || gid.includes("MASUKKAN")) {
-                alert("GID untuk minggu ini belum diatur di dalam kode!");
-                return;
-            }
-
-            document.getElementById('tableTitle').innerText = "Laporan " + weekLabel;
+        function forceRefresh() {
             loader.style.display = "block";
-            frame.style.opacity = "0.3";
-
             const ts = new Date().getTime();
+            
+            // Link Iframe utama menampilkan SEMUA TAB (otomatis ada tab di bawah)
+            frame.src = `https://docs.google.com/spreadsheets/d/e/${MY_SHEET_ID}/pubhtml?widget=true&headers=false&chrome=false&t=${ts}`;
+            
+            // Grafik akan selalu mengambil data dari sheet PERTAMA (Default)
+            // Jika ingin grafik berubah, Anda harus menekan tombol ini setelah pindah tab
+            updateChart();
+        }
 
-            // 1. Update Tabel
-            frame.src = `https://docs.google.com/spreadsheets/d/e/${MY_SHEET_ID}/pubhtml?gid=${gid}&single=true&range=B2:H30&widget=false&headers=false&chrome=false&t=${ts}`;
-
-            // 2. Update Grafik via CSV
+        async function updateChart() {
             try {
-                const csvUrl = `https://docs.google.com/spreadsheets/d/e/${MY_SHEET_ID}/pub?gid=${gid}&single=true&range=B2:G3&output=csv&t=${ts}`;
+                const ts = new Date().getTime();
+                // Trik: Kita ambil data tanpa menentukan GID, Google akan kasih sheet pertama/aktif
+                const csvUrl = `https://docs.google.com/spreadsheets/d/e/${MY_SHEET_ID}/pub?single=true&range=B2:G3&output=csv&t=${ts}`;
                 const response = await fetch(csvUrl);
                 const csvData = await response.text();
-                
-                // Parsing CSV sederhana
                 const rows = csvData.split('\n').map(row => row.split(','));
-                const labels = rows[0].slice(1, 6); // Tanggal (B2-G2)
-                const values = rows[1].slice(1, 6).map(v => parseFloat(v.replace(/[^0-9.]/g, '')) || 0); // Data (B3-G3)
-                
+                const labels = rows[0].slice(1, 6); 
+                const values = rows[1].slice(1, 6).map(v => parseFloat(v.replace(/[^0-9.]/g, '')) || 0);
                 initChart(labels, values);
-            } catch (e) {
-                console.error("Gagal load data grafik:", e);
-                initChart();
-            }
-
-            frame.onload = () => {
-                loader.style.display = "none";
-                frame.style.opacity = "1";
-            };
+            } catch (e) { console.error(e); initChart(); }
+            
+            frame.onload = () => { loader.style.display = "none"; };
         }
 
         window.onload = () => {
             if(MY_SHEET_ID !== "MASUKKAN_ID_ANDA_DISINI") {
                 initChart();
-                updateDashboard();
-            } else {
-                alert("Mohon isi MY_SHEET_ID di baris 89!");
+                forceRefresh();
             }
         };
 
