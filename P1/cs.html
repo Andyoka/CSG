@@ -14,6 +14,13 @@
         .bg-neon-green { background-color: #4ade80; }
         .border-neon-green { border-color: #4ade80; }
         #sheetFrame { transition: opacity 0.3s ease; }
+        
+        /* Styling Tabel Data Chart */
+        .chart-table { width: 100%; border-collapse: collapse; font-size: 10px; color: #1e293b; }
+        .chart-table th, .chart-table td { border: 1px solid #cbd5e1; padding: 6px 4px; text-align: center; }
+        .chart-table th { background-color: #f1f5f9; font-weight: bold; }
+        .legend-box { width: 10px; height: 10px; display: inline-block; margin-right: 6px; border-radius: 2px; }
+        
         .loader {
             border: 3px solid #f3f3f3;
             border-top: 3px solid #4ade80;
@@ -35,11 +42,11 @@
             </div>
         </div>
         <nav class="mt-4 px-2">
-            <a href="index.html" class="flex items-center py-2 px-4 mb-1 hover:bg-slate-700 transition rounded-md text-gray-400 hover:text-white">🏠 Home</a>
+            <a href="index.html" class="flex items-center py-2 px-4 mb-1 hover:bg-slate-700 transition rounded-md text-gray-400">🏠 Home</a>
             <a href="cs.html" class="flex items-center py-2 px-4 mb-1 bg-neon-green text-black font-bold rounded-md shadow-lg">❄️ Cold Storage</a>
-            <a href="fj.html" class="flex items-center py-2 px-4 mb-1 hover:bg-slate-700 transition rounded-md text-gray-400 hover:text-white">🥤 Fish Juice</a>
-            <a href="fm.html" class="flex items-center py-2 px-4 mb-1 hover:bg-slate-700 transition rounded-md text-gray-400 hover:text-white">🐟 Fish Meal</a>
-            <a href="rm.html" class="flex items-center py-2 px-4 mb-1 hover:bg-slate-700 transition rounded-md text-gray-400 hover:text-white">📦 Raw Material</a>
+            <a href="fj.html" class="flex items-center py-2 px-4 mb-1 hover:bg-slate-700 transition rounded-md text-gray-400">🥤 Fish Juice</a>
+            <a href="fm.html" class="flex items-center py-2 px-4 mb-1 hover:bg-slate-700 transition rounded-md text-gray-400">🐟 Fish Meal</a>
+            <a href="rm.html" class="flex items-center py-2 px-4 mb-1 hover:bg-slate-700 transition rounded-md text-gray-400">📦 Raw Material</a>
         </nav>
     </aside>
 
@@ -47,108 +54,140 @@
         <header class="flex justify-between items-center mb-6 bg-[#1e293b] text-white p-3 rounded-lg shadow-md border-l-4 border-neon-green">
             <div class="flex items-center">
                 <button onclick="toggleSidebar()" class="bg-slate-700 p-2 rounded mr-4 hover:bg-slate-600 transition text-xs">☰ Menu</button>
-                <h1 class="text-xl font-bold">Dashboard <span class="text-neon-green">Cold Storage</span></h1>
+                <h1 class="text-xl font-bold uppercase tracking-tight">Overview Stock <span class="text-neon-green">CS ATI-1</span></h1>
             </div>
-            <div class="loader" id="loader"></div>
+            <div class="flex items-center gap-4">
+                <div class="loader" id="loader"></div>
+                <button onclick="refreshAll()" class="bg-neon-green text-black px-4 py-1 rounded text-[10px] font-black hover:bg-green-400 transition">🔄 REFRESH SEMUA DATA</button>
+            </div>
         </header>
 
-        <section class="mb-6 bg-[#1e293b] p-4 rounded-xl shadow-lg border border-slate-700">
-            <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-                <div>
-                    <h3 class="text-white font-bold text-sm">Stock Monitoring (MT)</h3>
-                    <p class="text-[10px] text-gray-400">Pilih Tab di Bawah Iframe untuk Melihat Data Minggu Lain</p>
-                </div>
-                <button onclick="forceRefresh()" class="bg-neon-green text-black px-4 py-1 rounded text-[10px] font-black hover:bg-green-400 transition">🔄 SYNC GRAPH</button>
+        <section class="mb-6 bg-white p-5 rounded-xl shadow-lg border border-gray-200">
+            <h3 class="text-center font-bold text-slate-800 mb-4 text-md uppercase">Grafik Overview Stock Cold Storage</h3>
+            
+            <div class="h-[350px] w-full mb-6">
+                <canvas id="stockChart"></canvas>
             </div>
-            <div class="h-[220px] w-full">
-                <canvas id="lineChart"></canvas>
+
+            <div class="overflow-x-auto border rounded-lg">
+                <table class="chart-table" id="dataTable">
+                    <thead>
+                        <tr id="tableHeader" class="bg-slate-100">
+                            <th class="text-left px-4 border-r">Category</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
             </div>
         </section>
 
         <section class="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
-            <div class="bg-slate-800 p-2 flex justify-between items-center">
-                <span class="text-white text-[10px] font-bold px-2 uppercase">Live Google Sheets Table</span>
-                <span class="text-neon-green text-[9px] animate-pulse">● Connected</span>
+            <div class="bg-slate-800 p-2 flex justify-between items-center px-4">
+                <span class="text-white text-[10px] font-bold uppercase tracking-widest">Detail Laporan Mingguan (P1 CS2026)</span>
+                <span class="text-neon-green text-[9px] animate-pulse font-mono tracking-tighter">● LIVE CONNECTION</span>
             </div>
             <div class="w-full bg-white">
-                <iframe id="sheetFrame" src="" class="w-full h-[600px] border-none"></iframe>
+                <iframe id="sheetFrame" src="" class="w-full h-[650px] border-none"></iframe>
             </div>
         </section>
     </main>
 
     <script>
-        // === HANYA ISI ID INI SAJA ===
-        const MY_SHEET_ID = "2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk"; 
-        // ============================
+        // ============================================================
+        // 1. FILE: P1 COLDSTORAGE (Untuk Grafik Overview)
+        // Link CSV dari sheet "Overview Stock"
+        const ID_OVERVIEW = "2PACX-1vShq3eIcceGMXuR6dBbMut6K99pAQZV4g86Aq5DWkP7yrFTGNMPkdfg4y6vbWeofWpFRO4gGNqLE4h8"; 
+        const GID_OVERVIEW = "0"; 
 
-        let lineChart;
-        const frame = document.getElementById('sheetFrame');
-        const loader = document.getElementById('loader');
+        // 2. FILE: P1 CS2026 (Untuk Tabel Mingguan di Bawah)
+        const ID_LAPORAN = "2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk"; 
+        // ============================================================
 
-        function initChart(labels = [], dataPoints = []) {
-            const ctx = document.getElementById('lineChart').getContext('2d');
-            if (lineChart) { lineChart.destroy(); }
-            lineChart = new Chart(ctx, {
-                type: 'line',
+        let stockChart;
+        const colors = { PS: "#5b9bd5", PL: "#ed7d31", FIP: "#a5a5a5", MSC: "#ffc000" };
+
+        function initChartAndTable(labels, dataObj) {
+            const ctx = document.getElementById('stockChart').getContext('2d');
+            if (stockChart) stockChart.destroy();
+            
+            stockChart = new Chart(ctx, {
+                type: 'bar',
                 data: {
-                    labels: labels.length ? labels : ['Sen', 'Sel', 'Rab', 'Kam', 'Jum'],
-                    datasets: [{
-                        label: 'Stock (MT)',
-                        data: dataPoints.length ? dataPoints : [0,0,0,0,0],
-                        borderColor: '#4ade80',
-                        backgroundColor: 'rgba(74, 222, 128, 0.1)',
-                        borderWidth: 3,
-                        tension: 0.4,
-                        fill: true,
-                        pointRadius: 4
-                    }]
+                    labels: labels,
+                    datasets: Object.keys(dataObj).reverse().map(key => ({
+                        label: key,
+                        data: dataObj[key],
+                        backgroundColor: colors[key],
+                        stack: 'Stack 0',
+                        barPercentage: 0.7
+                    }))
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
-                        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } }
+                        x: { stacked: true, grid: { display: false }, ticks: { font: { size: 9 } } },
+                        y: { stacked: true, beginAtZero: true, grid: { color: '#f1f5f9' } }
                     }
                 }
             });
+
+            // Update Tabel di bawah chart
+            const tHeader = document.getElementById('tableHeader');
+            const tBody = document.getElementById('tableBody');
+            tHeader.innerHTML = '<th class="text-left px-4 border-r">Category</th>';
+            tBody.innerHTML = '';
+
+            labels.forEach(l => {
+                const th = document.createElement('th');
+                th.innerText = l;
+                tHeader.appendChild(th);
+            });
+
+            Object.keys(dataObj).reverse().forEach(key => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td class="text-left font-bold bg-slate-50 border-r px-2"><span class="legend-box" style="background:${colors[key]}"></span>${key}</td>`;
+                dataObj[key].forEach(val => {
+                    const td = document.createElement('td');
+                    td.innerText = Math.round(val).toLocaleString();
+                    row.appendChild(td);
+                });
+                tBody.appendChild(row);
+            });
         }
 
-        function forceRefresh() {
-            loader.style.display = "block";
-            const ts = new Date().getTime();
-            
-            // Link Iframe utama menampilkan SEMUA TAB (otomatis ada tab di bawah)
-            frame.src = `https://docs.google.com/spreadsheets/d/e/${MY_SHEET_ID}/pubhtml?widget=true&headers=false&chrome=false&t=${ts}`;
-            
-            // Grafik akan selalu mengambil data dari sheet PERTAMA (Default)
-            // Jika ingin grafik berubah, Anda harus menekan tombol ini setelah pindah tab
-            updateChart();
-        }
-
-        async function updateChart() {
+        async function fetchOverview() {
+            document.getElementById('loader').style.display = "block";
             try {
                 const ts = new Date().getTime();
-                // Trik: Kita ambil data tanpa menentukan GID, Google akan kasih sheet pertama/aktif
-                const csvUrl = `https://docs.google.com/spreadsheets/d/e/${MY_SHEET_ID}/pub?single=true&range=B2:G3&output=csv&t=${ts}`;
-                const response = await fetch(csvUrl);
-                const csvData = await response.text();
-                const rows = csvData.split('\n').map(row => row.split(','));
-                const labels = rows[0].slice(1, 6); 
-                const values = rows[1].slice(1, 6).map(v => parseFloat(v.replace(/[^0-9.]/g, '')) || 0);
-                initChart(labels, values);
-            } catch (e) { console.error(e); initChart(); }
-            
-            frame.onload = () => { loader.style.display = "none"; };
+                const url = `https://docs.google.com/spreadsheets/d/e/${ID_OVERVIEW}/pub?gid=${GID_OVERVIEW}&single=true&range=A1:N5&output=csv&t=${ts}`;
+                const response = await fetch(url);
+                const csv = await response.text();
+                
+                const rows = csv.split('\n').map(r => r.split(','));
+                const labels = rows[0].slice(1);
+                const dataObj = {
+                    PS: rows[1].slice(1).map(v => parseFloat(v) || 0),
+                    PL: rows[2].slice(1).map(v => parseFloat(v) || 0),
+                    FIP: rows[3].slice(1).map(v => parseFloat(v) || 0),
+                    MSC: rows[4].slice(1).map(v => parseFloat(v) || 0)
+                };
+                initChartAndTable(labels, dataObj);
+            } catch (e) {
+                console.error("Gagal load data CSV. Pastikan sudah Publish as CSV.");
+            }
+            document.getElementById('loader').style.display = "none";
         }
 
-        window.onload = () => {
-            if(MY_SHEET_ID !== "MASUKKAN_ID_ANDA_DISINI") {
-                initChart();
-                forceRefresh();
-            }
-        };
+        function refreshAll() {
+            const frame = document.getElementById('sheetFrame');
+            const ts = new Date().getTime();
+            // File 1: Tabel Detail
+            frame.src = `https://docs.google.com/spreadsheets/d/e/${ID_LAPORAN}/pubhtml?widget=true&headers=false&chrome=false&t=${ts}`;
+            // File 2: Grafik
+            fetchOverview();
+        }
 
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
@@ -156,6 +195,14 @@
             sidebar.classList.toggle('sidebar-closed');
             mainContent.style.marginLeft = sidebar.classList.contains('sidebar-closed') ? "0" : "14rem";
         }
+
+        window.onload = () => {
+            if(ID_OVERVIEW.includes("MASUKKAN")) {
+                alert("Mohon isi ID dan GID di bagian script!");
+            } else {
+                refreshAll();
+            }
+        };
     </script>
 </body>
 </html>
