@@ -12,10 +12,10 @@
         .main-content { transition: margin-left 0.3s ease-in-out; }
         .text-neon-green { color: #4ade80; }
         .bg-neon-green { background-color: #4ade80; }
-        .chart-table { width: 100%; border-collapse: collapse; font-size: 10px; color: #1e293b; }
-        .chart-table th, .chart-table td { border: 1px solid #cbd5e1; padding: 4px; text-align: center; }
+        .chart-table { width: 100%; border-collapse: collapse; font-size: 9px; color: #1e293b; }
+        .chart-table th, .chart-table td { border: 1px solid #cbd5e1; padding: 3px; text-align: center; }
         .chart-table th { background-color: #f1f5f9; font-weight: bold; }
-        .legend-box { width: 10px; height: 10px; display: inline-block; margin-right: 6px; border-radius: 2px; }
+        .legend-box { width: 8px; height: 8px; display: inline-block; margin-right: 4px; border-radius: 2px; }
         .loader {
             border: 3px solid #f3f3f3; border-top: 3px solid #4ade80; border-radius: 50%;
             width: 18px; height: 18px; animation: spin 1s linear infinite; display: none;
@@ -44,7 +44,7 @@
         <header class="flex justify-between items-center mb-6 bg-[#1e293b] text-white p-3 rounded-lg shadow-md border-l-4 border-neon-green">
             <div class="flex items-center">
                 <button onclick="toggleSidebar()" class="bg-slate-700 p-2 rounded mr-4 hover:bg-slate-600 transition text-xs">☰ Menu</button>
-                <h1 class="text-xl font-bold uppercase">Overview Stock <span class="text-neon-green">CS ATI-1</span></h1>
+                <h1 class="text-xl font-bold uppercase">Dashboard <span class="text-neon-green">Cold Storage</span></h1>
             </div>
             <div class="flex items-center gap-4">
                 <div class="loader" id="loader"></div>
@@ -52,23 +52,30 @@
             </div>
         </header>
 
-        <section class="mb-8 bg-white p-6 rounded-xl shadow-lg border border-gray-200 w-[75%] mx-auto">
+        <div class="flex flex-wrap gap-4 mb-8">
             
-            <h3 class="text-center font-bold text-slate-800 mb-4 text-sm uppercase tracking-widest">Visualisasi Overview Stock</h3>
+            <section class="bg-white p-4 rounded-xl shadow-lg border border-gray-200 w-full lg:w-[48%]">
+                <h3 class="text-center font-bold text-slate-800 mb-4 text-xs uppercase tracking-widest">Overview Stock (MT)</h3>
+                
+                <div class="h-[300px] w-full mb-4">
+                    <canvas id="stockChart"></canvas>
+                </div>
 
-            <div class="h-[250px] w-full mb-6">
-                <canvas id="stockChart"></canvas>
-            </div>
+                <div class="overflow-x-auto border border-gray-100 rounded-lg">
+                    <table class="chart-table" id="dataTable">
+                        <thead>
+                            <tr id="tableHeader" class="bg-slate-100"><th class="px-2 border-r">Cat</th></tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+            </section>
 
-            <div class="overflow-x-auto border border-gray-100 rounded-lg">
-                <table class="chart-table" id="dataTable">
-                    <thead>
-                        <tr id="tableHeader" class="bg-slate-100"><th class="text-left px-4 border-r">Category</th></tr>
-                    </thead>
-                    <tbody id="tableBody"></tbody>
-                </table>
-            </div>
-        </section>
+            <section class="bg-dashed border-2 border-dashed border-gray-300 p-4 rounded-xl w-full lg:w-[48%] flex items-center justify-center">
+                <p class="text-gray-400 italic text-sm text-center">Ruang kosong untuk grafik berikutnya...</p>
+            </section>
+
+        </div>
 
         <section class="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
             <div class="bg-slate-800 p-2 px-4 flex justify-between items-center">
@@ -100,7 +107,7 @@
                     }),
                     realData: rawData[key],
                     backgroundColor: colors[key],
-                    barPercentage: 0.7
+                    barPercentage: 0.8
                 };
             });
 
@@ -123,7 +130,7 @@
                         }
                     },
                     scales: {
-                        x: { stacked: true, grid: { display: false }, ticks: { font: { size: 9 } } },
+                        x: { stacked: true, grid: { display: false }, ticks: { font: { size: 8 }, maxRotation: 45, minRotation: 45 } },
                         y: { stacked: true, min: 0, max: 100, ticks: { callback: v => v + "%", font: { size: 9 } } }
                     }
                 }
@@ -131,13 +138,13 @@
 
             const tHeader = document.getElementById('tableHeader');
             const tBody = document.getElementById('tableBody');
-            tHeader.innerHTML = '<th class="text-left px-4 border-r">Category</th>';
+            tHeader.innerHTML = '<th class="text-left px-2 border-r">Cat</th>';
             tBody.innerHTML = '';
-            labels.forEach(l => { tHeader.innerHTML += `<th class="px-1">${l}</th>`; });
+            labels.forEach(l => { tHeader.innerHTML += `<th class="px-1 text-[8px]">${l}</th>`; });
 
             Object.keys(rawData).reverse().forEach(key => {
-                let row = `<tr><td class="text-left font-bold bg-slate-50 border-r px-2"><span class="legend-box" style="background:${colors[key]}"></span>${key}</td>`;
-                rawData[key].forEach(val => { row += `<td>${val.toLocaleString()}</td>`; });
+                let row = `<tr><td class="text-left font-bold bg-slate-50 border-r px-1"><span class="legend-box" style="background:${colors[key]}"></span>${key}</td>`;
+                rawData[key].forEach(val => { row += `<td class="text-[8px]">${Math.round(val).toLocaleString()}</td>`; });
                 tBody.innerHTML += row + `</tr>`;
             });
         }
@@ -158,7 +165,7 @@
                     MSC: rows[4].slice(1).map(v => parseFloat(v) || 0)
                 };
                 initChartAndTable(labels, rawData);
-            } catch (e) { console.error("Error fetch data"); }
+            } catch (e) { console.error("Error"); }
             document.getElementById('loader').style.display = "none";
         }
 
