@@ -52,15 +52,13 @@
             </div>
         </header>
 
-        <div class="flex flex-wrap gap-4 mb-8">
+        <div class="flex flex-wrap gap-4 mb-8 items-start">
             
-            <section class="bg-white p-4 rounded-xl shadow-lg border border-gray-200 w-full lg:w-[48%]">
+            <section class="bg-white p-4 rounded-xl shadow-lg border border-gray-200 w-full lg:w-[75%]">
                 <h3 class="text-center font-bold text-slate-800 mb-4 text-xs uppercase tracking-widest">Overview Stock (MT)</h3>
-                
                 <div class="h-[300px] w-full mb-4">
                     <canvas id="stockChart"></canvas>
                 </div>
-
                 <div class="overflow-x-auto border border-gray-100 rounded-lg">
                     <table class="chart-table" id="dataTable">
                         <thead>
@@ -71,8 +69,12 @@
                 </div>
             </section>
 
-            <section class="bg-dashed border-2 border-dashed border-gray-300 p-4 rounded-xl w-full lg:w-[48%] flex items-center justify-center">
-                <p class="text-gray-400 italic text-sm text-center">Ruang kosong untuk grafik berikutnya...</p>
+            <section class="bg-white p-4 rounded-xl shadow-lg border border-gray-200 w-full lg:w-[23%] h-full">
+                <h3 class="text-center font-bold text-slate-800 mb-4 text-xs uppercase tracking-widest">Total Stock</h3>
+                <div class="h-[250px] flex items-center justify-center">
+                    <canvas id="pieChart"></canvas>
+                </div>
+                <div id="pieLegend" class="mt-4 text-[10px] space-y-1"></div>
             </section>
 
         </div>
@@ -80,98 +82,101 @@
         <section class="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
             <div class="bg-slate-800 p-2 px-4 flex justify-between items-center">
                 <span class="text-white text-[10px] font-bold uppercase tracking-widest">Detail Laporan Mingguan</span>
-                <span class="text-neon-green text-[9px] font-mono">LIVE CONNECTION</span>
+                <span class="text-neon-green text-[9px] font-mono uppercase">Live Connection</span>
             </div>
             <iframe id="sheetFrame" src="" class="w-full h-[600px] border-none"></iframe>
         </section>
     </main>
 
     <script>
-        const ID_OVERVIEW = "2PACX-1vShq3eIcceGMXuR6dBbMut6K99pAQZV4g86Aq5DWkP7yrFTGNMPkdfg4y6vbWeofWpFRO4gGNqLE4h8"; 
-        const GID_OVERVIEW = "0"; 
+        // === ID & GID CONFIG ===
+        const ID_P1_COLDSTORAGE = "2PACX-1vShq3eIcceGMXuR6dBbMut6K99pAQZV4g86Aq5DWkP7yrFTGNMPkdfg4y6vbWeofWpFRO4gGNqLE4h8";
+        const GID_OVERVIEW = "0";
+        const GID_TOTAL_STOCK = "252078912"; // GID untuk sheet "Total stock"
         const ID_LAPORAN = "2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk"; 
 
-        let stockChart;
+        let stockChart, pieChart;
         const colors = { PS: "#5b9bd5", PL: "#ed7d31", FIP: "#a5a5a5", MSC: "#ffc000" };
 
-        function initChartAndTable(labels, rawData) {
-            const ctx = document.getElementById('stockChart').getContext('2d');
+        function initCharts(overviewLabels, overviewRaw, pieLabels, pieData) {
+            // 1. STACKED BAR CHART
+            const ctxBar = document.getElementById('stockChart').getContext('2d');
             if (stockChart) stockChart.destroy();
-            
-            const datasets = Object.keys(rawData).reverse().map(key => {
-                return {
-                    label: key,
-                    data: rawData[key].map((val, i) => {
-                        const total = rawData.PS[i] + rawData.PL[i] + rawData.FIP[i] + rawData.MSC[i];
-                        return total > 0 ? (val / total) * 100 : 0;
-                    }),
-                    realData: rawData[key],
-                    backgroundColor: colors[key],
-                    barPercentage: 0.8
-                };
-            });
-
-            stockChart = new Chart(ctx, {
+            stockChart = new Chart(ctxBar, {
                 type: 'bar',
-                data: { labels: labels, datasets: datasets },
+                data: {
+                    labels: overviewLabels,
+                    datasets: Object.keys(overviewRaw).reverse().map(key => ({
+                        label: key,
+                        data: overviewRaw[key].map((val, i) => {
+                            const total = overviewRaw.PS[i] + overviewRaw.PL[i] + overviewRaw.FIP[i] + overviewRaw.MSC[i];
+                            return total > 0 ? (val / total) * 100 : 0;
+                        }),
+                        realData: overviewRaw[key],
+                        backgroundColor: colors[key]
+                    }))
+                },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const val = context.dataset.realData[context.dataIndex];
-                                    const pct = context.parsed.y.toFixed(1);
-                                    return `${context.dataset.label}: ${val.toLocaleString()} MT (${pct}%)`;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: { stacked: true, grid: { display: false }, ticks: { font: { size: 8 }, maxRotation: 45, minRotation: 45 } },
-                        y: { stacked: true, min: 0, max: 100, ticks: { callback: v => v + "%", font: { size: 9 } } }
-                    }
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: {
+                        callbacks: { label: (ctx) => `${ctx.dataset.label}: ${ctx.dataset.realData[ctx.dataIndex].toLocaleString()} MT (${ctx.parsed.y.toFixed(1)}%)` }
+                    }},
+                    scales: { x: { stacked: true, ticks: { font: { size: 8 } } }, y: { stacked: true, min: 0, max: 100, ticks: { callback: v => v + "%" } } }
                 }
             });
 
+            // 2. PIE CHART
+            const ctxPie = document.getElementById('pieChart').getContext('2d');
+            if (pieChart) pieChart.destroy();
+            pieChart = new Chart(ctxPie, {
+                type: 'pie',
+                data: {
+                    labels: pieLabels,
+                    datasets: [{ data: pieData, backgroundColor: ["#4ade80", "#3b82f6", "#f59e0b"] }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
+            });
+
+            // Update Table Data (Overview)
             const tHeader = document.getElementById('tableHeader');
             const tBody = document.getElementById('tableBody');
             tHeader.innerHTML = '<th class="text-left px-2 border-r">Cat</th>';
             tBody.innerHTML = '';
-            labels.forEach(l => { tHeader.innerHTML += `<th class="px-1 text-[8px]">${l}</th>`; });
-
-            Object.keys(rawData).reverse().forEach(key => {
-                let row = `<tr><td class="text-left font-bold bg-slate-50 border-r px-1"><span class="legend-box" style="background:${colors[key]}"></span>${key}</td>`;
-                rawData[key].forEach(val => { row += `<td class="text-[8px]">${Math.round(val).toLocaleString()}</td>`; });
+            overviewLabels.forEach(l => { tHeader.innerHTML += `<th class="text-[8px]">${l}</th>`; });
+            Object.keys(overviewRaw).reverse().forEach(key => {
+                let row = `<tr><td class="text-left font-bold bg-slate-50 border-r px-1 text-[9px]"><span class="legend-box" style="background:${colors[key]}"></span>${key}</td>`;
+                overviewRaw[key].forEach(val => { row += `<td class="text-[8px]">${Math.round(val).toLocaleString()}</td>`; });
                 tBody.innerHTML += row + `</tr>`;
             });
         }
 
-        async function fetchOverview() {
+        async function fetchData() {
             document.getElementById('loader').style.display = "block";
             try {
                 const ts = new Date().getTime();
-                const url = `https://docs.google.com/spreadsheets/d/e/${ID_OVERVIEW}/pub?gid=${GID_OVERVIEW}&single=true&range=A1:N5&output=csv&t=${ts}`;
-                const response = await fetch(url);
-                const csv = await response.text();
-                const rows = csv.split('\n').map(r => r.split(','));
-                const labels = rows[0].slice(1);
-                const rawData = {
-                    PS: rows[1].slice(1).map(v => parseFloat(v) || 0),
-                    PL: rows[2].slice(1).map(v => parseFloat(v) || 0),
-                    FIP: rows[3].slice(1).map(v => parseFloat(v) || 0),
-                    MSC: rows[4].slice(1).map(v => parseFloat(v) || 0)
-                };
-                initChartAndTable(labels, rawData);
-            } catch (e) { console.error("Error"); }
+                // Fetch Overview (Bar)
+                const resBar = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_P1_COLDSTORAGE}/pub?gid=${GID_OVERVIEW}&range=A1:N5&output=csv&t=${ts}`);
+                const csvBar = await resBar.text();
+                const rowsBar = csvBar.split('\n').map(r => r.split(','));
+                
+                // Fetch Total Stock (Pie)
+                const resPie = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_P1_COLDSTORAGE}/pub?gid=${GID_TOTAL_STOCK}&range=A1:C2&output=csv&t=${ts}`);
+                const csvPie = await resPie.text();
+                const rowsPie = csvPie.split('\n').map(r => r.split(','));
+
+                initCharts(
+                    rowsBar[0].slice(1), 
+                    { PS: rowsBar[1].slice(1).map(v => parseFloat(v)||0), PL: rowsBar[2].slice(1).map(v => parseFloat(v)||0), FIP: rowsBar[3].slice(1).map(v => parseFloat(v)||0), MSC: rowsBar[4].slice(1).map(v => parseFloat(v)||0) },
+                    rowsPie[0], 
+                    rowsPie[1].map(v => parseFloat(v)||0)
+                );
+            } catch (e) { console.error("Error loading charts"); }
             document.getElementById('loader').style.display = "none";
         }
 
         function refreshAll() {
             document.getElementById('sheetFrame').src = `https://docs.google.com/spreadsheets/d/e/${ID_LAPORAN}/pubhtml?widget=true&headers=false&chrome=false&t=${new Date().getTime()}`;
-            fetchOverview();
+            fetchData();
         }
 
         function toggleSidebar() {
@@ -181,7 +186,7 @@
             mc.style.marginLeft = sb.classList.contains('sidebar-closed') ? "0" : "14rem";
         }
 
-        window.onload = () => { if(!ID_OVERVIEW.includes("MASUKKAN")) refreshAll(); };
+        window.onload = () => { if(!ID_P1_COLDSTORAGE.includes("MASUKKAN")) refreshAll(); };
     </script>
 </body>
 </html>
