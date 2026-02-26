@@ -12,13 +12,10 @@
         .main-content { transition: margin-left 0.3s ease-in-out; }
         .text-neon-green { color: #4ade80; }
         .bg-neon-green { background-color: #4ade80; }
-        
-        /* Gaya Tabel Data di bawah Grafik */
         .chart-table { width: 100%; border-collapse: collapse; font-size: 10px; color: #1e293b; }
-        .chart-table th, .chart-table td { border: 1px solid #cbd5e1; padding: 6px 4px; text-align: center; }
+        .chart-table th, .chart-table td { border: 1px solid #cbd5e1; padding: 4px; text-align: center; }
         .chart-table th { background-color: #f1f5f9; font-weight: bold; }
         .legend-box { width: 10px; height: 10px; display: inline-block; margin-right: 6px; border-radius: 2px; }
-        
         .loader {
             border: 3px solid #f3f3f3; border-top: 3px solid #4ade80; border-radius: 50%;
             width: 18px; height: 18px; animation: spin 1s linear infinite; display: none;
@@ -47,28 +44,26 @@
         <header class="flex justify-between items-center mb-6 bg-[#1e293b] text-white p-3 rounded-lg shadow-md border-l-4 border-neon-green">
             <div class="flex items-center">
                 <button onclick="toggleSidebar()" class="bg-slate-700 p-2 rounded mr-4 hover:bg-slate-600 transition text-xs">☰ Menu</button>
-                <h1 class="text-xl font-bold uppercase tracking-tight">Overview Stock <span class="text-neon-green">CS ATI-1</span></h1>
+                <h1 class="text-xl font-bold uppercase">Overview Stock <span class="text-neon-green">CS ATI-1</span></h1>
             </div>
             <div class="flex items-center gap-4">
                 <div class="loader" id="loader"></div>
-                <button onclick="refreshAll()" class="bg-neon-green text-black px-4 py-1 rounded text-[10px] font-black hover:bg-green-400 transition shadow-lg">🔄 REFRESH DATA</button>
+                <button onclick="refreshAll()" class="bg-neon-green text-black px-4 py-1 rounded text-[10px] font-black hover:bg-green-400 transition">🔄 REFRESH</button>
             </div>
         </header>
 
-        <section class="mb-6 bg-white p-5 rounded-xl shadow-lg border border-gray-200 max-w-full mx-auto">
+        <section class="mb-8 bg-white p-6 rounded-xl shadow-lg border border-gray-200 w-[75%] mx-auto">
             
-            <h3 class="text-center font-bold text-slate-800 mb-6 text-md uppercase tracking-widest">Visualisasi Overview Stock Cold Storage</h3>
+            <h3 class="text-center font-bold text-slate-800 mb-4 text-sm uppercase tracking-widest">Visualisasi Overview Stock</h3>
 
-            <div class="h-[400px] w-full mb-8">
+            <div class="h-[300px] w-full mb-6">
                 <canvas id="stockChart"></canvas>
             </div>
 
-            <div class="overflow-x-auto border border-gray-100 rounded-lg shadow-inner">
+            <div class="overflow-x-auto border border-gray-100 rounded-lg">
                 <table class="chart-table" id="dataTable">
                     <thead>
-                        <tr id="tableHeader" class="bg-slate-100">
-                            <th class="text-left px-4 border-r">Category</th>
-                        </tr>
+                        <tr id="tableHeader" class="bg-slate-100"><th class="text-left px-4 border-r">Category</th></tr>
                     </thead>
                     <tbody id="tableBody"></tbody>
                 </table>
@@ -78,14 +73,13 @@
         <section class="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
             <div class="bg-slate-800 p-2 px-4 flex justify-between items-center">
                 <span class="text-white text-[10px] font-bold uppercase tracking-widest">Detail Laporan Mingguan</span>
-                <span class="text-neon-green text-[9px] font-mono animate-pulse uppercase">Live Connection</span>
+                <span class="text-neon-green text-[9px] font-mono">LIVE CONNECTION</span>
             </div>
-            <iframe id="sheetFrame" src="" class="w-full h-[650px] border-none"></iframe>
+            <iframe id="sheetFrame" src="" class="w-full h-[600px] border-none"></iframe>
         </section>
     </main>
 
     <script>
-        // === KONFIGURASI ID SHEET ===
         const ID_OVERVIEW = "2PACX-1vShq3eIcceGMXuR6dBbMut6K99pAQZV4g86Aq5DWkP7yrFTGNMPkdfg4y6vbWeofWpFRO4gGNqLE4h8"; 
         const GID_OVERVIEW = "0"; 
         const ID_LAPORAN = "2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk"; 
@@ -106,7 +100,7 @@
                     }),
                     realData: rawData[key],
                     backgroundColor: colors[key],
-                    barPercentage: 0.7 // Mengatur ketebalan batang grafik (0.1 - 1.0)
+                    barPercentage: 0.7
                 };
             });
 
@@ -115,7 +109,7 @@
                 data: { labels: labels, datasets: datasets },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false, // Penting agar tinggi mengikuti box pembungkus (h-[400px])
+                    maintainAspectRatio: false,
                     plugins: {
                         legend: { display: false },
                         tooltip: {
@@ -129,24 +123,17 @@
                         }
                     },
                     scales: {
-                        x: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } },
-                        y: { 
-                            stacked: true, 
-                            min: 0, 
-                            max: 100, 
-                            ticks: { callback: v => v + "%", font: { size: 10 } },
-                            grid: { color: '#f1f5f9' }
-                        }
+                        x: { stacked: true, grid: { display: false }, ticks: { font: { size: 9 } } },
+                        y: { stacked: true, min: 0, max: 100, ticks: { callback: v => v + "%", font: { size: 9 } } }
                     }
                 }
             });
 
-            // Update Tabel Data
             const tHeader = document.getElementById('tableHeader');
             const tBody = document.getElementById('tableBody');
             tHeader.innerHTML = '<th class="text-left px-4 border-r">Category</th>';
             tBody.innerHTML = '';
-            labels.forEach(l => { tHeader.innerHTML += `<th class="px-2">${l}</th>`; });
+            labels.forEach(l => { tHeader.innerHTML += `<th class="px-1">${l}</th>`; });
 
             Object.keys(rawData).reverse().forEach(key => {
                 let row = `<tr><td class="text-left font-bold bg-slate-50 border-r px-2"><span class="legend-box" style="background:${colors[key]}"></span>${key}</td>`;
@@ -171,14 +158,12 @@
                     MSC: rows[4].slice(1).map(v => parseFloat(v) || 0)
                 };
                 initChartAndTable(labels, rawData);
-            } catch (e) { console.error("Error mengambil data CSV"); }
+            } catch (e) { console.error("Error fetch data"); }
             document.getElementById('loader').style.display = "none";
         }
 
         function refreshAll() {
-            const frame = document.getElementById('sheetFrame');
-            const ts = new Date().getTime();
-            frame.src = `https://docs.google.com/spreadsheets/d/e/${ID_LAPORAN}/pubhtml?widget=true&headers=false&chrome=false&t=${ts}`;
+            document.getElementById('sheetFrame').src = `https://docs.google.com/spreadsheets/d/e/${ID_LAPORAN}/pubhtml?widget=true&headers=false&chrome=false&t=${new Date().getTime()}`;
             fetchOverview();
         }
 
