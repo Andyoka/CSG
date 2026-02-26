@@ -16,6 +16,10 @@
         .chart-table th, .chart-table td { border: 1px solid #cbd5e1; padding: 3px; text-align: center; }
         .chart-table th { background-color: #f1f5f9; font-weight: bold; }
         .legend-box { width: 8px; height: 8px; display: inline-block; margin-right: 4px; border-radius: 2px; }
+        
+        /* Efek Shadow untuk Pie agar terlihat semi-3D */
+        .pie-container { filter: drop-shadow(0px 10px 8px rgba(0,0,0,0.2)); }
+        
         .loader {
             border: 3px solid #f3f3f3; border-top: 3px solid #4ade80; border-radius: 50%;
             width: 18px; height: 18px; animation: spin 1s linear infinite; display: none;
@@ -26,7 +30,7 @@
 <body class="bg-gray-100 font-sans overflow-x-hidden">
 
     <aside id="sidebar" class="fixed top-0 left-0 h-screen w-56 bg-[#1e293b] text-white z-50 shadow-2xl">
-        <div class="p-6 text-center">
+        <div class="p-6 text-center border-b border-slate-700">
             <div class="border-2 border-neon-green rounded-md py-1 px-2">
                 <span class="text-sm font-black uppercase tracking-tighter text-neon-green">PRODUKSI 1</span>
             </div>
@@ -34,9 +38,6 @@
         <nav class="mt-4 px-2">
             <a href="index.html" class="flex items-center py-2 px-4 mb-1 hover:bg-slate-700 transition rounded-md text-gray-400">🏠 Home</a>
             <a href="cs.html" class="flex items-center py-2 px-4 mb-1 bg-neon-green text-black font-bold rounded-md shadow-lg">❄️ Cold Storage</a>
-            <a href="fj.html" class="flex items-center py-2 px-4 mb-1 hover:bg-slate-700 transition rounded-md text-gray-400">🥤 Fish Juice</a>
-            <a href="fm.html" class="flex items-center py-2 px-4 mb-1 hover:bg-slate-700 transition rounded-md text-gray-400">🐟 Fish Meal</a>
-            <a href="rm.html" class="flex items-center py-2 px-4 mb-1 hover:bg-slate-700 transition rounded-md text-gray-400">📦 Raw Material</a>
         </nav>
     </aside>
 
@@ -44,37 +45,36 @@
         <header class="flex justify-between items-center mb-6 bg-[#1e293b] text-white p-3 rounded-lg shadow-md border-l-4 border-neon-green">
             <div class="flex items-center">
                 <button onclick="toggleSidebar()" class="bg-slate-700 p-2 rounded mr-4 hover:bg-slate-600 transition text-xs">☰ Menu</button>
-                <h1 class="text-xl font-bold uppercase">Dashboard <span class="text-neon-green">Cold Storage</span></h1>
+                <h1 class="text-lg font-bold uppercase tracking-tight">Dashboard <span class="text-neon-green tracking-normal">Cold Storage</span></h1>
             </div>
             <div class="flex items-center gap-4">
                 <div class="loader" id="loader"></div>
-                <button onclick="refreshAll()" class="bg-neon-green text-black px-4 py-1 rounded text-[10px] font-black hover:bg-green-400 transition">🔄 REFRESH</button>
+                <button onclick="refreshAll()" class="bg-neon-green text-black px-4 py-1 rounded text-[10px] font-black hover:bg-green-400 transition shadow-md">🔄 REFRESH</button>
             </div>
         </header>
 
         <div class="flex flex-wrap gap-4 mb-8 items-start">
             
-            <section class="bg-white p-4 rounded-xl shadow-lg border border-gray-200 w-full lg:w-[75%]">
-                <h3 class="text-center font-bold text-slate-800 mb-4 text-xs uppercase tracking-widest">Overview Stock (MT)</h3>
+            <section class="bg-white p-4 rounded-xl shadow-lg border border-gray-200 w-full lg:w-[73%]">
+                <h3 class="text-center font-bold text-slate-800 mb-4 text-[10px] uppercase tracking-widest border-b pb-2">Overview Stock (MT)</h3>
                 <div class="h-[300px] w-full mb-4">
                     <canvas id="stockChart"></canvas>
                 </div>
                 <div class="overflow-x-auto border border-gray-100 rounded-lg">
                     <table class="chart-table" id="dataTable">
-                        <thead>
-                            <tr id="tableHeader" class="bg-slate-100"><th class="px-2 border-r">Cat</th></tr>
-                        </thead>
+                        <thead><tr id="tableHeader" class="bg-slate-100"><th class="px-2 border-r">Cat</th></tr></thead>
                         <tbody id="tableBody"></tbody>
                     </table>
                 </div>
             </section>
 
-            <section class="bg-white p-4 rounded-xl shadow-lg border border-gray-200 w-full lg:w-[23%] h-full">
-                <h3 class="text-center font-bold text-slate-800 mb-4 text-xs uppercase tracking-widest">Total Stock</h3>
-                <div class="h-[250px] flex items-center justify-center">
+            <section class="bg-white p-4 rounded-xl shadow-lg border border-gray-200 w-full lg:w-[25%] flex flex-col items-center">
+                <h3 class="text-center font-bold text-slate-800 mb-4 text-[10px] uppercase tracking-widest border-b pb-2 w-full">Total Stock (MT)</h3>
+                <div class="h-[220px] w-full flex items-center justify-center pie-container">
                     <canvas id="pieChart"></canvas>
                 </div>
-                <div id="pieLegend" class="mt-4 text-[10px] space-y-1"></div>
+                <div id="pieCustomLegend" class="mt-6 w-full space-y-2">
+                    </div>
             </section>
 
         </div>
@@ -89,93 +89,117 @@
     </main>
 
     <script>
-        // === ID & GID CONFIG ===
-        const ID_P1_COLDSTORAGE = "2PACX-1vShq3eIcceGMXuR6dBbMut6K99pAQZV4g86Aq5DWkP7yrFTGNMPkdfg4y6vbWeofWpFRO4gGNqLE4h8";
-        const GID_OVERVIEW = "0";
-        const GID_TOTAL_STOCK = "252078912"; // GID untuk sheet "Total stock"
-        const ID_LAPORAN = "2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk"; 
-
+       // === ID & GID CONFIG ===
+const ID_P1_COLDSTORAGE = "2PACX-1vShq3eIcceGMXuR6dBbMut6K99pAQZV4g86Aq5DWkP7yrFTGNMPkdfg4y6vbWeofWpFRO4gGNqLE4h8";
+const GID_OVERVIEW = "0";
+const GID_TOTAL_STOCK = "252078912"; // GID untuk sheet "Total stock"
+const ID_LAPORAN = "2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk";
         let stockChart, pieChart;
-        const colors = { PS: "#5b9bd5", PL: "#ed7d31", FIP: "#a5a5a5", MSC: "#ffc000" };
+        // Warna Bar Chart (PS, PL, FIP, MSC)
+        const barColors = { PS: "#5b9bd5", PL: "#ed7d31", FIP: "#a5a5a5", MSC: "#ffc000" };
+        // Warna Pie Chart (Merah, Biru, Kuning)
+        const pieColors = ["#ef4444", "#3b82f6", "#facc15"]; 
 
-        function initCharts(overviewLabels, overviewRaw, pieLabels, pieData) {
-            // 1. STACKED BAR CHART
+        function renderCharts(rowsBar, rowsPie) {
+            // -- LOGIKA BAR CHART --
+            const barLabels = rowsBar[0].slice(1).map(l => l.trim());
+            const parseRow = (row) => row.slice(1).map(v => parseFloat(v.replace(/[^\d.-]/g, '')) || 0);
+            const rawBarData = { PS: parseRow(rowsBar[1]), PL: parseRow(rowsBar[2]), FIP: parseRow(rowsBar[3]), MSC: parseRow(rowsBar[4]) };
+
             const ctxBar = document.getElementById('stockChart').getContext('2d');
-            if (stockChart) stockChart.destroy();
+            if(stockChart) stockChart.destroy();
             stockChart = new Chart(ctxBar, {
                 type: 'bar',
                 data: {
-                    labels: overviewLabels,
-                    datasets: Object.keys(overviewRaw).reverse().map(key => ({
+                    labels: barLabels,
+                    datasets: Object.keys(rawBarData).reverse().map((key, idx) => ({
                         label: key,
-                        data: overviewRaw[key].map((val, i) => {
-                            const total = overviewRaw.PS[i] + overviewRaw.PL[i] + overviewRaw.FIP[i] + overviewRaw.MSC[i];
+                        data: rawBarData[key].map((val, i) => {
+                            const total = rawBarData.PS[i] + rawBarData.PL[i] + rawBarData.FIP[i] + rawBarData.MSC[i];
                             return total > 0 ? (val / total) * 100 : 0;
                         }),
-                        realData: overviewRaw[key],
-                        backgroundColor: colors[key]
+                        realData: rawBarData[key],
+                        backgroundColor: Object.values(barColors).reverse()[idx]
                     }))
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false }, tooltip: {
-                        callbacks: { label: (ctx) => `${ctx.dataset.label}: ${ctx.dataset.realData[ctx.dataIndex].toLocaleString()} MT (${ctx.parsed.y.toFixed(1)}%)` }
-                    }},
-                    scales: { x: { stacked: true, ticks: { font: { size: 8 } } }, y: { stacked: true, min: 0, max: 100, ticks: { callback: v => v + "%" } } }
+                    plugins: { legend: { display: false } },
+                    scales: { y: { stacked: true, max: 100, ticks: { callback: v => v + '%' } }, x: { stacked: true } }
                 }
             });
 
-            // 2. PIE CHART
+            // -- LOGIKA PIE CHART --
+            const pieLabels = rowsPie[0].map(l => l.trim());
+            const pieData = rowsPie[1].map(v => parseFloat(v.replace(/[^\d.-]/g, '')) || 0);
+
             const ctxPie = document.getElementById('pieChart').getContext('2d');
-            if (pieChart) pieChart.destroy();
+            if(pieChart) pieChart.destroy();
             pieChart = new Chart(ctxPie, {
                 type: 'pie',
                 data: {
                     labels: pieLabels,
-                    datasets: [{ data: pieData, backgroundColor: ["#4ade80", "#3b82f6", "#f59e0b"] }]
+                    datasets: [{
+                        data: pieData,
+                        backgroundColor: pieColors,
+                        borderWidth: 3,
+                        borderColor: ['#b91c1c', '#1d4ed8', '#a16207'], // Border lebih gelap agar terlihat 3D
+                        hoverOffset: 15
+                    }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } } // Legend bawaan dimatikan, kita pakai custom di bawah
+                }
             });
 
-            // Update Table Data (Overview)
-            const tHeader = document.getElementById('tableHeader');
-            const tBody = document.getElementById('tableBody');
-            tHeader.innerHTML = '<th class="text-left px-2 border-r">Cat</th>';
-            tBody.innerHTML = '';
-            overviewLabels.forEach(l => { tHeader.innerHTML += `<th class="text-[8px]">${l}</th>`; });
-            Object.keys(overviewRaw).reverse().forEach(key => {
-                let row = `<tr><td class="text-left font-bold bg-slate-50 border-r px-1 text-[9px]"><span class="legend-box" style="background:${colors[key]}"></span>${key}</td>`;
-                overviewRaw[key].forEach(val => { row += `<td class="text-[8px]">${Math.round(val).toLocaleString()}</td>`; });
-                tBody.innerHTML += row + `</tr>`;
+            // -- UPDATE CUSTOM LEGEND PIE (KETERANGAN QTY) --
+            const pieLegendDiv = document.getElementById('pieCustomLegend');
+            pieLegendDiv.innerHTML = '';
+            pieLabels.forEach((label, i) => {
+                const item = document.createElement('div');
+                item.className = "flex justify-between items-center text-[11px] border-b border-gray-50 pb-1";
+                item.innerHTML = `
+                    <div class="flex items-center">
+                        <span class="w-3 h-3 rounded-full mr-2" style="background:${pieColors[i]}"></span>
+                        <span class="font-medium text-gray-600">${label}</span>
+                    </div>
+                    <span class="font-bold text-slate-800">${pieData[i].toLocaleString()} MT</span>
+                `;
+                pieLegendDiv.appendChild(item);
             });
+
+            // -- UPDATE TABLE BAR --
+            const head = document.getElementById('tableHeader');
+            head.innerHTML = '<th class="border-r">Cat</th>' + barLabels.map(l => `<th>${l}</th>`).join('');
+            const body = document.getElementById('tableBody');
+            body.innerHTML = Object.keys(rawBarData).reverse().map(key => `
+                <tr>
+                    <td class="font-bold bg-gray-50 border-r text-left px-2"><span class="legend-box" style="background:${barColors[key]}"></span>${key}</td>
+                    ${rawBarData[key].map(v => `<td>${Math.round(v).toLocaleString()}</td>`).join('')}
+                </tr>`).join('');
         }
 
         async function fetchData() {
             document.getElementById('loader').style.display = "block";
             try {
                 const ts = new Date().getTime();
-                // Fetch Overview (Bar)
-                const resBar = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_P1_COLDSTORAGE}/pub?gid=${GID_OVERVIEW}&range=A1:N5&output=csv&t=${ts}`);
+                const resBar = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_BAR}&output=csv&t=${ts}`);
                 const csvBar = await resBar.text();
                 const rowsBar = csvBar.split('\n').map(r => r.split(','));
-                
-                // Fetch Total Stock (Pie)
-                const resPie = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_P1_COLDSTORAGE}/pub?gid=${GID_TOTAL_STOCK}&range=A1:C2&output=csv&t=${ts}`);
+
+                const resPie = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_PIE}&output=csv&t=${ts}`);
                 const csvPie = await resPie.text();
                 const rowsPie = csvPie.split('\n').map(r => r.split(','));
 
-                initCharts(
-                    rowsBar[0].slice(1), 
-                    { PS: rowsBar[1].slice(1).map(v => parseFloat(v)||0), PL: rowsBar[2].slice(1).map(v => parseFloat(v)||0), FIP: rowsBar[3].slice(1).map(v => parseFloat(v)||0), MSC: rowsBar[4].slice(1).map(v => parseFloat(v)||0) },
-                    rowsPie[0], 
-                    rowsPie[1].map(v => parseFloat(v)||0)
-                );
-            } catch (e) { console.error("Error loading charts"); }
+                renderCharts(rowsBar, rowsPie);
+            } catch (e) { console.error("Error fetching data"); }
             document.getElementById('loader').style.display = "none";
         }
 
         function refreshAll() {
-            document.getElementById('sheetFrame').src = `https://docs.google.com/spreadsheets/d/e/${ID_LAPORAN}/pubhtml?widget=true&headers=false&chrome=false&t=${new Date().getTime()}`;
+            document.getElementById('sheetFrame').src = `https://docs.google.com/spreadsheets/d/e/${ID_LAPORAN}/pubhtml?widget=true&headers=false`;
             fetchData();
         }
 
@@ -186,7 +210,7 @@
             mc.style.marginLeft = sb.classList.contains('sidebar-closed') ? "0" : "14rem";
         }
 
-        window.onload = () => { if(!ID_P1_COLDSTORAGE.includes("MASUKKAN")) refreshAll(); };
+        window.onload = () => { if(!ID_GSHEET.includes("MASUKKAN")) refreshAll(); };
     </script>
 </body>
 </html>
