@@ -15,7 +15,6 @@
         .border-neon-green { border-color: #4ade80; }
         #sheetFrame { transition: opacity 0.3s ease; }
         
-        /* Styling Tabel Data Chart */
         .chart-table { width: 100%; border-collapse: collapse; font-size: 10px; color: #1e293b; }
         .chart-table th, .chart-table td { border: 1px solid #cbd5e1; padding: 6px 4px; text-align: center; }
         .chart-table th { background-color: #f1f5f9; font-weight: bold; }
@@ -63,9 +62,9 @@
         </header>
 
         <section class="mb-6 bg-white p-5 rounded-xl shadow-lg border border-gray-200">
-            <h3 class="text-center font-bold text-slate-800 mb-4 text-md uppercase">Grafik Overview Stock Cold Storage</h3>
+            <h3 class="text-center font-bold text-slate-800 mb-4 text-md uppercase">Grafik Overview Stock (Skala 100%)</h3>
             
-            <div class="h-[350px] w-full mb-6">
+            <div class="h-[380px] w-full mb-6">
                 <canvas id="stockChart"></canvas>
             </div>
 
@@ -83,8 +82,8 @@
 
         <section class="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
             <div class="bg-slate-800 p-2 flex justify-between items-center px-4">
-                <span class="text-white text-[10px] font-bold uppercase tracking-widest">Detail Laporan Mingguan (P1 CS2026)</span>
-                <span class="text-neon-green text-[9px] animate-pulse font-mono tracking-tighter">● LIVE CONNECTION</span>
+                <span class="text-white text-[10px] font-bold uppercase tracking-widest">Detail Laporan Mingguan</span>
+                <span class="text-neon-green text-[9px] font-mono">LIVE CONNECTION</span>
             </div>
             <div class="w-full bg-white">
                 <iframe id="sheetFrame" src="" class="w-full h-[650px] border-none"></iframe>
@@ -93,15 +92,10 @@
     </main>
 
     <script>
-        // ============================================================
-        // 1. FILE: P1 COLDSTORAGE (Untuk Grafik Overview)
-        // Link CSV dari sheet "Overview Stock"
+        // === KONFIGURASI ID SHEET ===
         const ID_OVERVIEW = "2PACX-1vShq3eIcceGMXuR6dBbMut6K99pAQZV4g86Aq5DWkP7yrFTGNMPkdfg4y6vbWeofWpFRO4gGNqLE4h8"; 
         const GID_OVERVIEW = "0"; 
-
-        // 2. FILE: P1 CS2026 (Untuk Tabel Mingguan di Bawah)
         const ID_LAPORAN = "2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk"; 
-        // ============================================================
 
         let stockChart;
         const colors = { PS: "#5b9bd5", PL: "#ed7d31", FIP: "#a5a5a5", MSC: "#ffc000" };
@@ -110,6 +104,7 @@
             const ctx = document.getElementById('stockChart').getContext('2d');
             if (stockChart) stockChart.destroy();
             
+            // Logika Stacked 100%
             stockChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -118,39 +113,53 @@
                         label: key,
                         data: dataObj[key],
                         backgroundColor: colors[key],
-                        stack: 'Stack 0',
-                        barPercentage: 0.7
                     }))
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) label += ': ';
+                                    if (context.parsed.y !== null) label += context.parsed.y + '%';
+                                    return label;
+                                }
+                            }
+                        }
+                    },
                     scales: {
-                        x: { stacked: true, grid: { display: false }, ticks: { font: { size: 9 } } },
-                        y: { stacked: true, beginAtZero: true, grid: { color: '#f1f5f9' } }
+                        x: { stacked: true, grid: { display: false } },
+                        y: { 
+                            stacked: true, 
+                            min: 0, 
+                            max: 100, 
+                            ticks: { callback: value => value + "%", stepSize: 10 },
+                            grid: { color: '#f1f5f9' }
+                        }
                     }
                 }
             });
 
-            // Update Tabel di bawah chart
+            // Update Tabel
             const tHeader = document.getElementById('tableHeader');
             const tBody = document.getElementById('tableBody');
             tHeader.innerHTML = '<th class="text-left px-4 border-r">Category</th>';
             tBody.innerHTML = '';
-
             labels.forEach(l => {
                 const th = document.createElement('th');
                 th.innerText = l;
                 tHeader.appendChild(th);
             });
-
             Object.keys(dataObj).reverse().forEach(key => {
                 const row = document.createElement('tr');
                 row.innerHTML = `<td class="text-left font-bold bg-slate-50 border-r px-2"><span class="legend-box" style="background:${colors[key]}"></span>${key}</td>`;
                 dataObj[key].forEach(val => {
                     const td = document.createElement('td');
-                    td.innerText = Math.round(val).toLocaleString();
+                    td.innerText = val + "%"; // Tampilkan dalam persen
                     row.appendChild(td);
                 });
                 tBody.appendChild(row);
@@ -167,15 +176,30 @@
                 
                 const rows = csv.split('\n').map(r => r.split(','));
                 const labels = rows[0].slice(1);
-                const dataObj = {
-                    PS: rows[1].slice(1).map(v => parseFloat(v) || 0),
-                    PL: rows[2].slice(1).map(v => parseFloat(v) || 0),
-                    FIP: rows[3].slice(1).map(v => parseFloat(v) || 0),
-                    MSC: rows[4].slice(1).map(v => parseFloat(v) || 0)
-                };
-                initChartAndTable(labels, dataObj);
+                
+                // Ambil nilai mentah
+                const rawPS = rows[1].slice(1).map(v => parseFloat(v) || 0);
+                const rawPL = rows[2].slice(1).map(v => parseFloat(v) || 0);
+                const rawFIP = rows[3].slice(1).map(v => parseFloat(v) || 0);
+                const rawMSC = rows[4].slice(1).map(v => parseFloat(v) || 0);
+
+                // Hitung Persentase per Kolom
+                const psPct = [], plPct = [], fipPct = [], mscPct = [];
+                for(let i=0; i < labels.length; i++) {
+                    const total = rawPS[i] + rawPL[i] + rawFIP[i] + rawMSC[i];
+                    if(total > 0) {
+                        psPct.push(Math.round((rawPS[i]/total) * 100));
+                        plPct.push(Math.round((rawPL[i]/total) * 100));
+                        fipPct.push(Math.round((rawFIP[i]/total) * 100));
+                        mscPct.push(Math.round((rawMSC[i]/total) * 100));
+                    } else {
+                        psPct.push(0); plPct.push(0); fipPct.push(0); mscPct.push(0);
+                    }
+                }
+
+                initChartAndTable(labels, { PS: psPct, PL: plPct, FIP: fipPct, MSC: mscPct });
             } catch (e) {
-                console.error("Gagal load data CSV. Pastikan sudah Publish as CSV.");
+                console.error("Gagal load data.");
             }
             document.getElementById('loader').style.display = "none";
         }
@@ -183,9 +207,7 @@
         function refreshAll() {
             const frame = document.getElementById('sheetFrame');
             const ts = new Date().getTime();
-            // File 1: Tabel Detail
             frame.src = `https://docs.google.com/spreadsheets/d/e/${ID_LAPORAN}/pubhtml?widget=true&headers=false&chrome=false&t=${ts}`;
-            // File 2: Grafik
             fetchOverview();
         }
 
@@ -197,11 +219,7 @@
         }
 
         window.onload = () => {
-            if(ID_OVERVIEW.includes("MASUKKAN")) {
-                alert("Mohon isi ID dan GID di bagian script!");
-            } else {
-                refreshAll();
-            }
+            if(!ID_OVERVIEW.includes("MASUKKAN")) refreshAll();
         };
     </script>
 </body>
