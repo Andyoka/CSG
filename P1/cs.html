@@ -12,11 +12,13 @@
         .main-content { transition: margin-left 0.3s ease-in-out; }
         .text-neon-green { color: #4ade80; }
         .bg-neon-green { background-color: #4ade80; }
-        #sheetFrame { transition: opacity 0.3s ease; }
+        
+        /* Gaya Tabel Data di bawah Grafik */
         .chart-table { width: 100%; border-collapse: collapse; font-size: 10px; color: #1e293b; }
         .chart-table th, .chart-table td { border: 1px solid #cbd5e1; padding: 6px 4px; text-align: center; }
         .chart-table th { background-color: #f1f5f9; font-weight: bold; }
         .legend-box { width: 10px; height: 10px; display: inline-block; margin-right: 6px; border-radius: 2px; }
+        
         .loader {
             border: 3px solid #f3f3f3; border-top: 3px solid #4ade80; border-radius: 50%;
             width: 18px; height: 18px; animation: spin 1s linear infinite; display: none;
@@ -49,19 +51,24 @@
             </div>
             <div class="flex items-center gap-4">
                 <div class="loader" id="loader"></div>
-                <button onclick="refreshAll()" class="bg-neon-green text-black px-4 py-1 rounded text-[10px] font-black hover:bg-green-400 transition">🔄 REFRESH DATA</button>
+                <button onclick="refreshAll()" class="bg-neon-green text-black px-4 py-1 rounded text-[10px] font-black hover:bg-green-400 transition shadow-lg">🔄 REFRESH DATA</button>
             </div>
         </header>
 
-        <section class="mb-6 bg-white p-5 rounded-xl shadow-lg border border-gray-200">
-            <h3 class="text-center font-bold text-slate-800 mb-4 text-md uppercase">Grafik Overview Stock (Visual 100%)</h3>
-            <div class="h-[380px] w-full mb-6">
+        <section class="mb-6 bg-white p-5 rounded-xl shadow-lg border border-gray-200 max-w-full mx-auto">
+            
+            <h3 class="text-center font-bold text-slate-800 mb-6 text-md uppercase tracking-widest">Visualisasi Overview Stock Cold Storage</h3>
+
+            <div class="h-[400px] w-full mb-8">
                 <canvas id="stockChart"></canvas>
             </div>
-            <div class="overflow-x-auto border rounded-lg">
+
+            <div class="overflow-x-auto border border-gray-100 rounded-lg shadow-inner">
                 <table class="chart-table" id="dataTable">
                     <thead>
-                        <tr id="tableHeader" class="bg-slate-100"><th class="text-left px-4 border-r">Category</th></tr>
+                        <tr id="tableHeader" class="bg-slate-100">
+                            <th class="text-left px-4 border-r">Category</th>
+                        </tr>
                     </thead>
                     <tbody id="tableBody"></tbody>
                 </table>
@@ -69,15 +76,16 @@
         </section>
 
         <section class="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
-            <div class="bg-slate-800 p-2 px-4 flex justify-between">
-                <span class="text-white text-[10px] font-bold uppercase">Detail Laporan Mingguan</span>
-                <span class="text-neon-green text-[9px] font-mono">LIVE CONNECTION</span>
+            <div class="bg-slate-800 p-2 px-4 flex justify-between items-center">
+                <span class="text-white text-[10px] font-bold uppercase tracking-widest">Detail Laporan Mingguan</span>
+                <span class="text-neon-green text-[9px] font-mono animate-pulse uppercase">Live Connection</span>
             </div>
             <iframe id="sheetFrame" src="" class="w-full h-[650px] border-none"></iframe>
         </section>
     </main>
 
     <script>
+        // === KONFIGURASI ID SHEET ===
         const ID_OVERVIEW = "2PACX-1vShq3eIcceGMXuR6dBbMut6K99pAQZV4g86Aq5DWkP7yrFTGNMPkdfg4y6vbWeofWpFRO4gGNqLE4h8"; 
         const GID_OVERVIEW = "0"; 
         const ID_LAPORAN = "2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk"; 
@@ -89,7 +97,6 @@
             const ctx = document.getElementById('stockChart').getContext('2d');
             if (stockChart) stockChart.destroy();
             
-            // Konversi data ke persen untuk visual grafik
             const datasets = Object.keys(rawData).reverse().map(key => {
                 return {
                     label: key,
@@ -97,8 +104,9 @@
                         const total = rawData.PS[i] + rawData.PL[i] + rawData.FIP[i] + rawData.MSC[i];
                         return total > 0 ? (val / total) * 100 : 0;
                     }),
-                    realData: rawData[key], // Simpan data asli di sini
-                    backgroundColor: colors[key]
+                    realData: rawData[key],
+                    backgroundColor: colors[key],
+                    barPercentage: 0.7 // Mengatur ketebalan batang grafik (0.1 - 1.0)
                 };
             });
 
@@ -106,7 +114,8 @@
                 type: 'bar',
                 data: { labels: labels, datasets: datasets },
                 options: {
-                    responsive: true, maintainAspectRatio: false,
+                    responsive: true,
+                    maintainAspectRatio: false, // Penting agar tinggi mengikuti box pembungkus (h-[400px])
                     plugins: {
                         legend: { display: false },
                         tooltip: {
@@ -120,18 +129,24 @@
                         }
                     },
                     scales: {
-                        x: { stacked: true, grid: { display: false } },
-                        y: { stacked: true, min: 0, max: 100, ticks: { callback: v => v + "%" } }
+                        x: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } },
+                        y: { 
+                            stacked: true, 
+                            min: 0, 
+                            max: 100, 
+                            ticks: { callback: v => v + "%", font: { size: 10 } },
+                            grid: { color: '#f1f5f9' }
+                        }
                     }
                 }
             });
 
-            // Update Tabel (Tetap Menggunakan Quantity Asli)
+            // Update Tabel Data
             const tHeader = document.getElementById('tableHeader');
             const tBody = document.getElementById('tableBody');
             tHeader.innerHTML = '<th class="text-left px-4 border-r">Category</th>';
             tBody.innerHTML = '';
-            labels.forEach(l => { tHeader.innerHTML += `<th>${l}</th>`; });
+            labels.forEach(l => { tHeader.innerHTML += `<th class="px-2">${l}</th>`; });
 
             Object.keys(rawData).reverse().forEach(key => {
                 let row = `<tr><td class="text-left font-bold bg-slate-50 border-r px-2"><span class="legend-box" style="background:${colors[key]}"></span>${key}</td>`;
@@ -156,12 +171,14 @@
                     MSC: rows[4].slice(1).map(v => parseFloat(v) || 0)
                 };
                 initChartAndTable(labels, rawData);
-            } catch (e) { console.error("Error fetch data"); }
+            } catch (e) { console.error("Error mengambil data CSV"); }
             document.getElementById('loader').style.display = "none";
         }
 
         function refreshAll() {
-            document.getElementById('sheetFrame').src = `https://docs.google.com/spreadsheets/d/e/${ID_LAPORAN}/pubhtml?widget=true&headers=false&chrome=false&t=${new Date().getTime()}`;
+            const frame = document.getElementById('sheetFrame');
+            const ts = new Date().getTime();
+            frame.src = `https://docs.google.com/spreadsheets/d/e/${ID_LAPORAN}/pubhtml?widget=true&headers=false&chrome=false&t=${ts}`;
             fetchOverview();
         }
 
