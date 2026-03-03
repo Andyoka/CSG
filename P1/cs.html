@@ -18,13 +18,15 @@
         .chart-table th { background-color: #f1f5f9; font-weight: bold; }
         .legend-box { width: 7px; height: 7px; display: inline-block; margin-right: 4px; border-radius: 2px; }
         
-        /* Container Donut Modern */
-        .donut-container { position: relative; width: 110px; height: 110px; }
+        /* Container Donut: Dibuat lebih proporsional */
+        .donut-container { position: relative; width: 100px; height: 100px; }
         .donut-inner-text {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 18px; font-weight: 900; color: #1e293b;
+            font-size: 16px; font-weight: 900; color: #1e293b;
         }
+        /* Memastikan card donut berbentuk lebih kotak */
+        .donut-card { min-height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 </head>
 <body class="bg-gray-100 font-sans overflow-x-hidden">
@@ -44,12 +46,12 @@
     <main id="mainContent" class="ml-56 p-4 main-content">
         <header class="flex justify-between items-center mb-4 bg-[#1e293b] text-white p-3 rounded-lg shadow-md border-l-4 border-neon-green">
             <div class="flex items-center">
-                <button onclick="toggleSidebar()" class="bg-slate-700 p-2 rounded mr-4 text-xs">☰ Menu</button>
+                <button onclick="toggleSidebar()" class="bg-slate-700 p-2 rounded mr-4 text-xs hover:bg-slate-600 transition">☰ Menu</button>
                 <h1 class="text-lg font-bold uppercase tracking-tight">Overview <span class="text-neon-green">Stock</span></h1>
             </div>
             <div class="flex items-center gap-4">
                 <div id="loader" class="hidden w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                <button onclick="refreshAll()" class="bg-neon-green text-black px-4 py-1 rounded text-[10px] font-black shadow-md">🔄 REFRESH</button>
+                <button onclick="refreshAll()" class="bg-neon-green text-black px-4 py-1 rounded text-[10px] font-black shadow-md hover:bg-green-400">🔄 REFRESH</button>
             </div>
         </header>
 
@@ -67,27 +69,27 @@
                     </div>
                 </section>
 
-                <section class="grid grid-cols-3 gap-4">
-                    <div class="bg-white p-4 rounded-xl shadow-md border border-gray-200 flex flex-col items-center">
-                        <span class="text-[10px] font-bold text-slate-600 mb-2 uppercase">Small Fish</span>
-                        <div class="donut-container">
-                            <canvas id="donutSmall"></canvas>
-                            <div id="textSmall" class="donut-inner-text">0%</div>
-                        </div>
+                <section class="grid grid-cols-3 md:grid-cols-6 gap-3">
+                    <div class="bg-white p-2 rounded-xl shadow border border-gray-200 donut-card">
+                        <span class="text-[9px] font-bold text-slate-500 mb-2 uppercase">Small Fish</span>
+                        <div class="donut-container"><canvas id="donutSmall"></canvas><div id="textSmall" class="donut-inner-text">0%</div></div>
                     </div>
-                    <div class="bg-white p-4 rounded-xl shadow-md border border-gray-200 flex flex-col items-center">
-                        <span class="text-[10px] font-bold text-slate-600 mb-2 uppercase">Old Stock</span>
-                        <div class="donut-container">
-                            <canvas id="donutOld"></canvas>
-                            <div id="textOld" class="donut-inner-text">0%</div>
-                        </div>
+                    <div class="bg-white p-2 rounded-xl shadow border border-gray-200 donut-card">
+                        <span class="text-[9px] font-bold text-slate-500 mb-2 uppercase">Old Stock</span>
+                        <div class="donut-container"><canvas id="donutOld"></canvas><div id="textOld" class="donut-inner-text">0%</div></div>
                     </div>
-                    <div class="bg-white p-4 rounded-xl shadow-md border border-gray-200 flex flex-col items-center">
-                        <span class="text-[10px] font-bold text-slate-600 mb-2 uppercase">Occupancy</span>
-                        <div class="donut-container">
-                            <canvas id="donutOccupancy"></canvas>
-                            <div id="textOccupancy" class="donut-inner-text">0%</div>
-                        </div>
+                    <div class="bg-white p-2 rounded-xl shadow border border-gray-200 donut-card">
+                        <span class="text-[9px] font-bold text-slate-500 mb-2 uppercase">Occupancy</span>
+                        <div class="donut-container"><canvas id="donutOccupancy"></canvas><div id="textOccupancy" class="donut-inner-text">0%</div></div>
+                    </div>
+                    <div class="bg-gray-50 p-2 rounded-xl border border-dashed border-gray-300 donut-card">
+                        <span class="text-[8px] text-gray-400 uppercase italic">Next Data</span>
+                    </div>
+                    <div class="bg-gray-50 p-2 rounded-xl border border-dashed border-gray-300 donut-card">
+                        <span class="text-[8px] text-gray-400 uppercase italic">Next Data</span>
+                    </div>
+                    <div class="bg-gray-50 p-2 rounded-xl border border-dashed border-gray-300 donut-card">
+                        <span class="text-[8px] text-gray-400 uppercase italic">Next Data</span>
                     </div>
                 </section>
             </div>
@@ -106,18 +108,14 @@
             </div>
         </div>
 
-        <iframe id="sheetFrame" src="" class="w-full h-[600px] border-none rounded-xl shadow-lg bg-white"></iframe>
+        <iframe id="sheetFrame" src="" class="w-full h-[500px] border-none rounded-xl shadow-lg bg-white"></iframe>
     </main>
 
     <script>
-        // MASUKKAN ID GSHEET ANDA DI SINI
+        // --- KONFIGURASI (PASTE ID & GID ANDA DI SINI) ---
         const ID_GSHEET = "2PACX-1vShq3eIcceGMXuR6dBbMut6K99pAQZV4g86Aq5DWkP7yrFTGNMPkdfg4y6vbWeofWpFRO4gGNqLE4h8"; 
-        const GID_BAR = "0"; 
-        const GID_TOTAL = "252078912"; 
-        const GID_DETAIL = "1764500224";
-        const GID_SMALL = "1052774962";
-        const GID_OLD = "885583216";
-        const GID_OCCUPANCY = "23039051";
+        const GID_BAR = "0", GID_TOTAL = "252078912", GID_DETAIL = "1764500224";
+        const GID_SMALL = "1052774962", GID_OLD = "885583216", GID_OCCUPANCY = "23039051";
         const ID_LAPORAN = "2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk";
 
         Chart.register(ChartDataLabels);
@@ -133,7 +131,7 @@
 
         function drawProgress(id, textId, rawData, color) {
             const val = cleanVal(rawData);
-            document.getElementById(textId).innerText = (val * 100).toFixed(1) + '%';
+            document.getElementById(textId).innerText = (val * 100).toFixed(0) + '%';
             
             const ctx = document.getElementById(id).getContext('2d');
             if(charts[id]) charts[id].destroy();
@@ -142,14 +140,13 @@
                 data: {
                     datasets: [{
                         data: [val, 1 - val < 0 ? 0 : 1 - val],
-                        backgroundColor: [color, '#1e293b'],
-                        borderWidth: 0,
-                        borderRadius: 5
+                        backgroundColor: [color, '#f1f5f9'],
+                        borderWidth: 0
                     }]
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
-                    cutout: '80%',
+                    cutout: '65%', // DIUBAH: Lebih kecil persentasenya = Garis lebih TEBAL
                     plugins: { datalabels: { display: false }, tooltip: { enabled: false } }
                 }
             });
@@ -167,11 +164,11 @@
                 ]);
 
                 drawProgress('donutSmall', 'textSmall', csvS, '#f97316');
-                drawProgress('donutOld', 'textOld', csvO, '#f97316');
-                drawProgress('donutOccupancy', 'textOccupancy', csvOc, '#f97316');
+                drawProgress('donutOld', 'textOld', csvO, '#3b82f6');
+                drawProgress('donutOccupancy', 'textOccupancy', csvOc, '#10b981');
 
                 renderMain(csvB, csvT, csvD);
-            } catch (e) { console.error("Error:", e); }
+            } catch (e) { console.error(e); }
             document.getElementById('loader').classList.add('hidden');
         }
 
@@ -188,24 +185,16 @@
                 { l: rB[4][0], d: rB[4].slice(1).map(v=>parseFloat(v)||0), c: "#ffc000" }
             ];
 
-            // Bar Chart
             if(charts['stockChart']) charts['stockChart'].destroy();
             charts['stockChart'] = new Chart(document.getElementById('stockChart'), {
                 type: 'bar',
                 data: {
                     labels: barLabels,
-                    datasets: datasets.reverse().map(s => ({
-                        label: s.l, backgroundColor: s.c,
-                        data: s.d.map((v, i) => {
-                            let tot = datasets.reduce((a, b) => a + b.d[i], 0);
-                            return tot > 0 ? (v / tot) * 100 : 0;
-                        })
-                    }))
+                    datasets: datasets.map(s => ({ label: s.l, backgroundColor: s.c, data: s.d.map((v, i) => { let tot = datasets.reduce((a, b) => a + b.d[i], 0); return tot > 0 ? (v / tot) * 100 : 0; }) }))
                 },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false }, legend: { display: false } }, scales: { y: { stacked: true, max: 100 }, x: { stacked: true } } }
             });
 
-            // Pie Total
             if(charts['pieTotalChart']) charts['pieTotalChart'].destroy();
             charts['pieTotalChart'] = new Chart(document.getElementById('pieTotalChart'), {
                 type: 'pie',
@@ -213,7 +202,6 @@
                 options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { color: '#fff', font:{weight:'bold'}, formatter: (v,ctx)=>ctx.chart.data.labels[ctx.dataIndex] }, legend: { display: false } } }
             });
 
-            // Pie Detail
             if(charts['pieDetailChart']) charts['pieDetailChart'].destroy();
             charts['pieDetailChart'] = new Chart(document.getElementById('pieDetailChart'), {
                 type: 'pie',
@@ -221,11 +209,10 @@
                 options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { color: '#fff', font:{size:8}, formatter: (v,ctx) => { const sum = ctx.dataset.data.reduce((a,b)=>a+b,0); return (v/sum*100).toFixed(1)+'%'; } }, legend: { display: false } } }
             });
 
-            // Table & Legends
             document.getElementById('tableHeader').innerHTML = '<th class="border-r">Cat</th>' + barLabels.map(l=>`<th>${l}</th>`).join('');
             document.getElementById('tableBody').innerHTML = datasets.map(s => `<tr><td class="text-left font-bold border-r px-1"><span class="legend-box" style="background:${s.c}"></span>${s.l}</td>${s.d.map(v=>`<td>${Math.round(v).toLocaleString()}</td>`).join('')}</tr>`).join('');
-            document.getElementById('pieTotalLegend').innerHTML = rT[0].map((l,i)=>`<div class="flex justify-between text-[10px] border-b pb-1"><span>${l}</span><b>${parseFloat(rT[1][i]||0).toLocaleString()}</b></div>`).join('');
-            document.getElementById('pieDetailLegend').innerHTML = rD[0].map((l,i)=>`<div class="flex items-center text-[8px] truncate"><span class="legend-box" style="background:${["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899"][i]}"></span>${l}: <b>${Math.round(rD[1][i]||0).toLocaleString()}</b></div>`).join('');
+            document.getElementById('pieTotalLegend').innerHTML = (rT[0]||[]).map((l,i)=>`<div class="flex justify-between text-[10px] border-b pb-1"><span>${l}</span><b>${parseFloat(rT[1][i]||0).toLocaleString()}</b></div>`).join('');
+            document.getElementById('pieDetailLegend').innerHTML = (rD[0]||[]).map((l,i)=>`<div class="flex items-center text-[8px] truncate"><span class="legend-box" style="background:${["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899"][i]}"></span>${l}: <b>${Math.round(rD[1][i]||0).toLocaleString()}</b></div>`).join('');
         }
 
         function refreshAll() {
