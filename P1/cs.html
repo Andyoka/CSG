@@ -54,9 +54,9 @@
         <div class="flex flex-wrap lg:flex-nowrap gap-4 mb-6 items-stretch">
             
             <div class="w-full lg:w-[75%] flex flex-col gap-4">
-                <section class="bg-white p-4 rounded-xl shadow-lg border border-gray-200 flex flex-col">
+                <section class="bg-white p-4 rounded-xl shadow-lg border border-gray-200">
                     <h3 class="text-center font-bold text-slate-800 mb-2 text-[10px] uppercase border-b pb-1 tracking-widest">Visualisasi Overview Stock</h3>
-                    <div class="h-[300px] w-full mb-4">
+                    <div class="h-[280px] w-full mb-4">
                         <canvas id="stockChart"></canvas>
                     </div>
                     <div class="overflow-x-auto border border-gray-100 rounded-lg">
@@ -68,21 +68,21 @@
                 </section>
 
                 <section class="grid grid-cols-3 gap-4">
-                    <div class="bg-white p-3 rounded-xl shadow-md border border-gray-200 flex flex-col items-center">
-                        <span class="text-[9px] font-bold uppercase text-gray-500 mb-2 tracking-tighter text-center leading-none">Small Fish<br>Progress</span>
-                        <div class="h-24 w-24 relative">
+                    <div class="bg-white p-4 rounded-xl shadow-md border border-gray-200 flex flex-col items-center">
+                        <span class="text-[10px] font-black uppercase text-slate-600 mb-3 tracking-tighter text-center">Small Fish</span>
+                        <div class="h-28 w-28 relative">
                             <canvas id="donutSmall"></canvas>
                         </div>
                     </div>
-                    <div class="bg-white p-3 rounded-xl shadow-md border border-gray-200 flex flex-col items-center text-center">
-                        <span class="text-[9px] font-bold uppercase text-gray-500 mb-2 tracking-tighter leading-none">Old Stock<br>Ratio</span>
-                        <div class="h-24 w-24 relative">
+                    <div class="bg-white p-4 rounded-xl shadow-md border border-gray-200 flex flex-col items-center text-center">
+                        <span class="text-[10px] font-black uppercase text-slate-600 mb-3 tracking-tighter">Old Stock</span>
+                        <div class="h-28 w-28 relative">
                             <canvas id="donutOld"></canvas>
                         </div>
                     </div>
-                    <div class="bg-white p-3 rounded-xl shadow-md border border-gray-200 flex flex-col items-center text-center">
-                        <span class="text-[9px] font-bold uppercase text-gray-500 mb-2 tracking-tighter leading-none">Warehouse<br>Occupancy</span>
-                        <div class="h-24 w-24 relative">
+                    <div class="bg-white p-4 rounded-xl shadow-md border border-gray-200 flex flex-col items-center text-center">
+                        <span class="text-[10px] font-black uppercase text-slate-600 mb-3 tracking-tighter">Occupancy</span>
+                        <div class="h-28 w-28 relative">
                             <canvas id="donutOccupancy"></canvas>
                         </div>
                     </div>
@@ -103,7 +103,7 @@
                     <div class="flex-1 flex items-center justify-center pie-3d-container">
                         <canvas id="pieDetailChart"></canvas>
                     </div>
-                    <div id="pieDetailLegend" class="mt-2 grid grid-cols-2 gap-1 overflow-y-auto max-h-[60px]"></div>
+                    <div id="pieDetailLegend" class="mt-2 grid grid-cols-2 gap-1 overflow-y-auto max-h-[80px]"></div>
                 </section>
             </div>
         </div>
@@ -114,6 +114,7 @@
     </main>
 
     <script>
+        // === KONFIGURASI ===
         const ID_GSHEET = "2PACX-1vShq3eIcceGMXuR6dBbMut6K99pAQZV4g86Aq5DWkP7yrFTGNMPkdfg4y6vbWeofWpFRO4gGNqLE4h8"; 
         const GID_BAR = "0"; 
         const GID_PIE_TOTAL = "252078912"; 
@@ -123,29 +124,36 @@
         const GID_OLD = "885583216";
         const GID_OCCUPANCY = "23039051";
         const ID_LAPORAN = "2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk"; 
+ 
 
         Chart.register(ChartDataLabels);
 
-        function createDonut(id, val, color) {
+        let charts = {};
+
+        function createDonutChart(id, rawValue, color) {
+            // Bersihkan data: hapus %, hapus koma, ubah ke desimal
+            let val = parseFloat(rawValue.toString().replace('%', '').replace(',', '.')) / 100;
+            if (isNaN(val)) val = 0;
+            if (val > 1) val = val / 100; // Proteksi jika angka yang ditarik 96.34 (bukan 0.9634)
+
             const ctx = document.getElementById(id).getContext('2d');
-            const pct = (val * 100).toFixed(1);
-            return new Chart(ctx, {
+            if (charts[id]) charts[id].destroy();
+            
+            charts[id] = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
                     datasets: [{
                         data: [val, 1 - val],
                         backgroundColor: [color, '#f1f5f9'],
-                        borderWidth: 0,
-                        circumference: 360,
-                        rotation: 0
+                        borderWidth: 0
                     }]
                 },
                 options: {
-                    responsive: true, maintainAspectRatio: false, cutout: '80%',
+                    responsive: true, maintainAspectRatio: false, cutout: '75%',
                     plugins: {
                         datalabels: {
-                            formatter: () => pct + '%',
-                            color: '#1e293b', font: { weight: 'bold', size: 12 },
+                            formatter: () => (val * 100).toFixed(1) + '%',
+                            color: '#1e293b', font: { weight: '900', size: 14 },
                             anchor: 'center', align: 'center'
                         },
                         tooltip: { enabled: false }
@@ -162,33 +170,32 @@
             try {
                 const [csvBar, csvTotal, csvDetail, csvS, csvO, csvOc] = await Promise.all([
                     fetchC(GID_BAR, "A1:N5"), fetchC(GID_PIE_TOTAL, "A1:C2"), fetchC(GID_PIE_DETAIL, "A1:H2"),
-                    fetchC(GID_SMALL, "B3"), fetchC(GID_OLD, "B3"), fetchC(GID_OCCUPANCY, "B3")
+                    fetchC(GID_SMALL, "B3:B3"), fetchC(GID_OLD, "B3:B3"), fetchC(GID_OCCUPANCY, "B3:B3")
                 ]);
 
-                // Render Bar & 2 Main Pies (Logika sama seperti sebelumnya)
-                renderMainCharts(csvBar.split('\n'), csvTotal.split('\n'), csvDetail.split('\n'));
+                // 1. Render Chart Progress (Donut)
+                createDonutChart('donutSmall', csvS.trim(), '#3b82f6');
+                createDonutChart('donutOld', csvO.trim(), '#ef4444');
+                createDonutChart('donutOccupancy', csvOc.trim(), '#10b981');
 
-                // Render 3 Progress Donuts
-                createDonut('donutSmall', parseFloat(csvS.replace('%',''))/100 || 0, '#3b82f6');
-                createDonut('donutOld', parseFloat(csvO.replace('%',''))/100 || 0, '#ef4444');
-                createDonut('donutOccupancy', parseFloat(csvOc.replace('%',''))/100 || 0, '#10b981');
+                // 2. Render Grafik Utama
+                renderMain(csvBar, csvTotal, csvDetail);
 
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("Fetch Error:", e); }
             document.getElementById('loader').style.display = "none";
         }
 
-        function renderMainCharts(rowsB, rowsT, rowsD) {
-            // Logika render grafik utama (Overview, Total, Detail) sama seperti kode sebelumnya
-            // (Disederhanakan untuk efisiensi pesan, pastikan fungsi ini lengkap di script Anda)
-            const rB = rowsB.map(r => r.split(','));
-            const rT = rowsT.map(r => r.split(','));
-            const rD = rowsD.map(r => r.split(','));
+        function renderMain(csvB, csvT, csvD) {
+            const rB = csvB.split('\n').map(r => r.split(','));
+            const rT = csvT.split('\n').map(r => r.split(','));
+            const rD = csvD.split('\n').map(r => r.split(','));
 
             // Bar Chart
             const barLabels = rB[0].slice(1);
             const barData = { PS: rB[1].slice(1).map(v=>parseFloat(v)||0), PL: rB[2].slice(1).map(v=>parseFloat(v)||0), FIP: rB[3].slice(1).map(v=>parseFloat(v)||0), MSC: rB[4].slice(1).map(v=>parseFloat(v)||0) };
             
-            new Chart(document.getElementById('stockChart'), {
+            if(charts['stockChart']) charts['stockChart'].destroy();
+            charts['stockChart'] = new Chart(document.getElementById('stockChart'), {
                 type: 'bar',
                 data: {
                     labels: barLabels,
@@ -198,6 +205,7 @@
                             const tot = barData.PS[idx] + barData.PL[idx] + barData.FIP[idx] + barData.MSC[idx];
                             return tot > 0 ? (val/tot)*100 : 0;
                         }),
+                        realData: barData[key],
                         backgroundColor: ["#ffc000", "#a5a5a5", "#ed7d31", "#5b9bd5"][i]
                     }))
                 },
@@ -205,23 +213,26 @@
             });
 
             // Pie Total
-            new Chart(document.getElementById('pieTotalChart'), {
+            if(charts['pieTotalChart']) charts['pieTotalChart'].destroy();
+            charts['pieTotalChart'] = new Chart(document.getElementById('pieTotalChart'), {
                 type: 'pie',
-                data: { labels: rT[0], datasets: [{ data: rT[1].map(v=>parseFloat(v)||0), backgroundColor: ["#ef4444", "#3b82f6", "#facc15"], borderWidth: 2 }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { color: '#fff', formatter: (v,ctx)=>ctx.chart.data.labels[ctx.dataIndex] }, legend: { display: false } } }
+                data: { labels: rT[0], datasets: [{ data: rT[1].map(v=>parseFloat(v)||0), backgroundColor: ["#ef4444", "#3b82f6", "#facc15"], borderWidth: 3, borderColor: '#fff' }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { color: '#fff', font:{weight:'bold'}, formatter: (v,ctx)=>ctx.chart.data.labels[ctx.dataIndex] }, legend: { display: false } } }
             });
 
             // Pie Detail
-            new Chart(document.getElementById('pieDetailChart'), {
+            if(charts['pieDetailChart']) charts['pieDetailChart'].destroy();
+            charts['pieDetailChart'] = new Chart(document.getElementById('pieDetailChart'), {
                 type: 'pie',
-                data: { labels: rD[0], datasets: [{ data: rD[1].map(v=>parseFloat(v)||0), backgroundColor: ["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4"], borderWidth: 1 }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { color: '#fff', formatter: (v,ctx) => { const sum = ctx.dataset.data.reduce((a,b)=>a+b,0); return (v/sum*100).toFixed(1)+'%'; } }, legend: { display: false } } }
+                data: { labels: rD[0], datasets: [{ data: rD[1].map(v=>parseFloat(v)||0), backgroundColor: ["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4"], borderWidth: 2, borderColor:'#fff' }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { color: '#fff', font:{size:8}, formatter: (v,ctx) => { const sum = ctx.dataset.data.reduce((a,b)=>a+b,0); return (v/sum*100).toFixed(1)+'%'; } }, legend: { display: false } } }
             });
 
-            // Legend & Table
-            document.getElementById('tableHeader').innerHTML = '<th>Cat</th>' + barLabels.map(l=>`<th>${l}</th>`).join('');
-            document.getElementById('tableBody').innerHTML = Object.keys(barData).reverse().map(k => `<tr><td class="text-left"><span class="legend-box" style="background:${["#ffc000","#a5a5a5","#ed7d31","#5b9bd5"][Object.keys(barData).reverse().indexOf(k)]}"></span>${k}</td>${barData[k].map(v=>`<td>${Math.round(v)}</td>`).join('')}</tr>`).join('');
-            document.getElementById('pieTotalLegend').innerHTML = rT[0].map((l,i)=>`<div class="flex justify-between text-[8px] border-b pb-0.5"><span>${l}</span><b>${parseFloat(rT[1][i]).toLocaleString()}</b></div>`).join('');
+            // Legends & Table
+            document.getElementById('tableHeader').innerHTML = '<th class="border-r">Cat</th>' + barLabels.map(l=>`<th>${l}</th>`).join('');
+            document.getElementById('tableBody').innerHTML = Object.keys(barData).reverse().map((k,i) => `<tr><td class="text-left font-bold border-r px-1"><span class="legend-box" style="background:${["#ffc000","#a5a5a5","#ed7d31","#5b9bd5"][i]}"></span>${k}</td>${barData[k].map(v=>`<td>${Math.round(v).toLocaleString()}</td>`).join('')}</tr>`).join('');
+            document.getElementById('pieTotalLegend').innerHTML = rT[0].map((l,i)=>`<div class="flex justify-between text-[10px] border-b pb-1"><span>${l}</span><b>${parseFloat(rT[1][i]).toLocaleString()}</b></div>`).join('');
+            document.getElementById('pieDetailLegend').innerHTML = rD[0].map((l,i)=>`<div class="flex items-center text-[8px] truncate"><span class="legend-box" style="background:${["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4"][i]}"></span>${l}: <b>${Math.round(rD[1][i]).toLocaleString()}</b></div>`).join('');
         }
 
         function refreshAll() {
