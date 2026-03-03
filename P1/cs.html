@@ -52,10 +52,9 @@
         </header>
 
         <div class="flex flex-wrap lg:flex-nowrap gap-4 mb-6 items-stretch">
-            
             <div class="w-full lg:w-[75%] flex flex-col gap-4">
                 <section class="bg-white p-4 rounded-xl shadow-lg border border-gray-200">
-                    <h3 class="text-center font-bold text-slate-800 mb-2 text-[10px] uppercase border-b pb-1 tracking-widest">Visualisasi Overview Stock</h3>
+                    <h3 class="text-center font-bold text-slate-800 mb-2 text-[10px] uppercase border-b pb-1">Visualisasi Overview Stock</h3>
                     <div class="h-[280px] w-full mb-4">
                         <canvas id="stockChart"></canvas>
                     </div>
@@ -69,22 +68,16 @@
 
                 <section class="grid grid-cols-3 gap-4">
                     <div class="bg-white p-4 rounded-xl shadow-md border border-gray-200 flex flex-col items-center">
-                        <span class="text-[10px] font-black uppercase text-slate-600 mb-3 tracking-tighter text-center">Small Fish</span>
-                        <div class="h-28 w-28 relative">
-                            <canvas id="donutSmall"></canvas>
-                        </div>
+                        <span class="text-[10px] font-black uppercase text-slate-600 mb-3 text-center">Small Fish</span>
+                        <div class="h-28 w-28 relative"><canvas id="donutSmall"></canvas></div>
                     </div>
                     <div class="bg-white p-4 rounded-xl shadow-md border border-gray-200 flex flex-col items-center text-center">
-                        <span class="text-[10px] font-black uppercase text-slate-600 mb-3 tracking-tighter">Old Stock</span>
-                        <div class="h-28 w-28 relative">
-                            <canvas id="donutOld"></canvas>
-                        </div>
+                        <span class="text-[10px] font-black uppercase text-slate-600 mb-3">Old Stock</span>
+                        <div class="h-28 w-28 relative"><canvas id="donutOld"></canvas></div>
                     </div>
                     <div class="bg-white p-4 rounded-xl shadow-md border border-gray-200 flex flex-col items-center text-center">
-                        <span class="text-[10px] font-black uppercase text-slate-600 mb-3 tracking-tighter">Occupancy</span>
-                        <div class="h-28 w-28 relative">
-                            <canvas id="donutOccupancy"></canvas>
-                        </div>
+                        <span class="text-[10px] font-black uppercase text-slate-600 mb-3">Occupancy</span>
+                        <div class="h-28 w-28 relative"><canvas id="donutOccupancy"></canvas></div>
                     </div>
                 </section>
             </div>
@@ -92,17 +85,12 @@
             <div class="w-full lg:w-[25%] flex flex-col gap-4">
                 <section class="bg-white p-4 rounded-xl shadow-lg border border-gray-200 flex flex-col flex-1">
                     <h3 class="text-center font-bold text-slate-800 mb-2 text-[9px] uppercase border-b pb-1">Total Stock</h3>
-                    <div class="flex-1 flex items-center justify-center pie-3d-container">
-                        <canvas id="pieTotalChart"></canvas>
-                    </div>
+                    <div class="flex-1 flex items-center justify-center pie-3d-container"><canvas id="pieTotalChart"></canvas></div>
                     <div id="pieTotalLegend" class="mt-2 grid grid-cols-1 gap-1"></div>
                 </section>
-
                 <section class="bg-white p-4 rounded-xl shadow-lg border border-gray-200 flex flex-col flex-1">
                     <h3 class="text-center font-bold text-slate-800 mb-2 text-[9px] uppercase border-b pb-1">Product Detail (%)</h3>
-                    <div class="flex-1 flex items-center justify-center pie-3d-container">
-                        <canvas id="pieDetailChart"></canvas>
-                    </div>
+                    <div class="flex-1 flex items-center justify-center pie-3d-container"><canvas id="pieDetailChart"></canvas></div>
                     <div id="pieDetailLegend" class="mt-2 grid grid-cols-2 gap-1 overflow-y-auto max-h-[80px]"></div>
                 </section>
             </div>
@@ -114,7 +102,6 @@
     </main>
 
     <script>
-        // === KONFIGURASI ===
         const ID_GSHEET = "2PACX-1vShq3eIcceGMXuR6dBbMut6K99pAQZV4g86Aq5DWkP7yrFTGNMPkdfg4y6vbWeofWpFRO4gGNqLE4h8"; 
         const GID_BAR = "0"; 
         const GID_PIE_TOTAL = "252078912"; 
@@ -124,18 +111,27 @@
         const GID_OLD = "885583216";
         const GID_OCCUPANCY = "23039051";
         const ID_LAPORAN = "2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk"; 
- 
+
 
         Chart.register(ChartDataLabels);
-
         let charts = {};
 
-        function createDonutChart(id, rawValue, color) {
-            // Bersihkan data: hapus %, hapus koma, ubah ke desimal
-            let val = parseFloat(rawValue.toString().replace('%', '').replace(',', '.')) / 100;
-            if (isNaN(val)) val = 0;
-            if (val > 1) val = val / 100; // Proteksi jika angka yang ditarik 96.34 (bukan 0.9634)
+        // === FUNGSI PEMBERSIH DATA (SOLUSI 0.0%) ===
+        function parseValue(raw) {
+            if (!raw) return 0;
+            // Hapus semua karakter kecuali angka, titik, dan koma
+            let clean = raw.toString().replace(/[^\d.,]/g, '');
+            // Jika ada koma sebagai pemisah desimal, ubah ke titik
+            clean = clean.replace(',', '.');
+            let num = parseFloat(clean);
+            if (isNaN(num)) return 0;
+            
+            // Jika angka > 1 (misal 63 atau 96.34), ubah ke desimal (0.63 atau 0.9634)
+            return num > 1 ? num / 100 : num;
+        }
 
+        function createDonut(id, rawValue, color) {
+            const val = parseValue(rawValue);
             const ctx = document.getElementById(id).getContext('2d');
             if (charts[id]) charts[id].destroy();
             
@@ -143,7 +139,7 @@
                 type: 'doughnut',
                 data: {
                     datasets: [{
-                        data: [val, 1 - val],
+                        data: [val, 1 - val < 0 ? 0 : 1 - val],
                         backgroundColor: [color, '#f1f5f9'],
                         borderWidth: 0
                     }]
@@ -168,20 +164,19 @@
             const fetchC = (gid, range) => fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${gid}&range=${range}&output=csv&t=${ts}`).then(r => r.text());
             
             try {
+                // Tarik data B3 secara spesifik
                 const [csvBar, csvTotal, csvDetail, csvS, csvO, csvOc] = await Promise.all([
                     fetchC(GID_BAR, "A1:N5"), fetchC(GID_PIE_TOTAL, "A1:C2"), fetchC(GID_PIE_DETAIL, "A1:H2"),
-                    fetchC(GID_SMALL, "B3:B3"), fetchC(GID_OLD, "B3:B3"), fetchC(GID_OCCUPANCY, "B3:B3")
+                    fetchC(GID_SMALL, "B3"), fetchC(GID_OLD, "B3"), fetchC(GID_OCCUPANCY, "B3")
                 ]);
 
-                // 1. Render Chart Progress (Donut)
-                createDonutChart('donutSmall', csvS.trim(), '#3b82f6');
-                createDonutChart('donutOld', csvO.trim(), '#ef4444');
-                createDonutChart('donutOccupancy', csvOc.trim(), '#10b981');
+                // Render Donuts
+                createDonut('donutSmall', csvS, '#3b82f6');
+                createDonut('donutOld', csvO, '#ef4444');
+                createDonut('donutOccupancy', csvOc, '#10b981');
 
-                // 2. Render Grafik Utama
                 renderMain(csvBar, csvTotal, csvDetail);
-
-            } catch (e) { console.error("Fetch Error:", e); }
+            } catch (e) { console.error(e); }
             document.getElementById('loader').style.display = "none";
         }
 
@@ -190,7 +185,6 @@
             const rT = csvT.split('\n').map(r => r.split(','));
             const rD = csvD.split('\n').map(r => r.split(','));
 
-            // Bar Chart
             const barLabels = rB[0].slice(1);
             const barData = { PS: rB[1].slice(1).map(v=>parseFloat(v)||0), PL: rB[2].slice(1).map(v=>parseFloat(v)||0), FIP: rB[3].slice(1).map(v=>parseFloat(v)||0), MSC: rB[4].slice(1).map(v=>parseFloat(v)||0) };
             
@@ -205,14 +199,12 @@
                             const tot = barData.PS[idx] + barData.PL[idx] + barData.FIP[idx] + barData.MSC[idx];
                             return tot > 0 ? (val/tot)*100 : 0;
                         }),
-                        realData: barData[key],
                         backgroundColor: ["#ffc000", "#a5a5a5", "#ed7d31", "#5b9bd5"][i]
                     }))
                 },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false }, legend: { display: false } }, scales: { y: { stacked: true, max: 100 }, x: { stacked: true } } }
             });
 
-            // Pie Total
             if(charts['pieTotalChart']) charts['pieTotalChart'].destroy();
             charts['pieTotalChart'] = new Chart(document.getElementById('pieTotalChart'), {
                 type: 'pie',
@@ -220,7 +212,6 @@
                 options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { color: '#fff', font:{weight:'bold'}, formatter: (v,ctx)=>ctx.chart.data.labels[ctx.dataIndex] }, legend: { display: false } } }
             });
 
-            // Pie Detail
             if(charts['pieDetailChart']) charts['pieDetailChart'].destroy();
             charts['pieDetailChart'] = new Chart(document.getElementById('pieDetailChart'), {
                 type: 'pie',
@@ -228,7 +219,6 @@
                 options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { color: '#fff', font:{size:8}, formatter: (v,ctx) => { const sum = ctx.dataset.data.reduce((a,b)=>a+b,0); return (v/sum*100).toFixed(1)+'%'; } }, legend: { display: false } } }
             });
 
-            // Legends & Table
             document.getElementById('tableHeader').innerHTML = '<th class="border-r">Cat</th>' + barLabels.map(l=>`<th>${l}</th>`).join('');
             document.getElementById('tableBody').innerHTML = Object.keys(barData).reverse().map((k,i) => `<tr><td class="text-left font-bold border-r px-1"><span class="legend-box" style="background:${["#ffc000","#a5a5a5","#ed7d31","#5b9bd5"][i]}"></span>${k}</td>${barData[k].map(v=>`<td>${Math.round(v).toLocaleString()}</td>`).join('')}</tr>`).join('');
             document.getElementById('pieTotalLegend').innerHTML = rT[0].map((l,i)=>`<div class="flex justify-between text-[10px] border-b pb-1"><span>${l}</span><b>${parseFloat(rT[1][i]).toLocaleString()}</b></div>`).join('');
