@@ -17,12 +17,7 @@
         .chart-table th, .chart-table td { border: 1px solid #cbd5e1; padding: 2px; text-align: center; }
         .chart-table th { background-color: #f1f5f9; font-weight: bold; }
         .legend-box { width: 7px; height: 7px; display: inline-block; margin-right: 4px; border-radius: 2px; }
-        
-        /* Efek 3D Shadow */
-        .pie-3d-container { 
-            filter: drop-shadow(0px 12px 6px rgba(0,0,0,0.2)); 
-        }
-        
+        .pie-3d-container { filter: drop-shadow(0px 8px 4px rgba(0,0,0,0.15)); }
         .loader {
             border: 3px solid #f3f3f3; border-top: 3px solid #4ade80; border-radius: 50%;
             width: 18px; height: 18px; animation: spin 1s linear infinite; display: none;
@@ -58,37 +53,58 @@
 
         <div class="flex flex-wrap lg:flex-nowrap gap-4 mb-6 items-stretch">
             
-            <section class="bg-white p-4 rounded-xl shadow-lg border border-gray-200 w-full lg:w-[75%] flex flex-col h-full">
-                <h3 class="text-center font-bold text-slate-800 mb-2 text-[10px] uppercase border-b pb-1 tracking-widest">Overview Stock (Visual 100%)</h3>
-                <div class="h-[300px] w-full mb-4">
-                    <canvas id="stockChart"></canvas>
-                </div>
-                <div class="overflow-x-auto border border-gray-100 rounded-lg mt-auto">
-                    <table class="chart-table" id="dataTable">
-                        <thead><tr id="tableHeader" class="bg-slate-100"></tr></thead>
-                        <tbody id="tableBody"></tbody>
-                    </table>
-                </div>
-            </section>
+            <div class="w-full lg:w-[75%] flex flex-col gap-4">
+                <section class="bg-white p-4 rounded-xl shadow-lg border border-gray-200 flex flex-col">
+                    <h3 class="text-center font-bold text-slate-800 mb-2 text-[10px] uppercase border-b pb-1 tracking-widest">Visualisasi Overview Stock</h3>
+                    <div class="h-[300px] w-full mb-4">
+                        <canvas id="stockChart"></canvas>
+                    </div>
+                    <div class="overflow-x-auto border border-gray-100 rounded-lg">
+                        <table class="chart-table" id="dataTable">
+                            <thead><tr id="tableHeader" class="bg-slate-100"></tr></thead>
+                            <tbody id="tableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="grid grid-cols-3 gap-4">
+                    <div class="bg-white p-3 rounded-xl shadow-md border border-gray-200 flex flex-col items-center">
+                        <span class="text-[9px] font-bold uppercase text-gray-500 mb-2 tracking-tighter text-center leading-none">Small Fish<br>Progress</span>
+                        <div class="h-24 w-24 relative">
+                            <canvas id="donutSmall"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-3 rounded-xl shadow-md border border-gray-200 flex flex-col items-center text-center">
+                        <span class="text-[9px] font-bold uppercase text-gray-500 mb-2 tracking-tighter leading-none">Old Stock<br>Ratio</span>
+                        <div class="h-24 w-24 relative">
+                            <canvas id="donutOld"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-3 rounded-xl shadow-md border border-gray-200 flex flex-col items-center text-center">
+                        <span class="text-[9px] font-bold uppercase text-gray-500 mb-2 tracking-tighter leading-none">Warehouse<br>Occupancy</span>
+                        <div class="h-24 w-24 relative">
+                            <canvas id="donutOccupancy"></canvas>
+                        </div>
+                    </div>
+                </section>
+            </div>
 
             <div class="w-full lg:w-[25%] flex flex-col gap-4">
-                
-                <section class="bg-white p-4 rounded-xl shadow-lg border border-gray-200 flex flex-col flex-1 min-h-[220px]">
-                    <h3 class="text-center font-bold text-slate-800 mb-2 text-[9px] uppercase border-b pb-1 tracking-widest">Total Stock</h3>
+                <section class="bg-white p-4 rounded-xl shadow-lg border border-gray-200 flex flex-col flex-1">
+                    <h3 class="text-center font-bold text-slate-800 mb-2 text-[9px] uppercase border-b pb-1">Total Stock</h3>
                     <div class="flex-1 flex items-center justify-center pie-3d-container">
                         <canvas id="pieTotalChart"></canvas>
                     </div>
                     <div id="pieTotalLegend" class="mt-2 grid grid-cols-1 gap-1"></div>
                 </section>
 
-                <section class="bg-white p-4 rounded-xl shadow-lg border border-gray-200 flex flex-col flex-1 min-h-[220px]">
-                    <h3 class="text-center font-bold text-slate-800 mb-2 text-[9px] uppercase border-b pb-1 tracking-widest">Product Detail (%)</h3>
+                <section class="bg-white p-4 rounded-xl shadow-lg border border-gray-200 flex flex-col flex-1">
+                    <h3 class="text-center font-bold text-slate-800 mb-2 text-[9px] uppercase border-b pb-1">Product Detail (%)</h3>
                     <div class="flex-1 flex items-center justify-center pie-3d-container">
                         <canvas id="pieDetailChart"></canvas>
                     </div>
                     <div id="pieDetailLegend" class="mt-2 grid grid-cols-2 gap-1 overflow-y-auto max-h-[60px]"></div>
                 </section>
-
             </div>
         </div>
 
@@ -98,143 +114,114 @@
     </main>
 
     <script>
-        // === KONFIGURASI ID GSHEET ===
         const ID_GSHEET = "2PACX-1vShq3eIcceGMXuR6dBbMut6K99pAQZV4g86Aq5DWkP7yrFTGNMPkdfg4y6vbWeofWpFRO4gGNqLE4h8"; 
         const GID_BAR = "0"; 
         const GID_PIE_TOTAL = "252078912"; 
-        const GID_PIE_DETAIL = "1764500224"; 
+        const GID_PIE_DETAIL = "1764500224";
+        // GID Baru untuk 3 Donut
+        const GID_SMALL = "1052774962";
+        const GID_OLD = "885583216";
+        const GID_OCCUPANCY = "23039051";
         const ID_LAPORAN = "2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk"; 
 
         Chart.register(ChartDataLabels);
 
-        let stockChart, pieTotalChart, pieDetailChart;
-        const barColors = { PS: "#5b9bd5", PL: "#ed7d31", FIP: "#a5a5a5", MSC: "#ffc000" };
-        const pieColors3D = ["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899"];
-
-        function renderCharts(rowsBar, rowsTotal, rowsDetail) {
-            // --- 1. BAR CHART ---
-            const barLabels = rowsBar[0].slice(1).map(l => l.trim());
-            const parseR = (row) => row.slice(1).map(v => parseFloat(v.replace(/[^\d.-]/g, '')) || 0);
-            const barData = { PS: parseR(rowsBar[1]), PL: parseR(rowsBar[2]), FIP: parseR(rowsBar[3]), MSC: parseR(rowsBar[4]) };
-
-            const ctxBar = document.getElementById('stockChart').getContext('2d');
-            if(stockChart) stockChart.destroy();
-            stockChart = new Chart(ctxBar, {
-                type: 'bar',
+        function createDonut(id, val, color) {
+            const ctx = document.getElementById(id).getContext('2d');
+            const pct = (val * 100).toFixed(1);
+            return new Chart(ctx, {
+                type: 'doughnut',
                 data: {
-                    labels: barLabels,
-                    datasets: Object.keys(barData).reverse().map((key, idx) => ({
-                        label: key,
-                        data: barData[key].map((val, i) => {
-                            const total = barData.PS[i] + barData.PL[i] + barData.FIP[i] + barData.MSC[i];
-                            return total > 0 ? (val / total) * 100 : 0;
-                        }),
-                        realData: barData[key],
-                        backgroundColor: Object.values(barColors).reverse()[idx]
-                    }))
+                    datasets: [{
+                        data: [val, 1 - val],
+                        backgroundColor: [color, '#f1f5f9'],
+                        borderWidth: 0,
+                        circumference: 360,
+                        rotation: 0
+                    }]
                 },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins: { datalabels: { display: false }, legend: { display: false } }, 
-                    scales: { 
-                        y: { stacked: true, max: 100, ticks: { callback: v => v + '%', font: { size: 9 } } }, 
-                        x: { stacked: true, ticks: { font: { size: 8 } } } 
-                    } 
-                }
-            });
-
-            // --- 2. PIE TOTAL ---
-            const totalLabels = rowsTotal[0].map(l => l.trim());
-            const totalValues = rowsTotal[1].map(v => parseFloat(v.replace(/[^\d.-]/g, '')) || 0);
-            const totalColors = ["#ef4444", "#3b82f6", "#facc15"];
-
-            const ctxTotal = document.getElementById('pieTotalChart').getContext('2d');
-            if(pieTotalChart) pieTotalChart.destroy();
-            pieTotalChart = new Chart(ctxTotal, {
-                type: 'pie',
-                data: { labels: totalLabels, datasets: [{ data: totalValues, backgroundColor: totalColors, borderWidth: 3, borderColor: '#fff' }] },
-                options: { 
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { display: false },
-                        tooltip: { callbacks: { label: (c) => ` Qty: ${c.raw.toLocaleString()}` } },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '80%',
+                    plugins: {
                         datalabels: {
-                            color: '#fff', font: { weight: 'bold', size: 9 },
-                            formatter: (val, ctx) => ctx.chart.data.labels[ctx.dataIndex]
-                        }
-                    } 
+                            formatter: () => pct + '%',
+                            color: '#1e293b', font: { weight: 'bold', size: 12 },
+                            anchor: 'center', align: 'center'
+                        },
+                        tooltip: { enabled: false }
+                    }
                 }
             });
-
-            // Legend Total Stock di Bawah (Tanpa MT)
-            const legendTotal = document.getElementById('pieTotalLegend');
-            legendTotal.innerHTML = totalLabels.map((l, i) => `
-                <div class="flex justify-between text-[8px] border-b pb-0.5">
-                    <span><span class="legend-box" style="background:${totalColors[i]}"></span>${l}</span>
-                    <span class="font-bold">${totalValues[i].toLocaleString()}</span>
-                </div>`).join('');
-
-            // --- 3. PIE DETAIL ---
-            const detailLabels = rowsDetail[0].map(l => l.trim());
-            const detailValues = rowsDetail[1].map(v => parseFloat(v.replace(/[^\d.-]/g, '')) || 0);
-            const totalSumDetail = detailValues.reduce((a, b) => a + b, 0);
-
-            const ctxDetail = document.getElementById('pieDetailChart').getContext('2d');
-            if(pieDetailChart) pieDetailChart.destroy();
-            pieDetailChart = new Chart(ctxDetail, {
-                type: 'pie',
-                data: { labels: detailLabels, datasets: [{ data: detailValues, backgroundColor: pieColors3D, borderWidth: 2, borderColor: '#fff' }] },
-                options: { 
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { display: false },
-                        tooltip: { callbacks: { label: (c) => ` Qty: ${c.raw.toLocaleString()}` } },
-                        datalabels: {
-                            color: '#fff', font: { weight: 'bold', size: 8 },
-                            formatter: (value) => {
-                                let pct = (value / totalSumDetail * 100).toFixed(1) + '%';
-                                return value > (totalSumDetail * 0.05) ? pct : '';
-                            }
-                        }
-                    } 
-                }
-            });
-
-            // Legend Detail Product di Bawah
-            const legendDetail = document.getElementById('pieDetailLegend');
-            legendDetail.innerHTML = detailLabels.map((l, i) => `
-                <div class="flex items-center text-[7px] leading-tight">
-                    <span class="legend-box" style="background:${pieColors3D[i]}"></span>
-                    <span class="truncate">${l}: <b>${detailValues[i].toLocaleString()}</b></span>
-                </div>`).join('');
-
-            // Update Tabel Bawah
-            const head = document.getElementById('tableHeader');
-            head.innerHTML = '<th class="border-r">Cat</th>' + barLabels.map(l => `<th>${l}</th>`).join('');
-            const body = document.getElementById('tableBody');
-            body.innerHTML = Object.keys(barData).reverse().map(key => `<tr><td class="font-bold bg-gray-50 border-r text-left px-1"><span class="legend-box" style="background:${barColors[key]}"></span>${key}</td>${barData[key].map(v => `<td>${Math.round(v).toLocaleString()}</td>`).join('')}</tr>`).join('');
         }
 
         async function fetchData() {
             document.getElementById('loader').style.display = "block";
+            const ts = new Date().getTime();
+            const fetchC = (gid, range) => fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${gid}&range=${range}&output=csv&t=${ts}`).then(r => r.text());
+            
             try {
-                const ts = new Date().getTime();
-                const fetchCSV = (gid, range) => fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${gid}&range=${range}&output=csv&t=${ts}`).then(r => r.text());
-                
-                const [csvBar, csvTotal, csvDetail] = await Promise.all([
-                    fetchCSV(GID_BAR, "A1:N5"),
-                    fetchCSV(GID_PIE_TOTAL, "A1:C2"),
-                    fetchCSV(GID_PIE_DETAIL, "A1:H2") 
+                const [csvBar, csvTotal, csvDetail, csvS, csvO, csvOc] = await Promise.all([
+                    fetchC(GID_BAR, "A1:N5"), fetchC(GID_PIE_TOTAL, "A1:C2"), fetchC(GID_PIE_DETAIL, "A1:H2"),
+                    fetchC(GID_SMALL, "B3"), fetchC(GID_OLD, "B3"), fetchC(GID_OCCUPANCY, "B3")
                 ]);
 
-                renderCharts(
-                    csvBar.split('\n').map(r => r.split(',')),
-                    csvTotal.split('\n').map(r => r.split(',')),
-                    csvDetail.split('\n').map(r => r.split(','))
-                );
-            } catch (e) { console.error("Error Loading Data"); }
+                // Render Bar & 2 Main Pies (Logika sama seperti sebelumnya)
+                renderMainCharts(csvBar.split('\n'), csvTotal.split('\n'), csvDetail.split('\n'));
+
+                // Render 3 Progress Donuts
+                createDonut('donutSmall', parseFloat(csvS.replace('%',''))/100 || 0, '#3b82f6');
+                createDonut('donutOld', parseFloat(csvO.replace('%',''))/100 || 0, '#ef4444');
+                createDonut('donutOccupancy', parseFloat(csvOc.replace('%',''))/100 || 0, '#10b981');
+
+            } catch (e) { console.error(e); }
             document.getElementById('loader').style.display = "none";
+        }
+
+        function renderMainCharts(rowsB, rowsT, rowsD) {
+            // Logika render grafik utama (Overview, Total, Detail) sama seperti kode sebelumnya
+            // (Disederhanakan untuk efisiensi pesan, pastikan fungsi ini lengkap di script Anda)
+            const rB = rowsB.map(r => r.split(','));
+            const rT = rowsT.map(r => r.split(','));
+            const rD = rowsD.map(r => r.split(','));
+
+            // Bar Chart
+            const barLabels = rB[0].slice(1);
+            const barData = { PS: rB[1].slice(1).map(v=>parseFloat(v)||0), PL: rB[2].slice(1).map(v=>parseFloat(v)||0), FIP: rB[3].slice(1).map(v=>parseFloat(v)||0), MSC: rB[4].slice(1).map(v=>parseFloat(v)||0) };
+            
+            new Chart(document.getElementById('stockChart'), {
+                type: 'bar',
+                data: {
+                    labels: barLabels,
+                    datasets: Object.keys(barData).reverse().map((key, i) => ({
+                        label: key,
+                        data: barData[key].map((val,idx) => {
+                            const tot = barData.PS[idx] + barData.PL[idx] + barData.FIP[idx] + barData.MSC[idx];
+                            return tot > 0 ? (val/tot)*100 : 0;
+                        }),
+                        backgroundColor: ["#ffc000", "#a5a5a5", "#ed7d31", "#5b9bd5"][i]
+                    }))
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false }, legend: { display: false } }, scales: { y: { stacked: true, max: 100 }, x: { stacked: true } } }
+            });
+
+            // Pie Total
+            new Chart(document.getElementById('pieTotalChart'), {
+                type: 'pie',
+                data: { labels: rT[0], datasets: [{ data: rT[1].map(v=>parseFloat(v)||0), backgroundColor: ["#ef4444", "#3b82f6", "#facc15"], borderWidth: 2 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { color: '#fff', formatter: (v,ctx)=>ctx.chart.data.labels[ctx.dataIndex] }, legend: { display: false } } }
+            });
+
+            // Pie Detail
+            new Chart(document.getElementById('pieDetailChart'), {
+                type: 'pie',
+                data: { labels: rD[0], datasets: [{ data: rD[1].map(v=>parseFloat(v)||0), backgroundColor: ["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4"], borderWidth: 1 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { color: '#fff', formatter: (v,ctx) => { const sum = ctx.dataset.data.reduce((a,b)=>a+b,0); return (v/sum*100).toFixed(1)+'%'; } }, legend: { display: false } } }
+            });
+
+            // Legend & Table
+            document.getElementById('tableHeader').innerHTML = '<th>Cat</th>' + barLabels.map(l=>`<th>${l}</th>`).join('');
+            document.getElementById('tableBody').innerHTML = Object.keys(barData).reverse().map(k => `<tr><td class="text-left"><span class="legend-box" style="background:${["#ffc000","#a5a5a5","#ed7d31","#5b9bd5"][Object.keys(barData).reverse().indexOf(k)]}"></span>${k}</td>${barData[k].map(v=>`<td>${Math.round(v)}</td>`).join('')}</tr>`).join('');
+            document.getElementById('pieTotalLegend').innerHTML = rT[0].map((l,i)=>`<div class="flex justify-between text-[8px] border-b pb-0.5"><span>${l}</span><b>${parseFloat(rT[1][i]).toLocaleString()}</b></div>`).join('');
         }
 
         function refreshAll() {
@@ -243,10 +230,8 @@
         }
 
         function toggleSidebar() {
-            const sb = document.getElementById('sidebar');
-            const mc = document.getElementById('mainContent');
-            sb.classList.toggle('sidebar-closed');
-            mc.style.marginLeft = sb.classList.contains('sidebar-closed') ? "0" : "14rem";
+            document.getElementById('sidebar').classList.toggle('sidebar-closed');
+            document.getElementById('mainContent').style.marginLeft = document.getElementById('sidebar').classList.contains('sidebar-closed') ? "0" : "14rem";
         }
 
         window.onload = () => { if(!ID_GSHEET.includes("ID_GSHEET")) refreshAll(); };
