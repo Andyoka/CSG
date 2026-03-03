@@ -14,26 +14,29 @@
         
         /* Efek 3D Lembut & Bayangan */
         .chart-3d-effect {
-            filter: drop-shadow(0px 10px 8px rgba(0,0,0,0.2));
-            transition: transform 0.3s ease;
+            filter: drop-shadow(0px 8px 6px rgba(0,0,0,0.15));
         }
         
         .donut-card {
             background: white;
-            border-radius: 1.5rem;
+            border-radius: 1.25rem;
             padding: 1rem;
-            box-shadow: 0 4px 20px -5px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 15px -3px rgba(0,0,0,0.07);
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-height: 220px;
+            justify-content: space-between;
+            min-height: 240px;
+            transition: transform 0.2s ease;
+            border: 1px solid #f1f5f9;
         }
+        .donut-card:hover { transform: translateY(-5px); }
 
         .donut-container {
             position: relative;
-            width: 110px;
-            height: 110px;
-            margin-bottom: 0.5rem;
+            width: 105px;
+            height: 105px;
+            margin: 10px 0;
         }
 
         .donut-inner-text {
@@ -46,11 +49,13 @@
             font-size: 10px;
             color: #64748b;
             text-align: center;
-            line-height: 1.2;
+            width: 100%;
+            padding-top: 8px;
+            border-top: 1px dashed #e2e8f0;
         }
     </style>
 </head>
-<body class="bg-gray-50 font-sans">
+<body class="bg-gray-50 font-sans overflow-x-hidden">
 
     <aside id="sidebar" class="fixed top-0 left-0 h-screen w-56 bg-[#1e293b] text-white z-50 shadow-2xl">
         <div class="p-6 text-center border-b border-slate-700">
@@ -65,83 +70,93 @@
     </aside>
 
     <main id="mainContent" class="ml-56 p-4 main-content">
-        <header class="flex justify-between items-center mb-6 bg-[#1e293b] text-white p-3 rounded-lg border-l-4 border-[#4ade80]">
-            <h1 class="text-lg font-bold uppercase tracking-tight">Cold Storage <span class="text-[#4ade80]">Live Monitor</span></h1>
-            <button onclick="refreshAll()" class="bg-[#4ade80] text-black px-4 py-1 rounded text-[10px] font-black hover:scale-105 transition">🔄 REFRESH</button>
+        <header class="flex justify-between items-center mb-6 bg-[#1e293b] text-white p-3 rounded-xl border-l-4 border-[#4ade80] shadow-md">
+            <div class="flex items-center gap-4">
+                <button onclick="toggleSidebar()" class="hover:text-[#4ade80]">☰</button>
+                <h1 class="text-lg font-extrabold uppercase tracking-tight">Cold Storage <span class="text-[#4ade80]">Stock Monitor</span></h1>
+            </div>
+            <button onclick="refreshAll()" class="bg-[#4ade80] text-black px-5 py-1.5 rounded-lg text-[10px] font-black hover:brightness-110 active:scale-95 transition">🔄 REFRESH DATA</button>
         </header>
 
         <section class="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8">
             <div class="donut-card">
+                <h4 class="text-[11px] font-black text-slate-700 uppercase tracking-tighter">Small Fish</h4>
                 <div class="donut-container chart-3d-effect">
                     <canvas id="chart1"></canvas>
                     <div id="text1" class="donut-inner-text">0%</div>
                 </div>
-                <div id="legend1" class="custom-legend"></div>
+                <div id="legend1" class="custom-legend">Memuat data...</div>
             </div>
+
             <div class="donut-card">
+                <h4 class="text-[11px] font-black text-slate-700 uppercase tracking-tighter text-center">Old Stock Ratio</h4>
                 <div class="donut-container chart-3d-effect">
                     <canvas id="chart2"></canvas>
                     <div id="text2" class="donut-inner-text">0%</div>
                 </div>
-                <div id="legend2" class="custom-legend"></div>
+                <div id="legend2" class="custom-legend">Memuat data...</div>
             </div>
+
             <div class="donut-card">
+                <h4 class="text-[11px] font-black text-slate-700 uppercase tracking-tighter">Occupancy</h4>
                 <div class="donut-container chart-3d-effect">
                     <canvas id="chart3"></canvas>
                     <div id="text3" class="donut-inner-text">0%</div>
                 </div>
-                <div id="legend3" class="custom-legend"></div>
+                <div id="legend3" class="custom-legend">Memuat data...</div>
             </div>
-            <div class="donut-card bg-gray-100 border-2 border-dashed border-gray-200 opacity-50"></div>
-            <div class="donut-card bg-gray-100 border-2 border-dashed border-gray-200 opacity-50"></div>
-            <div class="donut-card bg-gray-100 border-2 border-dashed border-gray-200 opacity-50"></div>
+
+            <div class="donut-card bg-gray-100/50 border-2 border-dashed border-gray-200 opacity-60 flex items-center justify-center text-[10px] text-gray-400 font-bold uppercase">Slot 4</div>
+            <div class="donut-card bg-gray-100/50 border-2 border-dashed border-gray-200 opacity-60 flex items-center justify-center text-[10px] text-gray-400 font-bold uppercase">Slot 5</div>
+            <div class="donut-card bg-gray-100/50 border-2 border-dashed border-gray-200 opacity-60 flex items-center justify-center text-[10px] text-gray-400 font-bold uppercase">Slot 6</div>
         </section>
 
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
-            <div class="lg:col-span-3 bg-white p-4 rounded-xl shadow-lg border border-gray-200">
-                <h3 class="font-bold text-xs uppercase mb-4 text-slate-500 tracking-widest">Main Stock Overview</h3>
+            <div class="lg:col-span-3 bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                <h3 class="font-bold text-[10px] uppercase mb-4 text-slate-400 tracking-widest border-b pb-2">Main Inventory Status</h3>
                 <div class="h-[300px]"><canvas id="mainBarChart"></canvas></div>
             </div>
             <div class="lg:col-span-1 flex flex-col gap-4">
-                <div class="bg-white p-4 rounded-xl shadow-lg flex-1 border border-gray-200">
-                    <canvas id="sidePie1"></canvas>
-                </div>
-                <div class="bg-white p-4 rounded-xl shadow-lg flex-1 border border-gray-200">
-                    <canvas id="sidePie2"></canvas>
-                </div>
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex-1"><canvas id="sidePie1"></canvas></div>
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex-1"><canvas id="sidePie2"></canvas></div>
             </div>
         </div>
+
+        <iframe id="sheetFrame" src="" class="w-full h-[500px] border-none rounded-2xl shadow-lg mt-8 bg-white"></iframe>
     </main>
 
     <script>
-        // CONFIG
-        const ID_GSHEET = "2PACX-1vShq3eIcceGMXuR6dBbMut6K99pAQZV4g86Aq5DWkP7yrFTGNMPkdfg4y6vbWeofWpFRO4gGNqLE4h8";
-        const GID_1 = "1052774962", GID_2 = "885583216", GID_3 = "23039051";
-        
+        // MASUKKAN ID DAN GID ANDA DI SINI
+        const ID_GSHEET = "2PACX-1vShq3eIcceGMXuR6dBbMut6K99pAQZV4g86Aq5DWkP7yrFTGNMPkdfg4y6vbWeofWpFRO4gGNqLE4h8"; 
+        const GID_BAR = "0", GID_TOTAL = "252078912", GID_DETAIL = "1764500224";
+        const GID_SMALL = "1052774962", GID_OLD = "885583216", GID_OCCUPANCY = "23039051";
+        const ID_LAPORAN = "2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk";
+
+
         Chart.register(ChartDataLabels);
         let charts = {};
 
-        // Fungsi khusus mengambil data A1:B2 dan menjadikannya Legenda
-        async function fetchDonutData(gid, canvasId, textId, legendId) {
-            const t = new Date().getTime();
-            const response = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${gid}&range=A1:B3&output=csv&t=${t}`);
-            const data = await response.text();
-            const rows = data.split('\n').map(r => r.split(','));
+        async function fetchAndRender(gid, canvasId, textId, legendId) {
+            try {
+                const t = new Date().getTime();
+                const response = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${gid}&range=A1:B3&output=csv&t=${t}`);
+                const csv = await response.text();
+                const rows = csv.split('\n').map(r => r.split(','));
 
-            // Ambil Nilai Persentase dari baris ke-3 (B3)
-            let rawVal = rows[2][1].replace(/[^\d.,]/g, '').replace(',', '.');
-            let val = parseFloat(rawVal);
-            let percent = val > 1 ? val / 100 : val;
+                // Baris 3 (B3) untuk Persentase Donut
+                let rawVal = rows[2][1].replace(/[^\d.,]/g, '').replace(',', '.');
+                let val = parseFloat(rawVal);
+                let percent = val > 1 ? val / 100 : val;
 
-            // Render Chart
-            renderDonut(canvasId, percent);
-            document.getElementById(textId).innerText = (percent * 100).toFixed(1) + '%';
+                renderDonut(canvasId, percent);
+                document.getElementById(textId).innerText = (percent * 100).toFixed(1) + '%';
 
-            // Render Legenda dari A1:B2
-            document.getElementById(legendId).innerHTML = `
-                <div class="font-bold text-slate-800 uppercase text-[9px]">${rows[0][0]}: ${rows[0][1]}</div>
-                <div class="mt-1">${rows[1][0]}: ${rows[1][1]}</div>
-            `;
+                // Baris 1 & 2 (A1:B2) untuk Legenda
+                document.getElementById(legendId).innerHTML = `
+                    <div class="flex justify-between font-bold text-slate-700"><span>${rows[0][0]}</span><span>${rows[0][1]}</span></div>
+                    <div class="flex justify-between mt-0.5"><span>${rows[1][0]}</span><span>${rows[1][1]}</span></div>
+                `;
+            } catch (e) { console.error("Gagal ambil data:", e); }
         }
 
         function renderDonut(id, val) {
@@ -152,18 +167,18 @@
                 type: 'doughnut',
                 data: {
                     datasets: [{
-                        data: [val, 1 - val],
-                        backgroundColor: ['#f97316', '#1e293b'], // Oranye vs Gelap (Sesuai gambar awal)
+                        data: [val, 1 - val < 0 ? 0 : 1 - val],
+                        backgroundColor: ['#f97316', '#1e293b'], // Oranye vs Gelap
                         borderWidth: 0,
-                        hoverOffset: 10, // Efek membesar saat disentuh
-                        borderRadius: 5
+                        hoverOffset: 12, // Membuat potongan "melompat" saat disentuh
+                        borderRadius: 4
                     }]
                 },
                 options: {
-                    cutout: '75%',
+                    cutout: '72%',
                     responsive: true,
                     maintainAspectRatio: false,
-                    animation: { animateScale: true, animateRotate: true },
+                    animation: { duration: 1500, easing: 'easeOutQuart' },
                     plugins: { 
                         datalabels: { display: false },
                         tooltip: { enabled: true }
@@ -173,10 +188,10 @@
         }
 
         function refreshAll() {
-            fetchDonutData(GID_1, 'chart1', 'text1', 'legend1');
-            fetchDonutData(GID_2, 'chart2', 'text2', 'legend2');
-            fetchDonutData(GID_3, 'chart3', 'text3', 'legend3');
-            // Tambahkan pemanggilan fungsi bar chart lama Anda di sini jika perlu
+            document.getElementById('sheetFrame').src = `https://docs.google.com/spreadsheets/d/e/${ID_LAPORAN}/pubhtml?widget=true&headers=false`;
+            fetchAndRender(GID_SMALL, 'chart1', 'text1', 'legend1');
+            fetchAndRender(GID_OLD, 'chart2', 'text2', 'legend2');
+            fetchAndRender(GID_OCCUPANCY, 'chart3', 'text3', 'legend3');
         }
 
         function toggleSidebar() {
