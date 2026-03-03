@@ -26,14 +26,12 @@
             font-size: 16px; font-weight: 900; color: #065f46; /* Emerald Dark */
         }
         .donut-card { 
-            min-height: 140px; 
+            min-height: 160px; /* Sedikit lebih tinggi untuk Qty */
             display: flex; 
             flex-direction: column; 
             align-items: center; 
             justify-content: center;
-            transition: transform 0.2s;
         }
-        .donut-card:hover { transform: translateY(-3px); }
     </style>
 </head>
 <body class="bg-gray-50 font-sans overflow-x-hidden">
@@ -54,46 +52,50 @@
         <header class="flex justify-between items-center mb-4 bg-[#1e293b] text-white p-3 rounded-lg shadow-md border-l-4 border-neon-green">
             <div class="flex items-center">
                 <button onclick="toggleSidebar()" class="bg-slate-700 p-2 rounded mr-4 text-xs hover:bg-slate-600 transition">☰</button>
-                <h1 class="text-lg font-bold uppercase tracking-tight">Cold Storage <span class="text-neon-green">Real-time</span></h1>
+                <h1 class="text-lg font-bold uppercase tracking-tight">Overview <span class="text-neon-green">Stock</span></h1>
             </div>
             <div class="flex items-center gap-4">
                 <div id="loader" class="hidden w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                <button onclick="refreshAll()" class="bg-neon-green text-black px-4 py-1 rounded text-[10px] font-black shadow-md hover:bg-green-400 transition">🔄 REFRESH DATA</button>
+                <button onclick="refreshAll()" class="bg-neon-green text-black px-4 py-1 rounded text-[10px] font-black shadow-md hover:bg-green-400">🔄 REFRESH</button>
             </div>
         </header>
 
         <section class="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
-            <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200 donut-card">
-                <span class="text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Small Fish</span>
+            <div class="bg-white p-3 rounded-xl shadow border border-gray-200 donut-card">
+                <span class="text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest text-center">Small Fish</span>
                 <div class="donut-container"><canvas id="donutSmall"></canvas><div id="textSmall" class="donut-inner-text">0%</div></div>
+                <div class="text-[9px] text-gray-400 mt-2">Qty: <b id="qtySmall" class="text-slate-700">0</b></div>
             </div>
-            <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200 donut-card">
-                <span class="text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Old Stock</span>
+            <div class="bg-white p-3 rounded-xl shadow border border-gray-200 donut-card">
+                <span class="text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest text-center Leading-tight">Old Stock<br>Ratio</span>
                 <div class="donut-container"><canvas id="donutOld"></canvas><div id="textOld" class="donut-inner-text">0%</div></div>
+                <div class="text-[9px] text-gray-400 mt-2">Qty: <b id="qtyOld" class="text-slate-700">0</b></div>
             </div>
-            <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200 donut-card">
-                <span class="text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Occupancy</span>
+            <div class="bg-white p-3 rounded-xl shadow border border-gray-200 donut-card">
+                <span class="text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest text-center">Occupancy</span>
                 <div class="donut-container"><canvas id="donutOccupancy"></canvas><div id="textOccupancy" class="donut-inner-text">0%</div></div>
+                <div class="text-[9px] text-gray-400 mt-2">Qty: <b id="qtyOccupancy" class="text-slate-700">0</b></div>
             </div>
-            <div class="bg-gray-100/50 p-3 rounded-xl border border-dashed border-gray-300 donut-card">
+            <div class="bg-gray-50 p-3 rounded-xl border border-dashed border-gray-300 donut-card">
                 <span class="text-[9px] text-gray-400 font-bold uppercase tracking-widest italic">Slot 4</span>
             </div>
-            <div class="bg-gray-100/50 p-3 rounded-xl border border-dashed border-gray-300 donut-card">
+            <div class="bg-gray-50 p-3 rounded-xl border border-dashed border-gray-300 donut-card">
                 <span class="text-[9px] text-gray-400 font-bold uppercase tracking-widest italic">Slot 5</span>
             </div>
-            <div class="bg-gray-100/50 p-3 rounded-xl border border-dashed border-gray-300 donut-card">
+            <div class="bg-gray-50 p-3 rounded-xl border border-dashed border-gray-300 donut-card">
                 <span class="text-[9px] text-gray-400 font-bold uppercase tracking-widest italic">Slot 6</span>
             </div>
         </section>
 
         <div class="flex flex-wrap lg:flex-nowrap gap-4 mb-6 items-stretch">
+            
             <div class="w-full lg:w-[75%] flex flex-col gap-4">
                 <section class="bg-white p-4 rounded-xl shadow-lg border border-gray-200">
-                    <h3 class="text-left font-black text-slate-700 mb-4 text-xs uppercase tracking-widest border-l-4 border-neon-green pl-2">Overview Stock Visual</h3>
+                    <h3 class="text-center font-bold text-slate-800 mb-2 text-[10px] uppercase border-b pb-1">Visualisasi Overview Stock ( Visual 100% )</h3>
                     <div class="h-[280px] w-full mb-4"><canvas id="stockChart"></canvas></div>
                     <div class="overflow-x-auto border border-gray-100 rounded-lg">
                         <table class="chart-table" id="dataTable">
-                            <thead><tr id="tableHeader" class="bg-slate-50"></tr></thead>
+                            <thead><tr id="tableHeader" class="bg-slate-100"></tr></thead>
                             <tbody id="tableBody"></tbody>
                         </table>
                     </div>
@@ -102,59 +104,55 @@
 
             <div class="w-full lg:w-[25%] flex flex-col gap-4">
                 <section class="bg-white p-4 rounded-xl shadow-lg border border-gray-200 flex flex-col flex-1">
-                    <h3 class="text-center font-bold text-slate-800 mb-2 text-[9px] uppercase border-b pb-1 tracking-tighter">Total Stock</h3>
+                    <h3 class="text-center font-bold text-slate-800 mb-2 text-[9px] uppercase border-b pb-1">Total Stock</h3>
                     <div class="flex-1 flex items-center justify-center"><canvas id="pieTotalChart"></canvas></div>
                     <div id="pieTotalLegend" class="mt-2 grid grid-cols-1 gap-1"></div>
                 </section>
                 <section class="bg-white p-4 rounded-xl shadow-lg border border-gray-200 flex flex-col flex-1">
-                    <h3 class="text-center font-bold text-slate-800 mb-2 text-[9px] uppercase border-b pb-1 tracking-tighter">Product Detail</h3>
+                    <h3 class="text-center font-bold text-slate-800 mb-2 text-[9px] uppercase border-b pb-1">Product Detail (%)</h3>
                     <div class="flex-1 flex items-center justify-center"><canvas id="pieDetailChart"></canvas></div>
-                    <div id="pieDetailLegend" class="mt-2 grid grid-cols-2 gap-1 overflow-y-auto max-h-[100px]"></div>
+                    <div id="pieDetailLegend" class="mt-2 grid grid-cols-2 gap-1 overflow-y-auto max-h-[80px]"></div>
                 </section>
             </div>
         </div>
 
-        <iframe id="sheetFrame" src="" class="w-full h-[500px] border-none rounded-xl shadow-lg bg-white"></iframe>
+        <iframe id="sheetFrame" src="" class="w-full h-[600px] border-none rounded-xl shadow-lg bg-white"></iframe>
     </main>
 
     <script>
-        // --- KONFIGURASI ---
         const ID_GSHEET = "2PACX-1vShq3eIcceGMXuR6dBbMut6K99pAQZV4g86Aq5DWkP7yrFTGNMPkdfg4y6vbWeofWpFRO4gGNqLE4h8"; 
         const GID_BAR = "0", GID_TOTAL = "252078912", GID_DETAIL = "1764500224";
         const GID_SMALL = "1052774962", GID_OLD = "885583216", GID_OCCUPANCY = "23039051";
         const ID_LAPORAN = "2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk";
 
+
         Chart.register(ChartDataLabels);
         let charts = {};
 
         function cleanVal(str) {
-            if (!str) return 0;
-            let val = str.toString().replace(/[^\d.,]/g, '').replace(',', '.');
-            let n = parseFloat(val);
-            if (isNaN(n)) return 0;
-            return n > 1 ? n / 100 : n;
+            if (!str) return {p:0, q:0};
+            // Bersihkan teks, koma ke titik
+            let clean = str.toString().replace(/[^\d.,%]/g, '').replace(',', '.');
+            // Jika data di sheet adalah "63,00%" maka parsePercentage akan mengambil 63.00
+            let pNum = parseFloat(clean);
+            if (isNaN(pNum)) return {p:0, q:0};
+            // Progress desimal untuk Chart (0.63)
+            let des = pNum > 1 ? pNum / 100 : pNum;
+            // Angka asli tanpa MT untuk keterangan bawah (6,300,000 jika datanya 6300)
+            return {p: des, q: pNum.toLocaleString()};
         }
 
-        function drawProgress(id, textId, rawData, color) {
-            const val = cleanVal(rawData);
-            document.getElementById(textId).innerText = (val * 100).toFixed(1) + '%';
+        function drawProgress(id, textId, qtyId, rawData, color) {
+            const data = cleanVal(rawData);
+            document.getElementById(textId).innerText = (data.p * 100).toFixed(1) + '%';
+            document.getElementById(qtyId).innerText = data.q;
             
             const ctx = document.getElementById(id).getContext('2d');
             if(charts[id]) charts[id].destroy();
             charts[id] = new Chart(ctx, {
                 type: 'doughnut',
-                data: {
-                    datasets: [{
-                        data: [val, 1 - val < 0 ? 0 : 1 - val],
-                        backgroundColor: [color, '#f3f4f6'], /* MODERN: Emerald vs Light Gray */
-                        borderWidth: 0,
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    cutout: '70%', /* TEBAL */
-                    plugins: { datalabels: { display: false }, tooltip: { enabled: false } }
-                }
+                data: { datasets: [{ data: [data.p, 1 - data.p < 0 ? 0 : 1 - data.p], backgroundColor: [color, '#f3f4f6'], borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { datalabels: { display: false }, tooltip: { enabled: false } } }
             });
         }
 
@@ -165,32 +163,33 @@
             
             try {
                 const [csvB, csvT, csvD, csvS, csvO, csvOc] = await Promise.all([
-                    fetchCSV(GID_BAR, "A1:N5"), fetchCSV(GID_TOTAL, "A1:C2"), fetchCSV(GID_DETAIL, "A1:I2"),
+                    fetchCSV(GID_BAR, "A1:N5"), fetchCSV(GID_TOTAL, "A1:C2"), fetchCSV(GID_DETAIL, "A1:H2"),
                     fetchCSV(GID_SMALL, "B3"), fetchCSV(GID_OLD, "B3"), fetchCSV(GID_OCCUPANCY, "B3")
                 ]);
 
-                // MODERN: Menggunakan warna Emerald yang sama untuk semua progress
+                // MODERN EMERALD UNTUK DONUT ATAS SAJA
                 const modernColor = '#10b981'; 
-                drawProgress('donutSmall', 'textSmall', csvS, modernColor);
-                drawProgress('donutOld', 'textOld', csvO, modernColor);
-                drawProgress('donutOccupancy', 'textOccupancy', csvOc, modernColor);
+                drawProgress('donutSmall', 'textSmall', 'qtySmall', csvS, modernColor);
+                drawProgress('donutOld', 'textOld', 'qtyOld', csvO, modernColor);
+                drawProgress('donutOccupancy', 'textOccupancy', 'qtyOccupancy', csvOc, modernColor);
 
-                renderMain(csvB, csvT, csvD);
+                renderMainCharts(csvB, csvT, csvD);
             } catch (e) { console.error(e); }
             document.getElementById('loader').classList.add('hidden');
         }
 
-        function renderMain(csvB, csvT, csvD) {
+        function renderMainCharts(csvB, csvT, csvD) {
             const rB = csvB.split('\n').map(r => r.split(','));
             const rT = csvT.split('\n').map(r => r.split(','));
             const rD = csvD.split('\n').map(r => r.split(','));
 
+            // == LOGIKA WARNA ASLI UNTUK BAR ==
             const barLabels = rB[0].slice(1);
             const datasets = [
-                { l: rB[1][0], d: rB[1].slice(1).map(v=>parseFloat(v)||0), c: "#64748b" },
-                { l: rB[2][0], d: rB[2].slice(1).map(v=>parseFloat(v)||0), c: "#94a3b8" },
-                { l: rB[3][0], d: rB[3].slice(1).map(v=>parseFloat(v)||0), c: "#cbd5e1" },
-                { l: rB[4][0], d: rB[4].slice(1).map(v=>parseFloat(v)||0), c: "#10b981" }
+                { l: rB[1][0], d: rB[1].slice(1).map(v=>parseFloat(v)||0), c: "#5b9bd5" }, // PS - Biru
+                { l: rB[2][0], d: rB[2].slice(1).map(v=>parseFloat(v)||0), c: "#ed7d31" }, // PL - Orange
+                { l: rB[3][0], d: rB[3].slice(1).map(v=>parseFloat(v)||0), c: "#a5a5a5" }, // FIP - Abu
+                { l: rB[4][0], d: rB[4].slice(1).map(v=>parseFloat(v)||0), c: "#ffc000" }  // MSC - Kuning
             ];
 
             if(charts['stockChart']) charts['stockChart'].destroy();
@@ -200,33 +199,29 @@
                     labels: barLabels,
                     datasets: datasets.map(s => ({ label: s.l, backgroundColor: s.c, data: s.d.map((v, i) => { let tot = datasets.reduce((a, b) => a + b.d[i], 0); return tot > 0 ? (v / tot) * 100 : 0; }) }))
                 },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins: { datalabels: { display: false }, legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } }, 
-                    scales: { y: { stacked: true, max: 100, ticks: { callback: v => v + '%' } }, x: { stacked: true } } 
-                }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false }, legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } }, scales: { y: { stacked: true, max: 100, ticks: { callback: v => v + '%' } }, x: { stacked: true, ticks:{font:{size:8}} } } }
             });
 
-            // Pie Charts & Tables
+            // == LOGIKA WARNA ASLI UNTUK PIE TOTAL & DETAIL ==
             if(charts['pieTotalChart']) charts['pieTotalChart'].destroy();
             charts['pieTotalChart'] = new Chart(document.getElementById('pieTotalChart'), {
                 type: 'pie',
-                data: { labels: rT[0], datasets: [{ data: rT[1].map(v=>parseFloat(v)||0), backgroundColor: ["#0f172a", "#334155", "#10b981"], borderWidth: 2, borderColor: '#fff' }] },
+                data: { labels: rT[0], datasets: [{ data: rT[1].map(v=>parseFloat(v)||0), backgroundColor: ["#ef4444", "#3b82f6", "#facc15"], borderWidth: 2, borderColor: '#fff' }] },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { color: '#fff', font:{weight:'bold', size:10}, formatter: (v,ctx)=>ctx.chart.data.labels[ctx.dataIndex] }, legend: { display: false } } }
             });
 
             if(charts['pieDetailChart']) charts['pieDetailChart'].destroy();
             charts['pieDetailChart'] = new Chart(document.getElementById('pieDetailChart'), {
                 type: 'pie',
-                data: { labels: rD[0], datasets: [{ data: rD[1].map(v=>parseFloat(v)||0), backgroundColor: ["#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#10b981", "#34d399"], borderWidth: 1, borderColor: '#fff' }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false }, legend: { display: false } } }
+                data: { labels: rD[0], datasets: [{ data: rD[1].map(v=>parseFloat(v)||0), backgroundColor: ["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899"], borderWidth: 1, borderColor: '#fff' }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { color: '#fff', font:{size:8}, formatter: (v,ctx) => { const sum = ctx.dataset.data.reduce((a,b)=>a+b,0); return (v/sum*100).toFixed(1)+'%'; } }, legend: { display: false } } }
             });
 
+            // Update Tabel & Legend (Gunakan warna asli)
             document.getElementById('tableHeader').innerHTML = '<th class="border-r">Cat</th>' + barLabels.map(l=>`<th>${l}</th>`).join('');
-            document.getElementById('tableBody').innerHTML = datasets.map(s => `<tr><td class="text-left font-bold border-r px-1"><span class="legend-box" style="background:${s.c}"></span>${s.l}</td>${s.d.map(v=>`<td>${Math.round(v).toLocaleString()}</td>`).join('')}</tr>`).join('');
+            document.getElementById('tableBody').innerHTML = datasets.map(s => `<tr><td class="text-left font-bold border-r px-1 text-[9px]"><span class="legend-box" style="background:${s.c}"></span>${s.l}</td>${s.d.map(v=>`<td class="text-[8px]">${Math.round(v).toLocaleString()}</td>`).join('')}</tr>`).join('');
             document.getElementById('pieTotalLegend').innerHTML = (rT[0]||[]).map((l,i)=>`<div class="flex justify-between text-[10px] border-b pb-1"><span>${l}</span><b>${parseFloat(rT[1][i]||0).toLocaleString()}</b></div>`).join('');
-            document.getElementById('pieDetailLegend').innerHTML = (rD[0]||[]).map((l,i)=>`<div class="flex items-center text-[8px] truncate"><span class="legend-box" style="background:${["#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#10b981", "#34d399"][i]}"></span>${l}</div>`).join('');
+            document.getElementById('pieDetailLegend').innerHTML = (rD[0]||[]).map((l,i)=>`<div class="flex items-center text-[8px] truncate"><span class="legend-box" style="background:${["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899"][i]}"></span>${l}</div>`).join('');
         }
 
         function refreshAll() {
