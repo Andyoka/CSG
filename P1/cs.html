@@ -11,18 +11,16 @@
         #sidebar { transition: all 0.3s ease-in-out; }
         .sidebar-closed { transform: translateX(-100%); }
         .main-content { transition: margin-left 0.3s ease-in-out; }
-        
         .chart-3d-effect { filter: drop-shadow(0px 8px 6px rgba(0,0,0,0.15)); }
-        
         .donut-card {
             background: white; border-radius: 1.25rem; padding: 1rem;
             box-shadow: 0 4px 15px -3px rgba(0,0,0,0.07);
             display: flex; flex-direction: column; align-items: center;
-            justify-content: space-between; min-height: 220px;
+            justify-content: space-between; min-height: 240px;
             transition: transform 0.2s ease; border: 1px solid #f1f5f9;
         }
-        .donut-card:hover { transform: translateY(-5px); }
-        .donut-container { position: relative; width: 100px; height: 100px; margin: 5px 0; }
+        .special-wide-card { grid-column: span 2; align-items: stretch; }
+        .donut-container { position: relative; width: 100px; height: 100px; margin: 5px auto; }
         .donut-inner-text {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
@@ -58,47 +56,57 @@
                 <button onclick="toggleSidebar()" class="hover:text-[#4ade80]">☰</button>
                 <h1 class="text-lg font-extrabold uppercase tracking-tight">Cold Storage <span class="text-[#4ade80]">Monitor</span></h1>
             </div>
-            <button onclick="refreshAll()" class="bg-[#4ade80] text-black px-5 py-1.5 rounded-lg text-[10px] font-black hover:brightness-110 transition">🔄 REFRESH</button>
+            <button onclick="refreshAll()" class="bg-[#4ade80] text-black px-5 py-1.5 rounded-lg text-[10px] font-black hover:scale-95 transition">🔄 REFRESH</button>
         </header>
 
         <section class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
-            <div class="donut-card">
-                <h4 class="text-[10px] font-black text-slate-700 uppercase">Small Fish</h4>
-                <div class="donut-container chart-3d-effect"><canvas id="chart1"></canvas><div id="text1" class="donut-inner-text">0%</div></div>
-                <div id="legend1" class="custom-legend">...</div>
+            <div class="donut-card special-wide-card">
+                <h4 class="text-[10px] font-black text-slate-700 uppercase mb-2 text-center">Small Fish Inventory</h4>
+                <div class="flex items-center justify-around h-full gap-2">
+                    <div class="flex-none">
+                        <div class="donut-container chart-3d-effect">
+                            <canvas id="chart1"></canvas>
+                            <div id="text1" class="donut-inner-text">0%</div>
+                        </div>
+                    </div>
+                    <div class="flex-grow h-[130px]">
+                        <canvas id="horizontalBarSmall"></canvas>
+                    </div>
+                </div>
+                <div id="legend1" class="custom-legend mt-1">...</div>
             </div>
+
             <div class="donut-card">
                 <h4 class="text-[10px] font-black text-slate-700 uppercase">Old Stock</h4>
                 <div class="donut-container chart-3d-effect"><canvas id="chart2"></canvas><div id="text2" class="donut-inner-text">0%</div></div>
                 <div id="legend2" class="custom-legend">...</div>
             </div>
+
             <div class="donut-card">
                 <h4 class="text-[10px] font-black text-slate-700 uppercase">Occupancy</h4>
                 <div class="donut-container chart-3d-effect"><canvas id="chart3"></canvas><div id="text3" class="donut-inner-text">0%</div></div>
                 <div id="legend3" class="custom-legend">...</div>
             </div>
-            <div class="donut-card bg-gray-100/50 border-dashed border-2 border-gray-200 opacity-50 flex items-center justify-center text-[10px] text-gray-400 font-bold uppercase">Next Data</div>
-            <div class="donut-card bg-gray-100/50 border-dashed border-2 border-gray-200 opacity-50 flex items-center justify-center text-[10px] text-gray-400 font-bold uppercase">Next Data</div>
-            <div class="donut-card bg-gray-100/50 border-dashed border-2 border-gray-200 opacity-50 flex items-center justify-center text-[10px] text-gray-400 font-bold uppercase">Next Data</div>
+
+            <div class="donut-card bg-gray-100/50 border-dashed border-2 border-gray-200 opacity-50 flex items-center justify-center text-[10px] text-gray-400 font-bold uppercase italic">Slot 6</div>
         </section>
 
         <div class="flex flex-col lg:flex-row gap-4 mb-6">
             <div class="w-full lg:w-[65%] bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-                <h3 class="font-bold text-[10px] uppercase mb-4 text-slate-400 tracking-widest border-b pb-2">Main Stock Overview</h3>
+                <h3 class="font-bold text-[10px] uppercase mb-4 text-slate-400 border-b pb-2">Main Stock Overview</h3>
                 <div class="h-[250px] mb-4"><canvas id="mainBarChart"></canvas></div>
                 <div class="overflow-x-auto"><table class="chart-table" id="dataTable"><thead><tr id="tableHeader"></tr></thead><tbody id="tableBody"></tbody></table></div>
             </div>
-
             <div class="w-full lg:w-[35%] flex flex-col gap-4">
                 <div class="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex-1">
-                    <h4 class="text-center font-bold text-[9px] uppercase mb-1 border-b">Total Stock</h4>
+                    <h4 class="text-center font-bold text-[9px] uppercase border-b mb-1">Total Stock</h4>
                     <div class="h-[120px] flex items-center justify-center"><canvas id="pieTotalChart"></canvas></div>
                     <div id="pieTotalLegend" class="mt-2 text-[9px]"></div>
                 </div>
                 <div class="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex-1">
-                    <h4 class="text-center font-bold text-[9px] uppercase mb-1 border-b">Product Detail</h4>
+                    <h4 class="text-center font-bold text-[9px] uppercase border-b mb-1">Product Detail</h4>
                     <div class="h-[120px] flex items-center justify-center"><canvas id="pieDetailChart"></canvas></div>
-                    <div id="pieDetailLegend" class="mt-2 grid grid-cols-2 gap-x-2 text-[8px] max-h-[80px] overflow-y-auto"></div>
+                    <div id="pieDetailLegend" class="mt-2 grid grid-cols-2 text-[8px] max-h-[80px] overflow-y-auto"></div>
                 </div>
             </div>
         </div>
@@ -108,15 +116,45 @@
 
     <script>
         // --- CONFIGURATION ---
-        const ID_GSHEET = "2PACX-1vShq3eIcceGMXuR6dBbMut6K99pAQZV4g86Aq5DWkP7yrFTGNMPkdfg4y6vbWeofWpFRO4gGNqLE4h8"; 
+        const ID_GSHEET = "2PACX-1vShq3eIcceGMXuR6dBbMut6K99pAQZV4g86Aq5DWkP7yrFTGNMPkdfg4y6vbWeofWpFRO4gGNqLE4h8";
+        const GID_SMALL_PIE = "1052774962";    // GID untuk Donut Oranye Small Fish
+        const GID_SMALL_HITUNG = "1026658023"; // GID untuk Bar Chart Hitam Rincian Ikan
+        const GID_OLD = "885583216";
+        const GID_OCCUPANCY = "23039051";
         const GID_BAR = "0", GID_TOTAL = "252078912", GID_DETAIL = "1764500224";
-        const GID_SMALL = "1052774962", GID_OLD = "885583216", GID_OCCUPANCY = "23039051";
         const ID_LAPORAN = "2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk";
-
 
         Chart.register(ChartDataLabels);
         let charts = {};
 
+        // 1. Fetch Bar Horizontal (Hitam)
+        async function fetchSmallFishHitung() {
+            try {
+                const t = new Date().getTime();
+                const response = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_SMALL_HITUNG}&range=A2:B7&output=csv&t=${t}`);
+                const csv = await response.text();
+                const rows = csv.split('\n').map(r => r.split(','));
+                const labels = rows.map(r => r[0]);
+                const values = rows.map(r => parseFloat(r[1]) || 0);
+
+                const ctx = document.getElementById('horizontalBarSmall').getContext('2d');
+                if(charts['horizSmall']) charts['horizSmall'].destroy();
+                charts['horizSmall'] = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{ data: values, backgroundColor: '#1e293b', borderRadius: 4, barThickness: 10 }]
+                    },
+                    options: {
+                        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: false }, datalabels: { color: '#000', anchor: 'end', align: 'right', font: { size: 7, weight: 'bold' } } },
+                        scales: { x: { display: false }, y: { grid: { display: false }, ticks: { font: { size: 8 }, color: '#475569' } } }
+                    }
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        // 2. Fetch Donut Top (Oranye)
         async function fetchDonutTop(gid, canvasId, textId, legendId) {
             try {
                 const t = new Date().getTime();
@@ -126,77 +164,69 @@
                 let val = parseFloat(rows[2][1].replace(/[^\d.,]/g, '').replace(',', '.'));
                 let percent = val > 1 ? val / 100 : val;
                 
-                renderDonutUI(canvasId, percent);
+                const ctx = document.getElementById(canvasId).getContext('2d');
+                if(charts[canvasId]) charts[canvasId].destroy();
+                charts[canvasId] = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: { datasets: [{ data: [percent, 1-percent], backgroundColor: ['#f97316', '#1e293b'], borderWidth: 0, hoverOffset: 12, borderRadius: 4 }] },
+                    options: { cutout: '72%', responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false } } }
+                });
                 document.getElementById(textId).innerText = (percent * 100).toFixed(1) + '%';
                 document.getElementById(legendId).innerHTML = `<div class="flex justify-between font-bold text-slate-700"><span>${rows[0][0]}</span><span>${rows[0][1]}</span></div><div class="flex justify-between"><span>${rows[1][0]}</span><span>${rows[1][1]}</span></div>`;
             } catch (e) { console.error(e); }
         }
 
-        function renderDonutUI(id, val) {
-            const ctx = document.getElementById(id).getContext('2d');
-            if(charts[id]) charts[id].destroy();
-            charts[id] = new Chart(ctx, {
-                type: 'doughnut',
-                data: { datasets: [{ data: [val, 1-val<0?0:1-val], backgroundColor: ['#f97316', '#1e293b'], borderWidth: 0, hoverOffset: 12, borderRadius: 4 }] },
-                options: { cutout: '72%', responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false } } }
-            });
-        }
-
+        // 3. Fetch Bottom Charts (Bar & 2 Pie)
         async function fetchBottomCharts() {
             const t = new Date().getTime();
             const fetchCSV = (gid, range) => fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${gid}&range=${range}&output=csv&t=${t}`).then(r => r.text());
             try {
                 const [csvB, csvT, csvD] = await Promise.all([fetchCSV(GID_BAR, "A1:N5"), fetchCSV(GID_TOTAL, "A1:C2"), fetchCSV(GID_DETAIL, "A1:I2")]);
-                renderMainVisuals(csvB, csvT, csvD);
+                const rB = csvB.split('\n').map(r => r.split(','));
+                const rT = csvT.split('\n').map(r => r.split(','));
+                const rD = csvD.split('\n').map(r => r.split(','));
+
+                // Bar Chart
+                const barLabels = rB[0].slice(1);
+                const datasets = [
+                    { l: rB[1][0], d: rB[1].slice(1).map(v=>parseFloat(v)||0), c: "#5b9bd5" },
+                    { l: rB[2][0], d: rB[2].slice(1).map(v=>parseFloat(v)||0), c: "#ed7d31" },
+                    { l: rB[3][0], d: rB[3].slice(1).map(v=>parseFloat(v)||0), c: "#a5a5a5" },
+                    { l: rB[4][0], d: rB[4].slice(1).map(v=>parseFloat(v)||0), c: "#ffc000" }
+                ];
+                if(charts['mainBarChart']) charts['mainBarChart'].destroy();
+                charts['mainBarChart'] = new Chart(document.getElementById('mainBarChart'), {
+                    type: 'bar',
+                    data: { labels: barLabels, datasets: datasets.map(s => ({ label: s.l, backgroundColor: s.c, data: s.d.map((v, i) => { let tot = datasets.reduce((a, b) => a + b.d[i], 0); return tot > 0 ? (v / tot) * 100 : 0; }) })) },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false }, legend: { position: 'bottom', labels: { boxWidth: 8, font: { size: 8 } } } }, scales: { y: { stacked: true, max: 100, ticks: { callback: v => v + '%' } }, x: { stacked: true, ticks:{font:{size:7}} } } }
+                });
+
+                // Table & Pie Charts
+                document.getElementById('tableHeader').innerHTML = '<th class="border-r">Cat</th>' + barLabels.map(l=>`<th>${l}</th>`).join('');
+                document.getElementById('tableBody').innerHTML = datasets.map(s => `<tr><td class="text-left font-bold border-r px-1"><span class="legend-box" style="background:${s.c}"></span>${s.l}</td>${s.d.map(v=>`<td>${Math.round(v).toLocaleString()}</td>`).join('')}</tr>`).join('');
+
+                if(charts['pieTotalChart']) charts['pieTotalChart'].destroy();
+                charts['pieTotalChart'] = new Chart(document.getElementById('pieTotalChart'), {
+                    type: 'pie',
+                    data: { labels: rT[0], datasets: [{ data: rT[1].map(v=>parseFloat(v)||0), backgroundColor: ["#ef4444", "#3b82f6", "#facc15"], borderWidth: 1 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { color: '#fff', font:{weight:'bold', size:8}, formatter: (v,ctx)=>ctx.chart.data.labels[ctx.dataIndex] }, legend: { display: false } } }
+                });
+                document.getElementById('pieTotalLegend').innerHTML = (rT[0]||[]).map((l,i)=>`<div class="flex justify-between border-b pb-1"><span>${l}</span><b>${parseFloat(rT[1][i]||0).toLocaleString()}</b></div>`).join('');
+
+                if(charts['pieDetailChart']) charts['pieDetailChart'].destroy();
+                charts['pieDetailChart'] = new Chart(document.getElementById('pieDetailChart'), {
+                    type: 'pie',
+                    data: { labels: rD[0], datasets: [{ data: rD[1].map(v=>parseFloat(v)||0), backgroundColor: ["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899"], borderWidth: 1 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false }, legend: { display: false } } }
+                });
+                document.getElementById('pieDetailLegend').innerHTML = (rD[0]||[]).map((l,i)=>`<div class="flex items-center truncate"><span class="legend-box" style="background:${["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899"][i]}"></span>${l}</div>`).join('');
             } catch (e) { console.error(e); }
-        }
-
-        function renderMainVisuals(csvB, csvT, csvD) {
-            const rB = csvB.split('\n').map(r => r.split(','));
-            const rT = csvT.split('\n').map(r => r.split(','));
-            const rD = csvD.split('\n').map(r => r.split(','));
-
-            // Bar Chart
-            const barLabels = rB[0].slice(1);
-            const datasets = [
-                { l: rB[1][0], d: rB[1].slice(1).map(v=>parseFloat(v)||0), c: "#5b9bd5" },
-                { l: rB[2][0], d: rB[2].slice(1).map(v=>parseFloat(v)||0), c: "#ed7d31" },
-                { l: rB[3][0], d: rB[3].slice(1).map(v=>parseFloat(v)||0), c: "#a5a5a5" },
-                { l: rB[4][0], d: rB[4].slice(1).map(v=>parseFloat(v)||0), c: "#ffc000" }
-            ];
-
-            if(charts['mainBarChart']) charts['mainBarChart'].destroy();
-            charts['mainBarChart'] = new Chart(document.getElementById('mainBarChart'), {
-                type: 'bar',
-                data: { labels: barLabels, datasets: datasets.map(s => ({ label: s.l, backgroundColor: s.c, data: s.d.map((v, i) => { let tot = datasets.reduce((a, b) => a + b.d[i], 0); return tot > 0 ? (v / tot) * 100 : 0; }) })) },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false }, legend: { position: 'bottom', labels: { boxWidth: 8, font: { size: 8 } } } }, scales: { y: { stacked: true, max: 100, ticks: { callback: v => v + '%' } }, x: { stacked: true, ticks: { font: { size: 7 } } } } }
-            });
-
-            document.getElementById('tableHeader').innerHTML = '<th class="border-r">Cat</th>' + barLabels.map(l=>`<th>${l}</th>`).join('');
-            document.getElementById('tableBody').innerHTML = datasets.map(s => `<tr><td class="text-left font-bold border-r px-1"><span class="legend-box" style="background:${s.c}"></span>${s.l}</td>${s.d.map(v=>`<td>${Math.round(v).toLocaleString()}</td>`).join('')}</tr>`).join('');
-
-            // Pie Total
-            if(charts['pieTotalChart']) charts['pieTotalChart'].destroy();
-            charts['pieTotalChart'] = new Chart(document.getElementById('pieTotalChart'), {
-                type: 'pie',
-                data: { labels: rT[0], datasets: [{ data: rT[1].map(v=>parseFloat(v)||0), backgroundColor: ["#ef4444", "#3b82f6", "#facc15"], borderWidth: 1 }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { color: '#fff', font:{weight:'bold', size:8}, formatter: (v,ctx)=>ctx.chart.data.labels[ctx.dataIndex] }, legend: { display: false } } }
-            });
-            document.getElementById('pieTotalLegend').innerHTML = (rT[0]||[]).map((l,i)=>`<div class="flex justify-between border-b pb-1"><span>${l}</span><b>${parseFloat(rT[1][i]||0).toLocaleString()}</b></div>`).join('');
-
-            // Pie Detail
-            if(charts['pieDetailChart']) charts['pieDetailChart'].destroy();
-            charts['pieDetailChart'] = new Chart(document.getElementById('pieDetailChart'), {
-                type: 'pie',
-                data: { labels: rD[0], datasets: [{ data: rD[1].map(v=>parseFloat(v)||0), backgroundColor: ["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899"], borderWidth: 1 }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false }, legend: { display: false } } }
-            });
-            document.getElementById('pieDetailLegend').innerHTML = (rD[0]||[]).map((l,i)=>`<div class="flex items-center truncate"><span class="legend-box" style="background:${["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899"][i]}"></span>${l}</div>`).join('');
         }
 
         function refreshAll() {
             document.getElementById('sheetFrame').src = `https://docs.google.com/spreadsheets/d/e/${ID_LAPORAN}/pubhtml?widget=true&headers=false`;
-            fetchDonutTop(GID_SMALL, 'chart1', 'text1', 'legend1');
+            fetchDonutTop(GID_SMALL_PIE, 'chart1', 'text1', 'legend1');
+            fetchSmallFishHitung();
             fetchDonutTop(GID_OLD, 'chart2', 'text2', 'legend2');
             fetchDonutTop(GID_OCCUPANCY, 'chart3', 'text3', 'legend3');
             fetchBottomCharts();
