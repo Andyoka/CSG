@@ -63,14 +63,14 @@
             <div class="donut-card special-wide-card">
                 <h4 class="text-[10px] font-black text-slate-700 uppercase mb-2 text-center">Small Fish Inventory</h4>
                 <div class="flex items-center justify-around h-full gap-2">
+                    <div class="flex-grow h-[130px]">
+                        <canvas id="horizontalBarSmall"></canvas>
+                    </div>
                     <div class="flex-none">
                         <div class="donut-container chart-3d-effect">
                             <canvas id="chart1"></canvas>
                             <div id="text1" class="donut-inner-text">0%</div>
                         </div>
-                    </div>
-                    <div class="flex-grow h-[130px]">
-                        <canvas id="horizontalBarSmall"></canvas>
                     </div>
                 </div>
                 <div id="legend1" class="custom-legend mt-1">...</div>
@@ -86,7 +86,6 @@
                 <div class="donut-container chart-3d-effect"><canvas id="chart3"></canvas><div id="text3" class="donut-inner-text">0%</div></div>
                 <div id="legend3" class="custom-legend">...</div>
             </div>
-
             <div class="donut-card bg-gray-100/50 border-dashed border-2 border-gray-200 opacity-50 flex items-center justify-center text-[10px] text-gray-400 font-bold uppercase italic">Slot 6</div>
         </section>
 
@@ -114,7 +113,6 @@
     </main>
 
     <script>
-        // --- ISI GID SESUAI SHEET ANDA ---
         const ID_GSHEET = "2PACX-1vShq3eIcceGMXuR6dBbMut6K99pAQZV4g86Aq5DWkP7yrFTGNMPkdfg4y6vbWeofWpFRO4gGNqLE4h8";
         const GID_SMALL_PIE = "1052774962";    // GID untuk Donut Oranye Small Fish
         const GID_SMALL_HITUNG = "1026658023"; // GID untuk Bar Chart Hitam Rincian Ikan
@@ -130,15 +128,14 @@
         async function fetchSmallFishHitung() {
             try {
                 const t = new Date().getTime();
-                // Ambil range A2:B7 (Sesuaikan jika ikan bertambah)
                 const response = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_SMALL_HITUNG}&range=A2:B7&output=csv&t=${t}`);
                 const csv = await response.text();
                 const rows = csv.split('\n').map(r => r.split(','));
                 
-                // Parsing Data: Ambil Label (Kolom A) dan Nilai (Kolom B)
                 const labels = rows.map(r => r[0].trim());
                 const values = rows.map(r => {
-                    let raw = r[1] ? r[1].replace(/[^\d.,]/g, '').replace(',', '.') : "0";
+                    // Membersihkan karakter non-angka kecuali titik dan koma
+                    let raw = r[1] ? r[1].replace(/[^\d.,-]/g, '').replace(',', '.') : "0";
                     return parseFloat(raw) || 0;
                 });
 
@@ -157,24 +154,26 @@
                     },
                     options: {
                         indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                        layout: { padding: { right: 50 } }, // Beri ruang untuk label MT
                         plugins: { 
                             legend: { display: false }, 
                             datalabels: { 
                                 color: '#1e293b', 
                                 anchor: 'end', 
                                 align: 'right', 
-                                offset: 5,
+                                offset: 2,
                                 font: { size: 8, weight: 'bold' },
-                                formatter: (v) => v.toLocaleString() + ' MT' // TAMBAHKAN MT DI SINI
+                                // Menampilkan 1 angka di belakang koma jika perlu
+                                formatter: (v) => v.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 1}) + ' MT'
                             } 
                         },
                         scales: { 
-                            x: { display: false, padding: { right: 30 } }, 
+                            x: { display: false }, 
                             y: { grid: { display: false }, ticks: { font: { size: 8, weight: 'bold' }, color: '#475569' } } 
                         }
                     }
                 });
-            } catch (e) { console.error("Error Small Fish Hitung:", e); }
+            } catch (e) { console.error(e); }
         }
 
         async function fetchDonutTop(gid, canvasId, textId, legendId) {
@@ -183,7 +182,8 @@
                 const response = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${gid}&range=A1:B3&output=csv&t=${t}`);
                 const csv = await response.text();
                 const rows = csv.split('\n').map(r => r.split(','));
-                let val = parseFloat(rows[2][1].replace(/[^\d.,]/g, '').replace(',', '.'));
+                let rawVal = rows[2][1].replace(/[^\d.,]/g, '').replace(',', '.');
+                let val = parseFloat(rawVal);
                 let percent = val > 1 ? val / 100 : val;
                 
                 const ctx = document.getElementById(canvasId).getContext('2d');
@@ -209,10 +209,10 @@
 
                 const barLabels = rB[0].slice(1);
                 const datasets = [
-                    { l: rB[1][0], d: rB[1].slice(1).map(v=>parseFloat(v)||0), c: "#5b9bd5" },
-                    { l: rB[2][0], d: rB[2].slice(1).map(v=>parseFloat(v)||0), c: "#ed7d31" },
-                    { l: rB[3][0], d: rB[3].slice(1).map(v=>parseFloat(v)||0), c: "#a5a5a5" },
-                    { l: rB[4][0], d: rB[4].slice(1).map(v=>parseFloat(v)||0), c: "#ffc000" }
+                    { l: rB[1][0], d: rB[1].slice(1).map(v=>parseFloat(v.replace(',','.'))||0), c: "#5b9bd5" },
+                    { l: rB[2][0], d: rB[2].slice(1).map(v=>parseFloat(v.replace(',','.'))||0), c: "#ed7d31" },
+                    { l: rB[3][0], d: rB[3].slice(1).map(v=>parseFloat(v.replace(',','.'))||0), c: "#a5a5a5" },
+                    { l: rB[4][0], d: rB[4].slice(1).map(v=>parseFloat(v.replace(',','.'))||0), c: "#ffc000" }
                 ];
                 if(charts['mainBarChart']) charts['mainBarChart'].destroy();
                 charts['mainBarChart'] = new Chart(document.getElementById('mainBarChart'), {
@@ -222,20 +222,20 @@
                 });
 
                 document.getElementById('tableHeader').innerHTML = '<th class="border-r">Cat</th>' + barLabels.map(l=>`<th>${l}</th>`).join('');
-                document.getElementById('tableBody').innerHTML = datasets.map(s => `<tr><td class="text-left font-bold border-r px-1"><span class="legend-box" style="background:${s.c}"></span>${s.l}</td>${s.d.map(v=>`<td>${Math.round(v).toLocaleString()}</td>`).join('')}</tr>`).join('');
+                document.getElementById('tableBody').innerHTML = datasets.map(s => `<tr><td class="text-left font-bold border-r px-1"><span class="legend-box" style="background:${s.c}"></span>${s.l}</td>${s.d.map(v=>`<td>${v.toLocaleString('id-ID')}</td>`).join('')}</tr>`).join('');
 
                 if(charts['pieTotalChart']) charts['pieTotalChart'].destroy();
                 charts['pieTotalChart'] = new Chart(document.getElementById('pieTotalChart'), {
                     type: 'pie',
-                    data: { labels: rT[0], datasets: [{ data: rT[1].map(v=>parseFloat(v)||0), backgroundColor: ["#ef4444", "#3b82f6", "#facc15"], borderWidth: 1 }] },
+                    data: { labels: rT[0], datasets: [{ data: rT[1].map(v=>parseFloat(v.replace(',','.'))||0), backgroundColor: ["#ef4444", "#3b82f6", "#facc15"], borderWidth: 1 }] },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { color: '#fff', font:{weight:'bold', size:8}, formatter: (v,ctx)=>ctx.chart.data.labels[ctx.dataIndex] }, legend: { display: false } } }
                 });
-                document.getElementById('pieTotalLegend').innerHTML = (rT[0]||[]).map((l,i)=>`<div class="flex justify-between border-b pb-1"><span>${l}</span><b>${parseFloat(rT[1][i]||0).toLocaleString()}</b></div>`).join('');
+                document.getElementById('pieTotalLegend').innerHTML = (rT[0]||[]).map((l,i)=>`<div class="flex justify-between border-b pb-1"><span>${l}</span><b>${parseFloat(rT[1][i].replace(',','.')||0).toLocaleString('id-ID')}</b></div>`).join('');
 
                 if(charts['pieDetailChart']) charts['pieDetailChart'].destroy();
                 charts['pieDetailChart'] = new Chart(document.getElementById('pieDetailChart'), {
                     type: 'pie',
-                    data: { labels: rD[0], datasets: [{ data: rD[1].map(v=>parseFloat(v)||0), backgroundColor: ["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899"], borderWidth: 1 }] },
+                    data: { labels: rD[0], datasets: [{ data: rD[1].map(v=>parseFloat(v.replace(',','.'))||0), backgroundColor: ["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899"], borderWidth: 1 }] },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false }, legend: { display: false } } }
                 });
                 document.getElementById('pieDetailLegend').innerHTML = (rD[0]||[]).map((l,i)=>`<div class="flex items-center truncate"><span class="legend-box" style="background:${["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899"][i]}"></span>${l}</div>`).join('');
