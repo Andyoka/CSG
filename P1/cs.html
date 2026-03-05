@@ -21,14 +21,15 @@
         }
         .special-wide-card { grid-column: span 2; align-items: stretch; overflow: hidden; }
         
-        /* UKURAN BULATAN DONUT DIPERBESAR SECARA GLOBAL */
-        .donut-container { position: relative; width: 110px; height: 110px; margin: 0 auto; }
+        /* UKURAN BULATAN DONUT BESAR & SERAGAM */
+        .donut-container { position: relative; width: 110px; height: 110px; margin: 0 auto; flex-shrink: 0; }
         
-        /* FIX ANGKA TOTAL PAS DI TENGAH DENGAN FONT LEBIH JELAS */
+        /* ANGKA TENGAH PRESISI */
         .donut-inner-text {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             font-size: 16px; font-weight: 900; color: #1e293b; text-align: center; line-height: 1.1;
+            width: 100%; pointer-events: none;
         }
         .donut-inner-text span { font-size: 8px; color: #64748b; font-weight: bold; }
 
@@ -59,10 +60,10 @@
     <main id="mainContent" class="ml-56 p-4 main-content">
         <header class="flex justify-between items-center mb-6 bg-[#1e293b] text-white p-3 rounded-xl border-l-4 border-[#4ade80] shadow-md">
             <div class="flex items-center gap-4">
-                <button onclick="toggleSidebar()" class="hover:text-[#4ade80]">☰ Menu</button>
+                <button onclick="toggleSidebar()" class="hover:text-[#4ade80]">☰</button>
                 <h1 class="text-lg font-extrabold uppercase tracking-tight">Cold Storage <span class="text-[#4ade80]">Monitor</span></h1>
             </div>
-            <button onclick="refreshAll()" class="bg-[#4ade80] text-black px-5 py-1.5 rounded-lg text-[10px] font-black hover:scale-95 transition">🔄 REFRESH DATA</button>
+            <button onclick="refreshAll()" class="bg-[#4ade80] text-black px-5 py-1.5 rounded-lg text-[10px] font-black hover:scale-95 transition">🔄 REFRESH</button>
         </header>
 
         <section class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
@@ -77,10 +78,11 @@
 
             <div class="donut-card special-wide-card">
                 <h4 class="text-[10px] font-black text-slate-700 uppercase mb-1 text-center">Half Fishbox (Box)</h4>
-                <div class="relative flex items-center justify-center w-full h-full gap-2 px-1">
-                    <div id="legendHalfDetail" class="absolute top-0 left-0 text-[8px] font-black flex gap-2 pl-2 z-10">...</div>
-                    
-                    <div class="w-2/3 h-[110px] mt-4"><canvas id="lineHalfTrend"></canvas></div>
+                <div class="flex items-center justify-center w-full h-full gap-6 px-4">
+                    <div class="relative w-1/2 h-[100px]">
+                        <div id="legendHalfDetail" class="absolute -top-2 left-0 text-[8px] font-black flex gap-2 z-10">...</div>
+                        <canvas id="lineHalfTrend"></canvas>
+                    </div>
                     <div class="flex-none">
                         <div class="donut-container chart-3d-effect">
                             <canvas id="chartHalfDonut"></canvas>
@@ -95,12 +97,7 @@
                 <h4 class="text-[10px] font-black text-slate-700 uppercase mb-2 text-center">Occupancy Trend (%)</h4>
                 <div class="flex items-center justify-center w-full h-full gap-6 px-4">
                     <div class="w-1/2 h-[100px]"><canvas id="lineOccupancyTrend"></canvas></div>
-                    <div class="flex-none">
-                        <div class="donut-container chart-3d-effect">
-                            <canvas id="chart3"></canvas>
-                            <div id="text3" class="donut-inner-text">0<br><span>%</span></div>
-                        </div>
-                    </div>
+                    <div class="flex-none"><div class="donut-container chart-3d-effect"><canvas id="chart3"></canvas><div id="text3" class="donut-inner-text">0<br><span>%</span></div></div></div>
                 </div>
                 <div id="legend3" class="custom-legend mt-1">...</div>
             </div>
@@ -152,7 +149,6 @@
             return parseFloat(str) || 0;
         }
 
-        // FUNGSI HALF FISHBOX (FIX Donut & Text Center)
         async function fetchHalfFishbox() {
             try {
                 const t = new Date().getTime();
@@ -160,57 +156,38 @@
                     fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=A1:B4&output=csv&t=${t}`),
                     fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=D2:E7&output=csv&t=${t}`)
                 ]);
-
-                // Donut logic (OK, Hold, Reject)
                 const csvDonut = await respDonut.text();
                 const rowsDonut = csvDonut.split('\n').map(r => r.split(','));
                 const totalBox = cleanNum(rowsDonut[0][1]);
                 const dataDonut = [cleanNum(rowsDonut[1][1]), cleanNum(rowsDonut[2][1]), cleanNum(rowsDonut[3][1])];
-
                 const ctxDonut = document.getElementById('chartHalfDonut').getContext('2d');
                 if(charts['halfDonut']) charts['halfDonut'].destroy();
                 charts['halfDonut'] = new Chart(ctxDonut, {
                     type: 'doughnut',
-                    data: {
-                        labels: ['OK', 'Hold', 'Reject'],
-                        datasets: [{ data: dataDonut, backgroundColor: ['#10b981', '#facc15', '#ef4444'], borderWidth: 0 }]
-                    },
+                    data: { labels: ['OK', 'Hold', 'Reject'], datasets: [{ data: dataDonut, backgroundColor: ['#10b981', '#facc15', '#ef4444'], borderWidth: 0 }] },
                     options: { cutout: '75%', responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false } } }
                 });
-                // FIX ANGKA PAS DI TENGAH
                 document.getElementById('textHalfTotal').innerHTML = `${totalBox}<br><span>BOX</span>`;
-                
                 document.getElementById('legendHalf').innerHTML = `<span class="text-green-600">OK: ${dataDonut[0]}</span> | <span class="text-yellow-600">Hold: ${dataDonut[1]}</span> | <span class="text-red-600">Reject: ${dataDonut[2]}</span>`;
-                // OK=Hitam, Hold=Orange di Legend Kiri Atas
-                document.getElementById('legendHalfDetail').innerHTML = `<span class="text-black font-black">OK: ${dataDonut[0]}</span> | <span class="text-orange-600 font-black">Hold: ${dataDonut[1]}</span>`;
+                document.getElementById('legendHalfDetail').innerHTML = `<span class="text-black">OK: ${dataDonut[0]}</span> | <span class="text-orange-600">Hold: ${dataDonut[1]}</span>`;
 
-                // Line logic (OK=Hitam, Hold=Orange)
                 const csvLine = await respLine.text();
                 const rowsLine = csvLine.split('\n').map(r => r.split(','));
-                const dataOKLine = rowsLine.map(r => cleanNum(r[0])).reverse();
-                const dataHoldLine = rowsLine.map(r => cleanNum(r[1])).reverse();
-
+                const dOK = rowsLine.map(r => cleanNum(r[0])).reverse();
+                const dHold = rowsLine.map(r => cleanNum(r[1])).reverse();
                 const ctxLine = document.getElementById('lineHalfTrend').getContext('2d');
                 if(charts['halfLine']) charts['halfLine'].destroy();
                 charts['halfLine'] = new Chart(ctxLine, {
                     type: 'line',
-                    data: {
-                        labels: dataOKLine.map(() => ''),
-                        datasets: [
-                            { data: dataOKLine, borderColor: '#1e293b', borderWidth: 3, pointRadius: 3, tension: 0.35, fill: false }, // OK=Hitam
-                            { data: dataHoldLine, borderColor: '#f97316', borderWidth: 3, pointRadius: 3, tension: 0.35, fill: false } // Hold=Orange
-                        ]
-                    },
-                    options: {
-                        responsive: true, maintainAspectRatio: false,
-                        plugins: { legend: { display: false }, datalabels: { display: false } },
-                        scales: { x: { display: false }, y: { display: false } }
-                    }
+                    data: { labels: dOK.map(() => ''), datasets: [
+                        { data: dOK, borderColor: '#1e293b', borderWidth: 3, pointRadius: 3, tension: 0.35, fill: false },
+                        { data: dHold, borderColor: '#f97316', borderWidth: 3, pointRadius: 3, tension: 0.35, fill: false }
+                    ]},
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
                 });
             } catch (e) { console.error(e); }
         }
 
-        // FUNGSI LAIN (TETAP SAMA)
         async function fetchSmallBar() {
             try {
                 const t = new Date().getTime();
@@ -224,11 +201,7 @@
                 charts['barSmallH'] = new Chart(ctx, {
                     type: 'bar',
                     data: { labels: labels, datasets: [{ data: values, backgroundColor: '#1e293b', borderRadius: 4, barThickness: 10 }] },
-                    options: {
-                        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-                        plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'right', color: '#1e293b', font: { size: 8, weight: 'bold' }, formatter: (val) => val + ' MT' } },
-                        scales: { x: { display: false }, y: { grid: { display: false }, ticks: { font: { size: 7 } } } }
-                    }
+                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'right', color: '#1e293b', font: { size: 8, weight: 'bold' }, formatter: v => v + ' MT' } }, scales: { x: { display: false }, y: { grid: { display: false }, ticks: { font: { size: 7 } } } } }
                 });
             } catch (e) { console.error(e); }
         }
@@ -256,13 +229,12 @@
 
                 const csvLine = await respLine.text();
                 const valuesLine = csvLine.split('\n').map(r => cleanNum(r)).reverse();
-                const minVal = Math.min(...valuesLine) - 1;
                 const ctxLine = document.getElementById('lineOccupancyTrend').getContext('2d');
                 if(charts['lineOcc']) charts['lineOcc'].destroy();
                 charts['lineOcc'] = new Chart(ctxLine, {
                     type: 'line',
                     data: { labels: valuesLine.map(() => ''), datasets: [{ data: valuesLine, borderColor: '#10b981', borderWidth: 3, pointRadius: 4, tension: 0.4, fill: false }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } }, scales: { x: { display: false }, y: { display: false, min: minVal } } }
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } }, scales: { x: { display: false }, y: { display: false, min: Math.min(...valuesLine) - 1 } } }
                 });
             } catch (e) { console.error(e); }
         }
