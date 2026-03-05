@@ -73,10 +73,10 @@
             </div>
 
             <div class="donut-card special-wide-card">
-                <h4 class="text-[10px] font-black text-slate-700 uppercase mb-2 text-center">Occupancy & Trend</h4>
-                <div class="flex items-center justify-center w-full h-full gap-6 px-4">
-                    <div class="w-1/2 h-[120px]">
-                        <canvas id="barOccupancyDetail"></canvas>
+                <h4 class="text-[10px] font-black text-slate-700 uppercase mb-2 text-center">Occupancy Trend & Total</h4>
+                <div class="flex items-end justify-center w-full h-full gap-6 px-4 pb-2">
+                    <div class="w-1/2 h-[100px]">
+                        <canvas id="barOccupancyVert"></canvas>
                     </div>
                     <div class="flex-none">
                         <div class="donut-container chart-3d-effect">
@@ -135,13 +135,12 @@
         async function fetchOccupancyCombined() {
             try {
                 const t = new Date().getTime();
-                // Fetch Kolom A:B untuk Pie dan Kolom E untuk Bar
                 const [respPie, respBar] = await Promise.all([
                     fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OCCUPANCY}&range=A1:B3&output=csv&t=${t}`),
                     fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OCCUPANCY}&range=E2:E7&output=csv&t=${t}`)
                 ]);
 
-                // Proses Donut (Kolom B)
+                // Donut Occupancy
                 const csvPie = await respPie.text();
                 const rowsPie = csvPie.split('\n').map(r => r.split(','));
                 let valPie = cleanNum(rowsPie[2][1]);
@@ -157,22 +156,25 @@
                 document.getElementById('text3').innerText = (percent * 100).toFixed(1) + '%';
                 document.getElementById('legend3').innerHTML = `<div class="flex justify-between font-bold text-slate-700"><span>${rowsPie[0][0]}</span><span>${rowsPie[0][1]}</span></div><div class="flex justify-between"><span>${rowsPie[1][0]}</span><span>${rowsPie[1][1]}</span></div>`;
 
-                // Proses Bar Minimalis (Kolom E - Bawah ke Atas)
+                // Bar Vertikal Minimalis (Kolom E - Naik Turun)
                 const csvBar = await respBar.text();
-                const valuesBar = csvBar.split('\n').map(r => cleanNum(r)).reverse(); // Reverse agar bawah ke atas
+                const valuesBar = csvBar.split('\n').map(r => cleanNum(r)).reverse();
 
-                const ctxBar = document.getElementById('barOccupancyDetail').getContext('2d');
-                if(charts['barOcc']) charts['barOcc'].destroy();
-                charts['barOcc'] = new Chart(ctxBar, {
+                const ctxBar = document.getElementById('barOccupancyVert').getContext('2d');
+                if(charts['barOccVert']) charts['barOccVert'].destroy();
+                charts['barOccVert'] = new Chart(ctxBar, {
                     type: 'bar',
                     data: {
-                        labels: ['', '', '', '', '', ''],
-                        datasets: [{ data: valuesBar, backgroundColor: '#334155', borderRadius: 2, barThickness: 6 }]
+                        labels: valuesBar.map(() => ''),
+                        datasets: [{ data: valuesBar, backgroundColor: '#334155', borderRadius: 3, barThickness: 10 }]
                     },
                     options: {
-                        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                        responsive: true, maintainAspectRatio: false,
                         plugins: { legend: { display: false }, datalabels: { display: false } },
-                        scales: { x: { display: false }, y: { display: false } }
+                        scales: { 
+                            x: { display: false }, 
+                            y: { display: false, min: 0 } 
+                        }
                     }
                 });
             } catch (e) { console.error(e); }
@@ -187,11 +189,12 @@
                 let val = cleanNum(rows[2][1]);
                 let percent = val > 1 ? val / 100 : val;
                 
+                const color = (canvasId === 'chart1') ? '#f97316' : '#3b82f6';
                 const ctx = document.getElementById(canvasId).getContext('2d');
                 if(charts[canvasId]) charts[canvasId].destroy();
                 charts[canvasId] = new Chart(ctx, {
                     type: 'doughnut',
-                    data: { datasets: [{ data: [percent, 1-percent], backgroundColor: [canvasId==='chart1'?'#f97316':'#3b82f6', '#1e293b'], borderWidth: 0, borderRadius: 2 }] },
+                    data: { datasets: [{ data: [percent, 1-percent], backgroundColor: [color, '#1e293b'], borderWidth: 0, borderRadius: 2 }] },
                     options: { cutout: '75%', responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false } } }
                 });
                 document.getElementById(textId).innerText = (percent * 100).toFixed(1) + '%';
