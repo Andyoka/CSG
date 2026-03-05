@@ -53,10 +53,10 @@
     <main id="mainContent" class="ml-56 p-4 main-content">
         <header class="flex justify-between items-center mb-6 bg-[#1e293b] text-white p-3 rounded-xl border-l-4 border-[#4ade80] shadow-md">
             <div class="flex items-center gap-4">
-                <button onclick="toggleSidebar()" class="hover:text-[#4ade80]">☰</button>
+                <button onclick="toggleSidebar()" class="hover:text-[#4ade80]">☰ Menu</button>
                 <h1 class="text-lg font-extrabold uppercase tracking-tight">Cold Storage <span class="text-[#4ade80]">Monitor</span></h1>
             </div>
-            <button onclick="refreshAll()" class="bg-[#4ade80] text-black px-5 py-1.5 rounded-lg text-[10px] font-black hover:scale-95 transition">🔄 REFRESH</button>
+            <button onclick="refreshAll()" class="bg-[#4ade80] text-black px-5 py-1.5 rounded-lg text-[10px] font-black hover:scale-95 transition">🔄 REFRESH DATA</button>
         </header>
 
         <section class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
@@ -70,11 +70,13 @@
             </div>
 
             <div class="donut-card special-wide-card">
-                <h4 class="text-[10px] font-black text-slate-700 uppercase mb-2 text-center">Half Fishbox (Box)</h4>
-                <div class="flex items-center justify-center w-full h-full gap-6 px-4">
-                    <div class="w-1/2 h-[110px]"><canvas id="lineHalfTrend"></canvas></div>
+                <h4 class="text-[10px] font-black text-slate-700 uppercase mb-1 text-center">Half Fishbox (Box)</h4>
+                <div class="relative flex items-center justify-center w-full h-full gap-2 px-1">
+                    <div id="legendHalfDetail" class="absolute top-0 left-0 text-[8px] font-black flex gap-2 pl-2 z-10">...</div>
+                    
+                    <div class="w-2/3 h-[110px] mt-4"><canvas id="lineHalfTrend"></canvas></div>
                     <div class="flex-none">
-                        <div class="donut-container chart-3d-effect">
+                        <div class="donut-container chart-3d-effect" style="width:90px; height:90px;">
                             <canvas id="chartHalfDonut"></canvas>
                             <div id="textHalfTotal" class="donut-inner-text" style="font-size:10px">0<br><span style="font-size:7px">BOX</span></div>
                         </div>
@@ -87,7 +89,12 @@
                 <h4 class="text-[10px] font-black text-slate-700 uppercase mb-2 text-center">Occupancy Trend (%)</h4>
                 <div class="flex items-center justify-center w-full h-full gap-6 px-4">
                     <div class="w-1/2 h-[100px]"><canvas id="lineOccupancyTrend"></canvas></div>
-                    <div class="flex-none"><div class="donut-container chart-3d-effect"><canvas id="chart3"></canvas><div id="text3" class="donut-inner-text">0%</div></div></div>
+                    <div class="flex-none">
+                        <div class="donut-container chart-3d-effect" style="width:90px; height:90px;">
+                            <canvas id="chart3"></canvas>
+                            <div id="text3" class="donut-inner-text">0%</div>
+                        </div>
+                    </div>
                 </div>
                 <div id="legend3" class="custom-legend mt-1">...</div>
             </div>
@@ -126,7 +133,7 @@
         const ID_GSHEET = "2PACX-1vShq3eIcceGMXuR6dBbMut6K99pAQZV4g86Aq5DWkP7yrFTGNMPkdfg4y6vbWeofWpFRO4gGNqLE4h8";
         const GID_SMALL_PIE = "1052774962", GID_SMALL_BAR = "1026658023";
         const GID_OLD = "885583216", GID_OCCUPANCY = "23039051";
-        const GID_HALF = "972941295"; // GID Half Fishbox
+        const GID_HALF = "972941295";
         const GID_BAR = "0", GID_TOTAL = "252078912", GID_DETAIL = "1764500224";
         const ID_LAPORAN = "2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk";
 
@@ -139,7 +146,7 @@
             return parseFloat(str) || 0;
         }
 
-        // FUNGSI HALF FISHBOX (NEW)
+        // FUNGSI HALF FISHBOX (REVISED)
         async function fetchHalfFishbox() {
             try {
                 const t = new Date().getTime();
@@ -148,11 +155,11 @@
                     fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=D2:E7&output=csv&t=${t}`)
                 ]);
 
-                // Donut Chart logic (OK, Hold, Reject)
+                // Donut Chart logic ( OK=Hijau, Hold=Kuning, Reject=Merah)
                 const csvDonut = await respDonut.text();
                 const rowsDonut = csvDonut.split('\n').map(r => r.split(','));
                 const totalBox = cleanNum(rowsDonut[0][1]);
-                const dataValues = [cleanNum(rowsDonut[1][1]), cleanNum(rowsDonut[2][1]), cleanNum(rowsDonut[3][1])];
+                const dataDonut = [cleanNum(rowsDonut[1][1]), cleanNum(rowsDonut[2][1]), cleanNum(rowsDonut[3][1])];
 
                 const ctxDonut = document.getElementById('chartHalfDonut').getContext('2d');
                 if(charts['halfDonut']) charts['halfDonut'].destroy();
@@ -160,28 +167,33 @@
                     type: 'doughnut',
                     data: {
                         labels: ['OK', 'Hold', 'Reject'],
-                        datasets: [{ data: dataValues, backgroundColor: ['#10b981', '#facc15', '#ef4444'], borderWidth: 0 }]
+                        datasets: [{ data: dataDonut, backgroundColor: ['#10b981', '#facc15', '#ef4444'], borderWidth: 0 }]
                     },
                     options: { cutout: '70%', responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false } } }
                 });
                 document.getElementById('textHalfTotal').innerHTML = `${totalBox}<br><span style="font-size:7px">BOX</span>`;
-                document.getElementById('legendHalf').innerHTML = `<span class="text-green-600 font-bold">OK: ${dataValues[0]}</span> | <span class="text-yellow-600 font-bold">Hold: ${dataValues[1]}</span> | <span class="text-red-600 font-bold">Reject: ${dataValues[2]}</span>`;
+                
+                // Legenda Utama di Bawah
+                document.getElementById('legendHalf').innerHTML = `<span class="text-green-600">OK: ${dataDonut[0]}</span> | <span class="text-yellow-600">Hold: ${dataDonut[1]}</span> | <span class="text-red-600">Reject: ${dataDonut[2]}</span>`;
 
-                // Line Chart logic (2 Lines: OK & Hold)
+                // Legenda Detail OK/Hold di KIRI ATAS Line Chart (Sesuai Permintaan)
+                document.getElementById('legendHalfDetail').innerHTML = `<span class="text-black font-black">OK: ${dataDonut[0]}</span> | <span class="text-orange-600 font-black">Hold: ${dataDonut[1]}</span>`;
+
+                // Line Chart logic (OK=Hitam, Hold=Orange)
                 const csvLine = await respLine.text();
                 const rowsLine = csvLine.split('\n').map(r => r.split(','));
-                const dataOK = rowsLine.map(r => cleanNum(r[0])).reverse();
-                const dataHold = rowsLine.map(r => cleanNum(r[1])).reverse();
+                const dataOKLine = rowsLine.map(r => cleanNum(r[0])).reverse();
+                const dataHoldLine = rowsLine.map(r => cleanNum(r[1])).reverse();
 
                 const ctxLine = document.getElementById('lineHalfTrend').getContext('2d');
                 if(charts['halfLine']) charts['halfLine'].destroy();
                 charts['halfLine'] = new Chart(ctxLine, {
                     type: 'line',
                     data: {
-                        labels: dataOK.map(() => ''),
+                        labels: dataOKLine.map(() => ''),
                         datasets: [
-                            { data: dataOK, borderColor: '#10b981', borderWidth: 2, pointRadius: 2, tension: 0.3, fill: false },
-                            { data: dataHold, borderColor: '#facc15', borderWidth: 2, pointRadius: 2, tension: 0.3, fill: false }
+                            { data: dataOKLine, borderColor: '#1e293b', borderWidth: 2.5, pointRadius: 2.5, tension: 0.35, fill: false }, // OK=Hitam
+                            { data: dataHoldLine, borderColor: '#f97316', borderWidth: 2.5, pointRadius: 2.5, tension: 0.35, fill: false } // Hold=Orange
                         ]
                     },
                     options: {
@@ -193,7 +205,7 @@
             } catch (e) { console.error(e); }
         }
 
-        // FUNGSI LAIN (TETAP SAMA)
+        // FUNGSI LAIN (TETAP SAMA, TIDAK DIUBAH)
         async function fetchSmallBar() {
             try {
                 const t = new Date().getTime();
@@ -317,7 +329,7 @@
             fetchSmallBar();
             fetchDonutTop(GID_OLD, 'chart2', 'text2', 'legend2');
             fetchOccupancyCombined();
-            fetchHalfFishbox(); // Memanggil fungsi baru
+            fetchHalfFishbox();
             fetchBottomCharts();
         }
 
