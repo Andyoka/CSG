@@ -21,7 +21,7 @@
         }
         .special-wide-card { grid-column: span 2; align-items: stretch; overflow: hidden; }
         
-        /* UKURAN BULATAN DONUT BESAR & SERAGAM */
+        /* UKURAN BULATAN DONUT BESAR & SERAGAM GLOBALLY */
         .donut-container { position: relative; width: 110px; height: 110px; margin: 0 auto; flex-shrink: 0; }
         
         /* ANGKA TENGAH PRESISI */
@@ -60,10 +60,10 @@
     <main id="mainContent" class="ml-56 p-4 main-content">
         <header class="flex justify-between items-center mb-6 bg-[#1e293b] text-white p-3 rounded-xl border-l-4 border-[#4ade80] shadow-md">
             <div class="flex items-center gap-4">
-                <button onclick="toggleSidebar()" class="hover:text-[#4ade80]">☰</button>
+                <button onclick="toggleSidebar()" class="hover:text-[#4ade80]">☰ Menu</button>
                 <h1 class="text-lg font-extrabold uppercase tracking-tight">Cold Storage <span class="text-[#4ade80]">Monitor</span></h1>
             </div>
-            <button onclick="refreshAll()" class="bg-[#4ade80] text-black px-5 py-1.5 rounded-lg text-[10px] font-black hover:scale-95 transition">🔄 REFRESH</button>
+            <button onclick="refreshAll()" class="bg-[#4ade80] text-black px-5 py-1.5 rounded-lg text-[10px] font-black hover:scale-95 transition">🔄 REFRESH DATA</button>
         </header>
 
         <section class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
@@ -90,7 +90,7 @@
                         </div>
                     </div>
                 </div>
-                <div id="legendHalf" class="custom-legend mt-1 text-[8px]">...</div>
+                <div id="legendHalf" class="custom-legend mt-1 text-[8px] font-bold">...</div>
             </div>
 
             <div class="donut-card special-wide-card">
@@ -168,6 +168,8 @@
                     options: { cutout: '75%', responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false } } }
                 });
                 document.getElementById('textHalfTotal').innerHTML = `${totalBox}<br><span>BOX</span>`;
+                
+                // LEGENDA BERSIH TANPA BALOK WARNA
                 document.getElementById('legendHalf').innerHTML = `<span class="text-green-600">OK: ${dataDonut[0]}</span> | <span class="text-yellow-600">Hold: ${dataDonut[1]}</span> | <span class="text-red-600">Reject: ${dataDonut[2]}</span>`;
                 document.getElementById('legendHalfDetail').innerHTML = `<span class="text-black">OK: ${dataDonut[0]}</span> | <span class="text-orange-600">Hold: ${dataDonut[1]}</span>`;
 
