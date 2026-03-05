@@ -16,16 +16,22 @@
             background: white; border-radius: 1.25rem; padding: 1rem;
             box-shadow: 0 4px 15px -3px rgba(0,0,0,0.07);
             display: flex; flex-direction: column; align-items: center;
-            justify-content: space-between; min-height: 240px;
+            justify-content: space-between; min-height: 250px;
             transition: transform 0.2s ease; border: 1px solid #f1f5f9;
         }
         .special-wide-card { grid-column: span 2; align-items: stretch; overflow: hidden; }
-        .donut-container { position: relative; width: 85px; height: 85px; margin: 0 auto; }
+        
+        /* UKURAN BULATAN DONUT DIPERBESAR SECARA GLOBAL */
+        .donut-container { position: relative; width: 110px; height: 110px; margin: 0 auto; }
+        
+        /* FIX ANGKA TOTAL PAS DI TENGAH DENGAN FONT LEBIH JELAS */
         .donut-inner-text {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 13px; font-weight: 900; color: #1e293b; text-align: center;
+            font-size: 16px; font-weight: 900; color: #1e293b; text-align: center; line-height: 1.1;
         }
+        .donut-inner-text span { font-size: 8px; color: #64748b; font-weight: bold; }
+
         .custom-legend {
             font-size: 9px; color: #64748b; text-align: center;
             width: 100%; padding-top: 5px; border-top: 1px dashed #e2e8f0;
@@ -64,7 +70,7 @@
                 <h4 class="text-[10px] font-black text-slate-700 uppercase mb-2 text-center">Small Fish Inventory (MT)</h4>
                 <div class="flex items-center justify-center w-full h-full gap-4 px-2">
                     <div class="w-2/3 h-[140px]"><canvas id="barSmallHorizontal"></canvas></div>
-                    <div class="flex-none"><div class="donut-container chart-3d-effect"><canvas id="chart1"></canvas><div id="text1" class="donut-inner-text">0%</div></div></div>
+                    <div class="flex-none"><div class="donut-container chart-3d-effect"><canvas id="chart1"></canvas><div id="text1" class="donut-inner-text">0<br><span>MT</span></div></div></div>
                 </div>
                 <div id="legend1" class="custom-legend mt-1">...</div>
             </div>
@@ -76,9 +82,9 @@
                     
                     <div class="w-2/3 h-[110px] mt-4"><canvas id="lineHalfTrend"></canvas></div>
                     <div class="flex-none">
-                        <div class="donut-container chart-3d-effect" style="width:90px; height:90px;">
+                        <div class="donut-container chart-3d-effect">
                             <canvas id="chartHalfDonut"></canvas>
-                            <div id="textHalfTotal" class="donut-inner-text" style="font-size:10px">0<br><span style="font-size:7px">BOX</span></div>
+                            <div id="textHalfTotal" class="donut-inner-text">0<br><span>BOX</span></div>
                         </div>
                     </div>
                 </div>
@@ -90,9 +96,9 @@
                 <div class="flex items-center justify-center w-full h-full gap-6 px-4">
                     <div class="w-1/2 h-[100px]"><canvas id="lineOccupancyTrend"></canvas></div>
                     <div class="flex-none">
-                        <div class="donut-container chart-3d-effect" style="width:90px; height:90px;">
+                        <div class="donut-container chart-3d-effect">
                             <canvas id="chart3"></canvas>
-                            <div id="text3" class="donut-inner-text">0%</div>
+                            <div id="text3" class="donut-inner-text">0<br><span>%</span></div>
                         </div>
                     </div>
                 </div>
@@ -101,7 +107,7 @@
 
             <div class="donut-card">
                 <h4 class="text-[10px] font-black text-slate-700 uppercase">Old Stock</h4>
-                <div class="donut-container chart-3d-effect"><canvas id="chart2"></canvas><div id="text2" class="donut-inner-text">0%</div></div>
+                <div class="donut-container chart-3d-effect"><canvas id="chart2"></canvas><div id="text2" class="donut-inner-text">0<br><span>%</span></div></div>
                 <div id="legend2" class="custom-legend">...</div>
             </div>
         </section>
@@ -146,7 +152,7 @@
             return parseFloat(str) || 0;
         }
 
-        // FUNGSI HALF FISHBOX (REVISED)
+        // FUNGSI HALF FISHBOX (FIX Donut & Text Center)
         async function fetchHalfFishbox() {
             try {
                 const t = new Date().getTime();
@@ -155,7 +161,7 @@
                     fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=D2:E7&output=csv&t=${t}`)
                 ]);
 
-                // Donut Chart logic ( OK=Hijau, Hold=Kuning, Reject=Merah)
+                // Donut logic (OK, Hold, Reject)
                 const csvDonut = await respDonut.text();
                 const rowsDonut = csvDonut.split('\n').map(r => r.split(','));
                 const totalBox = cleanNum(rowsDonut[0][1]);
@@ -169,17 +175,16 @@
                         labels: ['OK', 'Hold', 'Reject'],
                         datasets: [{ data: dataDonut, backgroundColor: ['#10b981', '#facc15', '#ef4444'], borderWidth: 0 }]
                     },
-                    options: { cutout: '70%', responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false } } }
+                    options: { cutout: '75%', responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false } } }
                 });
-                document.getElementById('textHalfTotal').innerHTML = `${totalBox}<br><span style="font-size:7px">BOX</span>`;
+                // FIX ANGKA PAS DI TENGAH
+                document.getElementById('textHalfTotal').innerHTML = `${totalBox}<br><span>BOX</span>`;
                 
-                // Legenda Utama di Bawah
                 document.getElementById('legendHalf').innerHTML = `<span class="text-green-600">OK: ${dataDonut[0]}</span> | <span class="text-yellow-600">Hold: ${dataDonut[1]}</span> | <span class="text-red-600">Reject: ${dataDonut[2]}</span>`;
-
-                // Legenda Detail OK/Hold di KIRI ATAS Line Chart (Sesuai Permintaan)
+                // OK=Hitam, Hold=Orange di Legend Kiri Atas
                 document.getElementById('legendHalfDetail').innerHTML = `<span class="text-black font-black">OK: ${dataDonut[0]}</span> | <span class="text-orange-600 font-black">Hold: ${dataDonut[1]}</span>`;
 
-                // Line Chart logic (OK=Hitam, Hold=Orange)
+                // Line logic (OK=Hitam, Hold=Orange)
                 const csvLine = await respLine.text();
                 const rowsLine = csvLine.split('\n').map(r => r.split(','));
                 const dataOKLine = rowsLine.map(r => cleanNum(r[0])).reverse();
@@ -192,8 +197,8 @@
                     data: {
                         labels: dataOKLine.map(() => ''),
                         datasets: [
-                            { data: dataOKLine, borderColor: '#1e293b', borderWidth: 2.5, pointRadius: 2.5, tension: 0.35, fill: false }, // OK=Hitam
-                            { data: dataHoldLine, borderColor: '#f97316', borderWidth: 2.5, pointRadius: 2.5, tension: 0.35, fill: false } // Hold=Orange
+                            { data: dataOKLine, borderColor: '#1e293b', borderWidth: 3, pointRadius: 3, tension: 0.35, fill: false }, // OK=Hitam
+                            { data: dataHoldLine, borderColor: '#f97316', borderWidth: 3, pointRadius: 3, tension: 0.35, fill: false } // Hold=Orange
                         ]
                     },
                     options: {
@@ -205,7 +210,7 @@
             } catch (e) { console.error(e); }
         }
 
-        // FUNGSI LAIN (TETAP SAMA, TIDAK DIUBAH)
+        // FUNGSI LAIN (TETAP SAMA)
         async function fetchSmallBar() {
             try {
                 const t = new Date().getTime();
@@ -246,7 +251,7 @@
                     data: { datasets: [{ data: [percent, 1-percent], backgroundColor: ['#10b981', '#1e293b'], borderWidth: 0, borderRadius: 2 }] },
                     options: { cutout: '75%', responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false } } }
                 });
-                document.getElementById('text3').innerText = (percent * 100).toFixed(1) + '%';
+                document.getElementById('text3').innerHTML = `${(percent * 100).toFixed(1)}<br><span>%</span>`;
                 document.getElementById('legend3').innerHTML = `<div class="flex justify-between font-bold text-slate-700"><span>${rowsPie[0][0]}</span><span>${rowsPie[0][1]}</span></div><div class="flex justify-between"><span>${rowsPie[1][0]}</span><span>${rowsPie[1][1]}</span></div>`;
 
                 const csvLine = await respLine.text();
@@ -278,7 +283,7 @@
                     data: { datasets: [{ data: [percent, 1-percent], backgroundColor: [color, '#1e293b'], borderWidth: 0, borderRadius: 2 }] },
                     options: { cutout: '75%', responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false } } }
                 });
-                document.getElementById(textId).innerText = (percent * 100).toFixed(1) + '%';
+                document.getElementById(textId).innerHTML = `${(percent * 100).toFixed(1)}<br><span>${canvasId==='chart1'?'MT':'%'}</span>`;
                 document.getElementById(legendId).innerHTML = `<div class="flex justify-between font-bold text-slate-700"><span>${rows[0][0]}</span><span>${rows[0][1]}</span></div><div class="flex justify-between"><span>${rows[1][0]}</span><span>${rows[1][1]}</span></div>`;
             } catch (e) { console.error(e); }
         }
