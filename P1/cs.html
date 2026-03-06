@@ -21,10 +21,8 @@
         }
         .special-wide-card { grid-column: span 2; align-items: stretch; overflow: hidden; }
         
-        /* UKURAN BULATAN DONUT BESAR & SERAGAM */
         .donut-container { position: relative; width: 110px; height: 110px; margin: 0 auto; flex-shrink: 0; }
         
-        /* ANGKA TENGAH PRESISI */
         .donut-inner-text {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
@@ -37,6 +35,12 @@
             font-size: 10px; text-align: center;
             width: 100%; padding-top: 5px; border-top: 1px dashed #e2e8f0;
         }
+        /* Style Tabel Detail G:J */
+        .half-detail-table { width: 100%; font-size: 9px; margin-top: 5px; border-collapse: collapse; }
+        .half-detail-table th { background: #f8fafc; color: #64748b; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding: 2px; }
+        .half-detail-table td { padding: 2px; text-align: center; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
+        .half-detail-table td:first-child { text-align: left; font-weight: bold; color: #64748b; }
+
         .chart-table { width: 100%; border-collapse: collapse; font-size: 8px; color: #1e293b; }
         .chart-table th, .chart-table td { border: 1px solid #cbd5e1; padding: 2px; text-align: center; }
         .chart-table th { background-color: #f1f5f9; font-weight: bold; }
@@ -90,7 +94,20 @@
                         </div>
                     </div>
                 </div>
-                <div id="legendHalf" class="custom-legend mt-1 font-bold">...</div>
+                <div class="w-full mt-2 border-t border-dashed pt-2">
+                    <table class="half-detail-table">
+                        <thead>
+                            <tr>
+                                <th>Shape</th>
+                                <th>OK</th>
+                                <th>Hold</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="halfTableBody">
+                            </tbody>
+                    </table>
+                </div>
             </div>
 
             <div class="donut-card special-wide-card">
@@ -152,10 +169,13 @@
         async function fetchHalfFishbox() {
             try {
                 const t = new Date().getTime();
-                const [respDonut, respLine] = await Promise.all([
+                const [respDonut, respLine, respTable] = await Promise.all([
                     fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=A1:B4&output=csv&t=${t}`),
-                    fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=D2:E7&output=csv&t=${t}`)
+                    fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=D2:E7&output=csv&t=${t}`),
+                    fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=G2:J4&output=csv&t=${t}`) // AMBIL DATA G:J
                 ]);
+
+                // 1. Logic Donut
                 const csvDonut = await respDonut.text();
                 const rowsDonut = csvDonut.split('\n').map(r => r.split(','));
                 const totalBox = cleanNum(rowsDonut[0][1]);
@@ -165,17 +185,12 @@
                 charts['halfDonut'] = new Chart(ctxDonut, {
                     type: 'doughnut',
                     data: { labels: ['OK', 'Hold', 'Reject'], datasets: [{ data: dataDonut, backgroundColor: ['#10b981', '#facc15', '#ef4444'], borderWidth: 0 }] },
-                    options: { 
-                        cutout: '75%', 
-                        responsive: true, 
-                        maintainAspectRatio: false, 
-                        plugins: { legend: { display: false }, datalabels: { display: false } } // MATIKAN LEGEND OTOMATIS
-                    }
+                    options: { cutout: '75%', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } } }
                 });
                 document.getElementById('textHalfTotal').innerHTML = `${totalBox}<br><span>BOX</span>`;
-                document.getElementById('legendHalf').innerHTML = `<span class="text-green-600">OK: ${dataDonut[0]}</span> | <span class="text-yellow-600">Hold: ${dataDonut[1]}</span> | <span class="text-red-600">Reject: ${dataDonut[2]}</span>`;
                 document.getElementById('legendHalfDetail').innerHTML = `<span class="text-black">OK: ${dataDonut[0]}</span> | <span class="text-orange-600">Hold: ${dataDonut[1]}</span>`;
 
+                // 2. Logic Line Trend
                 const csvLine = await respLine.text();
                 const rowsLine = csvLine.split('\n').map(r => r.split(','));
                 const dOK = rowsLine.map(r => cleanNum(r[0])).reverse();
@@ -188,13 +203,25 @@
                         { data: dOK, borderColor: '#1e293b', borderWidth: 3, pointRadius: 3, tension: 0.35, fill: false },
                         { data: dHold, borderColor: '#f97316', borderWidth: 3, pointRadius: 3, tension: 0.35, fill: false }
                     ]},
-                    options: { 
-                        responsive: true, 
-                        maintainAspectRatio: false, 
-                        plugins: { legend: { display: false }, datalabels: { display: false } }, 
-                        scales: { x: { display: false }, y: { display: false } } 
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
+                });
+
+                // 3. Logic Tabel G:J
+                const csvTable = await respTable.text();
+                const rowsTable = csvTable.split('\n').map(r => r.split(','));
+                let htmlTable = "";
+                rowsTable.forEach(row => {
+                    if(row[0]) {
+                        htmlTable += `<tr>
+                            <td>${row[0]}</td>
+                            <td>${row[1]}</td>
+                            <td>${row[2]}</td>
+                            <td class="font-bold">${row[3]}</td>
+                        </tr>`;
                     }
                 });
+                document.getElementById('halfTableBody').innerHTML = htmlTable;
+
             } catch (e) { console.error(e); }
         }
 
