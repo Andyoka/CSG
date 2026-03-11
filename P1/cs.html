@@ -35,11 +35,12 @@
             font-size: 10px; text-align: center;
             width: 100%; padding-top: 5px; border-top: 1px dashed #e2e8f0;
         }
-        /* Style Tabel Detail G:J */
-        .half-detail-table { width: 100%; font-size: 9px; margin-top: 5px; border-collapse: collapse; }
-        .half-detail-table th { background: #f8fafc; color: #64748b; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding: 2px; }
-        .half-detail-table td { padding: 2px; text-align: center; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
-        .half-detail-table td:first-child { text-align: left; font-weight: bold; color: #64748b; }
+
+        /* Style Tabel Detail G:J & H:J */
+        .detail-table { width: 100%; font-size: 9px; border-collapse: collapse; }
+        .detail-table th { background: #f8fafc; color: #64748b; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding: 2px; }
+        .detail-table td { padding: 4px 2px; text-align: center; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
+        .detail-table td:first-child { text-align: left; font-weight: bold; color: #64748b; }
 
         .chart-table { width: 100%; border-collapse: collapse; font-size: 8px; color: #1e293b; }
         .chart-table th, .chart-table td { border: 1px solid #cbd5e1; padding: 2px; text-align: center; }
@@ -95,17 +96,9 @@
                     </div>
                 </div>
                 <div class="w-full mt-2 border-t border-dashed pt-2">
-                    <table class="half-detail-table">
-                        <thead>
-                            <tr>
-                                <th>Shape</th>
-                                <th>OK</th>
-                                <th>Hold</th>
-                                <th>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody id="halfTableBody">
-                            </tbody>
+                    <table class="detail-table">
+                        <thead><tr><th>Shape</th><th>OK</th><th>Hold</th><th>Total</th></tr></thead>
+                        <tbody id="halfTableBody"></tbody>
                     </table>
                 </div>
             </div>
@@ -119,10 +112,23 @@
                 <div id="legend3" class="custom-legend mt-1">...</div>
             </div>
 
-            <div class="donut-card">
-                <h4 class="text-[10px] font-black text-slate-700 uppercase">Old Stock</h4>
-                <div class="donut-container chart-3d-effect"><canvas id="chart2"></canvas><div id="text2" class="donut-inner-text">0<br><span>%</span></div></div>
-                <div id="legend2" class="custom-legend">...</div>
+            <div class="donut-card special-wide-card">
+                <h4 class="text-[10px] font-black text-slate-700 uppercase mb-1 text-center">Old Stock Monitoring</h4>
+                <div class="flex items-center justify-center w-full h-full gap-6 px-4">
+                    <div class="w-1/2">
+                        <table class="detail-table">
+                            <thead><tr><th>Item</th><th>Box</th><th>MT</th></tr></thead>
+                            <tbody id="oldTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="flex-none">
+                        <div class="donut-container chart-3d-effect">
+                            <canvas id="chart2"></canvas>
+                            <div id="text2" class="donut-inner-text">0<br><span>%</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div id="legend2" class="custom-legend mt-1">...</div>
             </div>
         </section>
 
@@ -166,16 +172,48 @@
             return parseFloat(str) || 0;
         }
 
+        async function fetchOldStock() {
+            try {
+                const t = new Date().getTime();
+                const [respDonut, respTable] = await Promise.all([
+                    fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OLD}&range=A1:B3&output=csv&t=${t}`),
+                    fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OLD}&range=H2:J5&output=csv&t=${t}`)
+                ]);
+
+                // Donut Logic
+                const csvD = await respDonut.text();
+                const rowsD = csvD.split('\n').map(r => r.split(','));
+                let val = cleanNum(rowsD[2][1]);
+                let percent = val > 1 ? val / 100 : val;
+                const ctx = document.getElementById('chart2').getContext('2d');
+                if(charts['chart2']) charts['chart2'].destroy();
+                charts['chart2'] = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: { datasets: [{ data: [percent, 1-percent], backgroundColor: ['#3b82f6', '#1e293b'], borderWidth: 0, borderRadius: 2 }] },
+                    options: { cutout: '75%', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } } }
+                });
+                document.getElementById('text2').innerHTML = `${(percent * 100).toFixed(1)}<br><span>%</span>`;
+                document.getElementById('legend2').innerHTML = `<div class="flex justify-between font-bold text-slate-700"><span>${rowsD[0][0]}</span><span>${rowsD[0][1]}</span></div><div class="flex justify-between"><span>${rowsD[1][0]}</span><span>${rowsD[1][1]}</span></div>`;
+
+                // Table Logic H:J
+                const csvT = await respTable.text();
+                const rowsT = csvT.split('\n').map(r => r.split(','));
+                let html = "";
+                rowsT.forEach(row => {
+                    if(row[0]) html += `<tr><td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td></tr>`;
+                });
+                document.getElementById('oldTableBody').innerHTML = html;
+            } catch (e) { console.error(e); }
+        }
+
         async function fetchHalfFishbox() {
             try {
                 const t = new Date().getTime();
                 const [respDonut, respLine, respTable] = await Promise.all([
                     fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=A1:B4&output=csv&t=${t}`),
                     fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=D2:E7&output=csv&t=${t}`),
-                    fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=G2:J4&output=csv&t=${t}`) // AMBIL DATA G:J
+                    fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=G2:J4&output=csv&t=${t}`)
                 ]);
-
-                // 1. Logic Donut
                 const csvDonut = await respDonut.text();
                 const rowsDonut = csvDonut.split('\n').map(r => r.split(','));
                 const totalBox = cleanNum(rowsDonut[0][1]);
@@ -190,7 +228,6 @@
                 document.getElementById('textHalfTotal').innerHTML = `${totalBox}<br><span>BOX</span>`;
                 document.getElementById('legendHalfDetail').innerHTML = `<span class="text-black">OK: ${dataDonut[0]}</span> | <span class="text-orange-600">Hold: ${dataDonut[1]}</span>`;
 
-                // 2. Logic Line Trend
                 const csvLine = await respLine.text();
                 const rowsLine = csvLine.split('\n').map(r => r.split(','));
                 const dOK = rowsLine.map(r => cleanNum(r[0])).reverse();
@@ -199,29 +236,17 @@
                 if(charts['halfLine']) charts['halfLine'].destroy();
                 charts['halfLine'] = new Chart(ctxLine, {
                     type: 'line',
-                    data: { labels: dOK.map(() => ''), datasets: [
-                        { data: dOK, borderColor: '#1e293b', borderWidth: 3, pointRadius: 3, tension: 0.35, fill: false },
-                        { data: dHold, borderColor: '#f97316', borderWidth: 3, pointRadius: 3, tension: 0.35, fill: false }
-                    ]},
+                    data: { labels: dOK.map(() => ''), datasets: [{ data: dOK, borderColor: '#1e293b', borderWidth: 3, tension: 0.35 }, { data: dHold, borderColor: '#f97316', borderWidth: 3, tension: 0.35 }] },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
                 });
 
-                // 3. Logic Tabel G:J
                 const csvTable = await respTable.text();
-                const rowsTable = csvTable.split('\n').map(r => r.split(','));
                 let htmlTable = "";
-                rowsTable.forEach(row => {
-                    if(row[0]) {
-                        htmlTable += `<tr>
-                            <td>${row[0]}</td>
-                            <td>${row[1]}</td>
-                            <td>${row[2]}</td>
-                            <td class="font-bold">${row[3]}</td>
-                        </tr>`;
-                    }
+                csvTable.split('\n').forEach(row => {
+                    const r = row.split(',');
+                    if(r[0]) htmlTable += `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td class="font-bold">${r[3]}</td></tr>`;
                 });
                 document.getElementById('halfTableBody').innerHTML = htmlTable;
-
             } catch (e) { console.error(e); }
         }
 
@@ -270,8 +295,8 @@
                 if(charts['lineOcc']) charts['lineOcc'].destroy();
                 charts['lineOcc'] = new Chart(ctxLine, {
                     type: 'line',
-                    data: { labels: valuesLine.map(() => ''), datasets: [{ data: valuesLine, borderColor: '#10b981', borderWidth: 3, pointRadius: 4, tension: 0.4, fill: false }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } }, scales: { x: { display: false }, y: { display: false, min: Math.min(...valuesLine) - 1 } } }
+                    data: { labels: valuesLine.map(() => ''), datasets: [{ data: valuesLine, borderColor: '#10b981', borderWidth: 3, tension: 0.4 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
                 });
             } catch (e) { console.error(e); }
         }
@@ -289,7 +314,7 @@
                 if(charts[canvasId]) charts[canvasId].destroy();
                 charts[canvasId] = new Chart(ctx, {
                     type: 'doughnut',
-                    data: { datasets: [{ data: [percent, 1-percent], backgroundColor: [color, '#1e293b'], borderWidth: 0, borderRadius: 2 }] },
+                    data: { datasets: [{ data: [percent, 1-percent], backgroundColor: [color, '#1e293b'], borderWidth: 0 }] },
                     options: { cutout: '75%', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } } }
                 });
                 document.getElementById(textId).innerHTML = `${(percent * 100).toFixed(1)}<br><span>${canvasId==='chart1'?'MT':'%'}</span>`;
@@ -316,22 +341,22 @@
                 charts['mainBarChart'] = new Chart(document.getElementById('mainBarChart'), {
                     type: 'bar',
                     data: { labels: barLabels, datasets: datasets.map(s => ({ label: s.l, backgroundColor: s.c, data: s.d.map((v, i) => { let tot = datasets.reduce((a, b) => a + b.d[i], 0); return tot > 0 ? (v / tot) * 100 : 0; }) })) },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false }, legend: { position: 'bottom', labels: { boxWidth: 8, font: { size: 8 } } } }, scales: { y: { stacked: true, max: 100, ticks: { callback: v => v + '%' } }, x: { stacked: true, ticks:{font:{size:7}} } } }
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false }, legend: { position: 'bottom', labels: { boxWidth: 8, font: { size: 8 } } } }, scales: { y: { stacked: true, max: 100 }, x: { stacked: true } } }
                 });
                 document.getElementById('tableHeader').innerHTML = '<th class="border-r">Cat</th>' + barLabels.map(l=>`<th>${l}</th>`).join('');
                 document.getElementById('tableBody').innerHTML = datasets.map(s => `<tr><td class="text-left font-bold border-r px-1"><span class="legend-box" style="background:${s.c}"></span>${s.l}</td>${s.d.map(v=>`<td>${v.toLocaleString('id-ID')}</td>`).join('')}</tr>`).join('');
                 if(charts['pieTotalChart']) charts['pieTotalChart'].destroy();
                 charts['pieTotalChart'] = new Chart(document.getElementById('pieTotalChart'), {
                     type: 'pie',
-                    data: { labels: rT[0], datasets: [{ data: rT[1].map(v=>cleanNum(v)), backgroundColor: ["#ef4444", "#3b82f6", "#facc15"], borderWidth: 1 }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { color: '#fff', font:{weight:'bold', size:8}, formatter: (v,ctx)=>ctx.chart.data.labels[ctx.dataIndex] }, legend: { display: false } } }
+                    data: { labels: rT[0], datasets: [{ data: rT[1].map(v=>cleanNum(v)), backgroundColor: ["#ef4444", "#3b82f6", "#facc15"] }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
                 });
                 document.getElementById('pieTotalLegend').innerHTML = (rT[0]||[]).map((l,i)=>`<div class="flex justify-between border-b pb-1"><span>${l}</span><b>${cleanNum(rT[1][i]).toLocaleString('id-ID')}</b></div>`).join('');
                 if(charts['pieDetailChart']) charts['pieDetailChart'].destroy();
                 charts['pieDetailChart'] = new Chart(document.getElementById('pieDetailChart'), {
                     type: 'pie',
-                    data: { labels: rD[0], datasets: [{ data: rD[1].map(v=>cleanNum(v)), backgroundColor: ["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899"], borderWidth: 1 }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false }, legend: { display: false } } }
+                    data: { labels: rD[0], datasets: [{ data: rD[1].map(v=>cleanNum(v)), backgroundColor: ["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899"] }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
                 });
                 document.getElementById('pieDetailLegend').innerHTML = (rD[0]||[]).map((l,i)=>`<div class="flex items-center truncate"><span class="legend-box" style="background:${["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899"][i]}"></span>${l}</div>`).join('');
             } catch (e) { console.error(e); }
@@ -341,7 +366,7 @@
             document.getElementById('sheetFrame').src = `https://docs.google.com/spreadsheets/d/e/${ID_LAPORAN}/pubhtml?widget=true&headers=false`;
             fetchDonutTop(GID_SMALL_PIE, 'chart1', 'text1', 'legend1');
             fetchSmallBar();
-            fetchDonutTop(GID_OLD, 'chart2', 'text2', 'legend2');
+            fetchOldStock();
             fetchOccupancyCombined();
             fetchHalfFishbox();
             fetchBottomCharts();
