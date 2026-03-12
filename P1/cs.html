@@ -110,7 +110,7 @@
                 </div>
                 <div class="w-full mt-2 border-t border-dashed pt-2">
                     <table class="detail-table">
-                        <thead><tr><th>Shape</th><th>OK</th><th>Hold</th><th>Total</th></tr></thead>
+                        <thead><tr><th>Shape</th><th>OK</th><th>Hold</th><th>...</th><th>Total</th></tr></thead>
                         <tbody id="halfTableBody"></tbody>
                     </table>
                 </div>
@@ -163,7 +163,6 @@
         const ID_LAPORAN = "2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk";
 
         Chart.register(ChartDataLabels);
-        // MATIKAN SEMUA DEFAULT YANG BIKIN KACAU
         Chart.defaults.set('plugins.legend', { display: false });
         Chart.defaults.set('plugins.datalabels', { display: false });
 
@@ -247,7 +246,7 @@
                 const [rDonut, rLine, rTab] = await Promise.all([
                     fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=A1:B4&output=csv&t=${t}`),
                     fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=D2:E7&output=csv&t=${t}`),
-                    fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=G2:J4&output=csv&t=${t}`)
+                    fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=G2:K4&output=csv&t=${t}`) // UPDATE G:K
                 ]);
                 const rowsD = (await rDonut.text()).split('\n').map(r => r.split(','));
                 const datD = [cleanNum(rowsD[1][1]), cleanNum(rowsD[2][1]), cleanNum(rowsD[3][1])];
@@ -272,7 +271,8 @@
 
                 document.getElementById('halfTableBody').innerHTML = (await rTab.text()).split('\n').map(r => {
                     const c = r.split(',');
-                    return c[0] && c[0] !== "undefined" ? `<tr><td>${c[0]}</td><td>${c[1]}</td><td>${c[2]}</td><td class="font-bold">${c[3]}</td></tr>` : '';
+                    // Render 4 kolom data (Shape, OK, Hold, NewCol, Total)
+                    return c[0] && c[0] !== "undefined" ? `<tr><td>${c[0]}</td><td>${c[1]}</td><td>${c[2]}</td><td>${c[3]}</td><td class="font-bold">${c[4]}</td></tr>` : '';
                 }).join('');
             } catch (e) { console.error(e); }
         }
@@ -335,7 +335,8 @@
         async function fetchBottom() {
             try {
                 const t = new Date().getTime();
-                const csv = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_BAR}&range=A1:N5&output=csv&t=${t}`).then(r => r.text());
+                // UPDATE RANGE KE A1:O5
+                const csv = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_BAR}&range=A1:O5&output=csv&t=${t}`).then(r => r.text());
                 const rB = csv.split('\n').map(r => r.split(','));
                 const labels = rB[0].slice(1);
                 const datasets = [
