@@ -20,9 +20,7 @@
             transition: transform 0.2s ease; border: 1px solid #f1f5f9;
         }
         .special-wide-card { grid-column: span 2; align-items: stretch; overflow: hidden; }
-        
         .donut-container { position: relative; width: 110px; height: 110px; margin: 0 auto; flex-shrink: 0; }
-        
         .donut-inner-text {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
@@ -30,17 +28,10 @@
             width: 100%; pointer-events: none; z-index: 10;
         }
         .donut-inner-text span { font-size: 8px; color: #64748b; font-weight: bold; }
-
-        .custom-legend {
-            font-size: 10px; text-align: center;
-            width: 100%; padding-top: 5px; border-top: 1px dashed #e2e8f0;
-        }
-
+        .custom-legend { font-size: 10px; text-align: center; width: 100%; padding-top: 5px; border-top: 1px dashed #e2e8f0; }
         .detail-table { width: 100%; font-size: 9px; border-collapse: collapse; }
         .detail-table th { background: #f8fafc; color: #64748b; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding: 2px; }
         .detail-table td { padding: 4px 2px; text-align: center; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
-        .detail-table td:first-child { text-align: left; font-weight: bold; color: #64748b; }
-
         .chart-table { width: 100%; border-collapse: collapse; font-size: 8px; color: #1e293b; }
         .chart-table th, .chart-table td { border: 1px solid #cbd5e1; padding: 2px; text-align: center; }
         .chart-table th { background-color: #f1f5f9; font-weight: bold; }
@@ -92,11 +83,8 @@
             <div class="donut-card special-wide-card">
                 <h4 class="text-[10px] font-black text-slate-700 uppercase mb-1 text-center">Product Detail Stock</h4>
                 <div class="flex items-center justify-center w-full h-full gap-4 px-4">
-                    <div class="w-1/2 max-h-[140px] overflow-y-auto">
-                        <table class="detail-table">
-                            <thead><tr><th>Product</th><th>Qty</th></tr></thead>
-                            <tbody id="detailStockTableBody"></tbody>
-                        </table>
+                    <div class="w-2/3 h-[140px]">
+                        <canvas id="barProductDetail"></canvas>
                     </div>
                     <div class="flex-none">
                         <div class="donut-container chart-3d-effect">
@@ -113,14 +101,14 @@
                     <div class="w-2/3 h-[140px]"><canvas id="barSmallHorizontal"></canvas></div>
                     <div class="flex-none"><div class="donut-container chart-3d-effect"><canvas id="chart1"></canvas><div id="text1" class="donut-inner-text">0<br><span>MT</span></div></div></div>
                 </div>
-                <div id="legend1" class="custom-legend mt-1">...</div>
+                <div id="legend1" class="custom-legend mt-1"></div>
             </div>
 
             <div class="donut-card special-wide-card">
                 <h4 class="text-[10px] font-black text-slate-700 uppercase mb-1 text-center">Half Fishbox (Box)</h4>
                 <div class="flex items-center justify-center w-full h-full gap-6 px-4">
                     <div class="relative w-1/2 h-[100px]">
-                        <div id="legendHalfDetail" class="absolute -top-2 left-0 text-[9px] font-black flex gap-2 z-20">...</div>
+                        <div id="legendHalfDetail" class="absolute -top-2 left-0 text-[9px] font-black flex gap-2 z-20"></div>
                         <canvas id="lineHalfTrend"></canvas>
                     </div>
                     <div class="flex-none">
@@ -144,7 +132,7 @@
                     <div class="w-1/2 h-[100px]"><canvas id="lineOccupancyTrend"></canvas></div>
                     <div class="flex-none"><div class="donut-container chart-3d-effect"><canvas id="chart3"></canvas><div id="text3" class="donut-inner-text">0<br><span>%</span></div></div></div>
                 </div>
-                <div id="legend3" class="custom-legend mt-1">...</div>
+                <div id="legend3" class="custom-legend mt-1"></div>
             </div>
 
             <div class="donut-card special-wide-card">
@@ -163,7 +151,7 @@
                         </div>
                     </div>
                 </div>
-                <div id="legend2" class="custom-legend mt-1">...</div>
+                <div id="legend2" class="custom-legend mt-1"></div>
             </div>
         </section>
 
@@ -196,7 +184,7 @@
         async function fetchTopCharts() {
             const t = new Date().getTime();
             try {
-                // Fetch Total Stock
+                // Total Stock Overview
                 const respT = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_TOTAL}&range=A1:C2&output=csv&t=${t}`);
                 const rT = (await respT.text()).split('\n').map(r => r.split(','));
                 if(charts['pieTotal']) charts['pieTotal'].destroy();
@@ -207,21 +195,29 @@
                 });
                 document.getElementById('totalStockTableBody').innerHTML = rT[0].map((l,i)=>`<tr><td>${l}</td><td>${cleanNum(rT[1][i]).toLocaleString('id-ID')}</td></tr>`).join('');
 
-                // Fetch Product Detail + Cell I2 for Total
+                // Product Detail Stock (Bar + Pie)
                 const respD = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_DETAIL}&range=A1:I2&output=csv&t=${t}`);
                 const rD = (await respD.text()).split('\n').map(r => r.split(','));
+                const labelsD = rD[0].slice(0, 8);
+                const valuesD = rD[1].slice(0, 8).map(v=>cleanNum(v));
+                const totalVal = cleanNum(rD[1][8]);
 
+                // Update Bar Chart (Black Minimalist)
+                if(charts['barProduct']) charts['barProduct'].destroy();
+                charts['barProduct'] = new Chart(document.getElementById('barProductDetail'), {
+                    type: 'bar',
+                    data: { labels: labelsD, datasets: [{ data: valuesD, backgroundColor: '#1e293b', borderRadius: 4, barThickness: 10 }] },
+                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'right', font: { size: 7, weight: 'bold' }, formatter: v => v.toLocaleString('id-ID') } }, scales: { x: { display: false }, y: { grid: { display: false }, ticks: { font: { size: 7 } } } } }
+                });
+
+                // Update Pie Chart
                 if(charts['pieDetail']) charts['pieDetail'].destroy();
                 charts['pieDetail'] = new Chart(document.getElementById('pieDetailChart'), {
                     type: 'doughnut',
-                    data: { labels: rD[0].slice(0, 8), datasets: [{ data: rD[1].slice(0, 8).map(v=>cleanNum(v)), backgroundColor: ["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899"], borderWidth: 0 }] },
+                    data: { labels: labelsD, datasets: [{ data: valuesD, backgroundColor: ["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899"], borderWidth: 0 }] },
                     options: { cutout: '70%', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } } }
                 });
-                
-                // Update Inner Text with Cell I2
-                const totalDetail = cleanNum(rD[1][8]); // Mengambil kolom I (index 8) baris ke-2
-                document.getElementById('textDetailTotal').innerHTML = `${totalDetail.toLocaleString('id-ID')}<br><span>TOTAL</span>`;
-                document.getElementById('detailStockTableBody').innerHTML = rD[0].slice(0, 8).map((l,i)=>`<tr><td>${l}</td><td>${cleanNum(rD[1][i]).toLocaleString('id-ID')}</td></tr>`).join('');
+                document.getElementById('textDetailTotal').innerHTML = `${totalVal.toLocaleString('id-ID')}<br><span>TOTAL</span>`;
 
             } catch (e) { console.error(e); }
         }
@@ -234,8 +230,7 @@
                     fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OLD}&range=H2:J5&output=csv&t=${t}`)
                 ]);
                 const rowsD = (await respDonut.text()).split('\n').map(r => r.split(','));
-                let val = cleanNum(rowsD[2][1]);
-                let percent = val > 1 ? val / 100 : val;
+                let percent = cleanNum(rowsD[2][1]) / 100;
                 if(charts['chart2']) charts['chart2'].destroy();
                 charts['chart2'] = new Chart(document.getElementById('chart2'), {
                     type: 'doughnut',
@@ -294,7 +289,7 @@
                 charts['barSmallH'] = new Chart(document.getElementById('barSmallHorizontal'), {
                     type: 'bar',
                     data: { labels: rows.map(r=>r[0]), datasets: [{ data: rows.map(r=>cleanNum(r[1])), backgroundColor: '#1e293b', borderRadius: 4, barThickness: 10 }] },
-                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { datalabels: { anchor: 'end', align: 'right', font: { size: 8, weight: 'bold' }, formatter: v => v + ' MT' } }, scales: { x: { display: false }, y: { grid: { display: false }, ticks: { font: { size: 7 } } } } }
+                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'right', font: { size: 8, weight: 'bold' }, formatter: v => v + ' MT' } }, scales: { x: { display: false }, y: { grid: { display: false }, ticks: { font: { size: 7 } } } } }
                 });
             } catch (e) { console.error(e); }
         }
