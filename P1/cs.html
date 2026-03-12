@@ -220,7 +220,7 @@
                     data: { labels: combined.map(d=>d.l), datasets: [{ data: combined.map(d=>d.v), backgroundColor: ["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899"], borderWidth: 0 }] },
                     options: { cutout: '70%', responsive: true, maintainAspectRatio: false }
                 });
-                setSafeInner('textDetailTotal', cleanNum(rD[1][8]).toLocaleString('id-ID'), 'TOTAL');
+                setSafeInner('textDetailTotal', cleanNum(rD[1][8]).toLocaleString('id-ID'), 'KG');
             } catch (e) { console.error(e); }
         }
 
@@ -232,7 +232,7 @@
                 ]);
                 const rowsP = csvP.split('\n').map(r => r.split(','));
                 let pct = cleanNum(rowsP[2][1]) / 100;
-                setSafeInner('text1', (pct * 100).toFixed(1), 'MT');
+                setSafeInner('text1', (pct * 100).toFixed(2), '%');
                 document.getElementById('legend1').innerHTML = `<div class="flex justify-between font-bold"><span>${rowsP[0][0]}</span><span>${rowsP[0][1]}</span></div><div class="flex justify-between"><span>${rowsP[1][0]}</span><span>${rowsP[1][1]}</span></div>`;
                 if(charts['chart1']) charts['chart1'].destroy();
                 charts['chart1'] = new Chart(document.getElementById('chart1'), {
@@ -294,7 +294,7 @@
                 ]);
                 const rowsP = csvP.split('\n').map(r => r.split(','));
                 let pct = cleanNum(rowsP[2][1]) / 100;
-                setSafeInner('text3', (pct * 100).toFixed(1), '%');
+                setSafeInner('text3', (pct * 100).toFixed(2), '%');
                 document.getElementById('legend3').innerHTML = `<div class="flex justify-between font-bold"><span>${rowsP[0][0]}</span><span>${rowsP[0][1]}</span></div><div class="flex justify-between"><span>${rowsP[1][0]}</span><span>${rowsP[1][1]}</span></div>`;
                 if(charts['chart3']) charts['chart3'].destroy();
                 charts['chart3'] = new Chart(document.getElementById('chart3'), {
@@ -321,7 +321,7 @@
                 ]);
                 const rowsD = csvD.split('\n').map(r => r.split(','));
                 let pct = cleanNum(rowsD[2][1]) / 100;
-                setSafeInner('text2', (pct * 100).toFixed(1), '%');
+                setSafeInner('text2', (pct * 100).toFixed(2), '%');
                 document.getElementById('legend2').innerHTML = `<div class="flex justify-between font-bold"><span>${rowsD[0][0]}</span><span>${rowsD[0][1]}</span></div><div class="flex justify-between"><span>${rowsD[1][0]}</span><span>${rowsD[1][1]}</span></div>`;
                 if(charts['chart2']) charts['chart2'].destroy();
                 charts['chart2'] = new Chart(document.getElementById('chart2'), {
