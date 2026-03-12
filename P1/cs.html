@@ -110,7 +110,7 @@
                 </div>
                 <div class="w-full mt-2 border-t border-dashed pt-2">
                     <table class="detail-table">
-                        <thead><tr><th>Shape</th><th>OK</th><th>Hold</th><th>...</th><th>Total</th></tr></thead>
+                        <thead id="halfTableHeader"></thead>
                         <tbody id="halfTableBody"></tbody>
                     </table>
                 </div>
@@ -246,7 +246,7 @@
                 const [rDonut, rLine, rTab] = await Promise.all([
                     fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=A1:B4&output=csv&t=${t}`),
                     fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=D2:E7&output=csv&t=${t}`),
-                    fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=G2:K4&output=csv&t=${t}`) // UPDATE G:K
+                    fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=G1:K4&output=csv&t=${t}`) // Start G1
                 ]);
                 const rowsD = (await rDonut.text()).split('\n').map(r => r.split(','));
                 const datD = [cleanNum(rowsD[1][1]), cleanNum(rowsD[2][1]), cleanNum(rowsD[3][1])];
@@ -269,11 +269,16 @@
                     options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { display: false } } }
                 });
 
-                document.getElementById('halfTableBody').innerHTML = (await rTab.text()).split('\n').map(r => {
-                    const c = r.split(',');
-                    // Render 4 kolom data (Shape, OK, Hold, NewCol, Total)
-                    return c[0] && c[0] !== "undefined" ? `<tr><td>${c[0]}</td><td>${c[1]}</td><td>${c[2]}</td><td>${c[3]}</td><td class="font-bold">${c[4]}</td></tr>` : '';
+                // PROSES HEADER & BODY TABEL HALF FISHBOX
+                const fullTable = (await rTab.text()).split('\n').map(r => r.split(','));
+                const header = fullTable[0];
+                const body = fullTable.slice(1);
+
+                document.getElementById('halfTableHeader').innerHTML = `<tr>${header.map(h => `<th>${h}</th>`).join('')}</tr>`;
+                document.getElementById('halfTableBody').innerHTML = body.map(r => {
+                    return r[0] && r[0] !== "undefined" ? `<tr>${r.map((c, i) => `<td class="${i === r.length-1 ? 'font-bold' : ''}">${c}</td>`).join('')}</tr>` : '';
                 }).join('');
+                
             } catch (e) { console.error(e); }
         }
 
@@ -335,7 +340,6 @@
         async function fetchBottom() {
             try {
                 const t = new Date().getTime();
-                // UPDATE RANGE KE A1:O5
                 const csv = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_BAR}&range=A1:O5&output=csv&t=${t}`).then(r => r.text());
                 const rB = csv.split('\n').map(r => r.split(','));
                 const labels = rB[0].slice(1);
