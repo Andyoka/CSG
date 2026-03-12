@@ -64,19 +64,20 @@
         <section class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
             <div class="donut-card special-wide-card">
                 <h4 class="text-[10px] font-black text-slate-700 uppercase mb-1 text-center">Total Stock Overview</h4>
-                <div class="flex items-center justify-center w-full h-full gap-4 px-4">
-                    <div class="w-1/2 max-h-[140px] overflow-y-auto">
-                        <table class="detail-table">
-                            <thead><tr><th>Category</th><th>Value</th></tr></thead>
-                            <tbody id="totalStockTableBody"></tbody>
-                        </table>
-                    </div>
+                <div class="flex items-center justify-center w-full h-full gap-6 px-4">
+                    <div class="w-1/2 h-[100px]"><canvas id="lineTotalTrend"></canvas></div>
                     <div class="flex-none">
                         <div class="donut-container chart-3d-effect">
                             <canvas id="pieTotalChart"></canvas>
                             <div id="textTotalStock" class="donut-inner-text"></div>
                         </div>
                     </div>
+                </div>
+                <div class="w-full mt-2 border-t border-dashed pt-2">
+                    <table class="detail-table">
+                        <thead><tr><th>Category</th><th>Qty</th><th>Unit</th></tr></thead>
+                        <tbody id="totalStockTableBody"></tbody>
+                    </table>
                 </div>
             </div>
 
@@ -188,15 +189,17 @@
         async function fetchTopCharts() {
             const t = new Date().getTime();
             try {
-                // UPDATE: Ambil range A1:C4 (termasuk Grand Total di baris 4)
-                const respT = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_TOTAL}&range=A1:C4&output=csv&t=${t}`);
-                const rT = (await respT.text()).split('\n').map(r => r.split(','));
+                // Ambil data A1:C4 untuk Pie & Tabel, dan Kolom E untuk Line
+                const [respT, respL] = await Promise.all([
+                    fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_TOTAL}&range=A1:C4&output=csv&t=${t}`),
+                    fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_TOTAL}&range=E2:E7&output=csv&t=${t}`)
+                ]);
                 
-                // Pisahkan data murni (A1:C3) dan Grand Total (A4:C4)
+                const rT = (await respT.text()).split('\n').map(r => r.split(','));
                 const dataMurni = rT.slice(0, 3);
                 const grandTotalRow = rT[3];
 
-                // Pie Chart: Gunakan Qty dari dataMurni (Round Fish, Loin, AT)
+                // Pie Chart
                 if(charts['pieTotal']) charts['pieTotal'].destroy();
                 charts['pieTotal'] = new Chart(document.getElementById('pieTotalChart'), {
                     type: 'doughnut',
@@ -210,16 +213,23 @@
                     },
                     options: { cutout: '70%', responsive: true, maintainAspectRatio: false }
                 });
-
-                // Tabel Total Stock: Tampilkan dataMurni saja
-                document.getElementById('totalStockTableBody').innerHTML = dataMurni.map(r => 
-                    `<tr><td>${r[0]}</td><td>${cleanNum(r[1]).toLocaleString('id-ID')}</td></tr>`
-                ).join('');
-
-                // Angka tengah: Ambil dari B4 (Qty Grand Total)
                 setSafeInner('textTotalStock', cleanNum(grandTotalRow[1]).toLocaleString('id-ID'), 'KG');
 
-                // PRODUCT DETAIL (Tetap seperti sebelumnya)
+                // Tabel di bawah Pie
+                document.getElementById('totalStockTableBody').innerHTML = dataMurni.map(r => 
+                    `<tr><td>${r[0]}</td><td>${cleanNum(r[1]).toLocaleString('id-ID')}</td><td>${r[2]}</td></tr>`
+                ).join('');
+
+                // Line Chart Tren (Kolom E)
+                const vL = (await respL.text()).split('\n').map(r => cleanNum(r)).reverse();
+                if(charts['lineTotalTrend']) charts['lineTotalTrend'].destroy();
+                charts['lineTotalTrend'] = new Chart(document.getElementById('lineTotalTrend'), {
+                    type: 'line',
+                    data: { labels: vL.map(() => ''), datasets: [{ data: vL, borderColor: '#ef4444', borderWidth: 2, tension: 0.4, pointRadius: 0 }] },
+                    options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { display: false } } }
+                });
+
+                // PRODUCT DETAIL
                 const respD = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_DETAIL}&range=A1:I2&output=csv&t=${t}`);
                 const rD = (await respD.text()).split('\n').map(r => r.split(','));
                 let combined = rD[0].slice(0, 8).map((l, i) => ({ l, v: cleanNum(rD[1][i]) })).filter(x => x.l && x.l !== "undefined");
