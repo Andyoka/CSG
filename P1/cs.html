@@ -261,7 +261,8 @@
                     fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=G1:K4&output=csv`)
                 ]);
                 const rowsD = csvD.split('\n').map(r => r.split(','));
-                setSafeInner('textHalfTotal', cleanNum(rowsH[0] ? rowsH[0][1] : 0).toLocaleString('id-ID'), 'BOX');
+                setSafeInner('textHalfTotal', cleanNum(rowsD[0][1]).toLocaleString('id-ID'), 'BOX');
+                
                 if(charts['halfDonut']) charts['halfDonut'].destroy();
                 charts['halfDonut'] = new Chart(document.getElementById('chartHalfDonut'), {
                     type: 'doughnut',
@@ -275,7 +276,7 @@
                 if(charts['halfLine']) charts['halfLine'].destroy();
                 charts['halfLine'] = new Chart(document.getElementById('lineHalfTrend'), {
                     type: 'line',
-                    data: { labels: dOK.map(() => ''), datasets: [{ data: dOK, borderColor: '#1e293b', borderWidth: 2, tension: 0.3, pointRadius: 3 }, { data: dHold, borderColor: '#f97316', borderWidth: 2, tension: 0.3, pointRadius: 3 }] },
+                    data: { labels: dOK.map(() => ''), datasets: [{ data: dOK, borderColor: '#1e293b', borderWidth: 2, tension: 0.3, pointRadius: 3, hoverRadius: 5 }, { data: dHold, borderColor: '#f97316', borderWidth: 2, tension: 0.3, pointRadius: 3, hoverRadius: 5 }] },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { enabled: true } }, scales: { x: { display: false }, y: { display: false } } }
                 });
 
@@ -306,7 +307,7 @@
                 if(charts['lineOcc']) charts['lineOcc'].destroy();
                 charts['lineOcc'] = new Chart(document.getElementById('lineOccupancyTrend'), {
                     type: 'line',
-                    data: { labels: vL.map(() => ''), datasets: [{ data: vL, borderColor: '#10b981', borderWidth: 2, tension: 0.4, pointRadius: 3 }] },
+                    data: { labels: vL.map(() => ''), datasets: [{ data: vL, borderColor: '#10b981', borderWidth: 2, tension: 0.4, pointRadius: 3, hoverRadius: 5 }] },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { enabled: true } }, scales: { x: { display: false }, y: { display: false } } }
                 });
             } catch (e) { console.error(e); }
