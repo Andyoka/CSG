@@ -71,7 +71,12 @@
                             <tbody id="totalStockTableBody"></tbody>
                         </table>
                     </div>
-                    <div class="flex-none"><div class="donut-container chart-3d-effect"><canvas id="pieTotalChart"></canvas></div></div>
+                    <div class="flex-none">
+                        <div class="donut-container chart-3d-effect">
+                            <canvas id="pieTotalChart"></canvas>
+                            <div id="textTotalStock" class="donut-inner-text"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -183,16 +188,38 @@
         async function fetchTopCharts() {
             const t = new Date().getTime();
             try {
-                const respT = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_TOTAL}&range=A1:C2&output=csv&t=${t}`);
+                // UPDATE: Ambil range A1:C4 (termasuk Grand Total di baris 4)
+                const respT = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_TOTAL}&range=A1:C4&output=csv&t=${t}`);
                 const rT = (await respT.text()).split('\n').map(r => r.split(','));
+                
+                // Pisahkan data murni (A1:C3) dan Grand Total (A4:C4)
+                const dataMurni = rT.slice(0, 3);
+                const grandTotalRow = rT[3];
+
+                // Pie Chart: Gunakan Qty dari dataMurni (Round Fish, Loin, AT)
                 if(charts['pieTotal']) charts['pieTotal'].destroy();
                 charts['pieTotal'] = new Chart(document.getElementById('pieTotalChart'), {
                     type: 'doughnut',
-                    data: { labels: rT[0], datasets: [{ data: rT[1].map(v=>cleanNum(v)), backgroundColor: ["#ef4444", "#3b82f6", "#facc15"], borderWidth: 0 }] },
+                    data: { 
+                        labels: dataMurni.map(r => r[0]), 
+                        datasets: [{ 
+                            data: dataMurni.map(r => cleanNum(r[1])), 
+                            backgroundColor: ["#ef4444", "#3b82f6", "#facc15"], 
+                            borderWidth: 0 
+                        }] 
+                    },
                     options: { cutout: '70%', responsive: true, maintainAspectRatio: false }
                 });
-                document.getElementById('totalStockTableBody').innerHTML = rT[0].map((l,i)=>`<tr><td>${l}</td><td>${cleanNum(rT[1][i]).toLocaleString('id-ID')}</td></tr>`).join('');
 
+                // Tabel Total Stock: Tampilkan dataMurni saja
+                document.getElementById('totalStockTableBody').innerHTML = dataMurni.map(r => 
+                    `<tr><td>${r[0]}</td><td>${cleanNum(r[1]).toLocaleString('id-ID')}</td></tr>`
+                ).join('');
+
+                // Angka tengah: Ambil dari B4 (Qty Grand Total)
+                setSafeInner('textTotalStock', cleanNum(grandTotalRow[1]).toLocaleString('id-ID'), 'KG');
+
+                // PRODUCT DETAIL (Tetap seperti sebelumnya)
                 const respD = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_DETAIL}&range=A1:I2&output=csv&t=${t}`);
                 const rD = (await respD.text()).split('\n').map(r => r.split(','));
                 let combined = rD[0].slice(0, 8).map((l, i) => ({ l, v: cleanNum(rD[1][i]) })).filter(x => x.l && x.l !== "undefined");
@@ -246,7 +273,7 @@
                 const [rDonut, rLine, rTab] = await Promise.all([
                     fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=A1:B4&output=csv&t=${t}`),
                     fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=D2:E7&output=csv&t=${t}`),
-                    fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=G1:K4&output=csv&t=${t}`) // Start G1
+                    fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=G1:K4&output=csv&t=${t}`)
                 ]);
                 const rowsD = (await rDonut.text()).split('\n').map(r => r.split(','));
                 const datD = [cleanNum(rowsD[1][1]), cleanNum(rowsD[2][1]), cleanNum(rowsD[3][1])];
@@ -269,7 +296,6 @@
                     options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { display: false } } }
                 });
 
-                // PROSES HEADER & BODY TABEL HALF FISHBOX
                 const fullTable = (await rTab.text()).split('\n').map(r => r.split(','));
                 const header = fullTable[0];
                 const body = fullTable.slice(1);
@@ -278,7 +304,6 @@
                 document.getElementById('halfTableBody').innerHTML = body.map(r => {
                     return r[0] && r[0] !== "undefined" ? `<tr>${r.map((c, i) => `<td class="${i === r.length-1 ? 'font-bold' : ''}">${c}</td>`).join('')}</tr>` : '';
                 }).join('');
-                
             } catch (e) { console.error(e); }
         }
 
