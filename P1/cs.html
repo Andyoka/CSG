@@ -26,7 +26,7 @@
         .donut-inner-text {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 16px; font-weight: 900; color: #1e293b; text-align: center; line-height: 1.1;
+            font-size: 14px; font-weight: 900; color: #1e293b; text-align: center; line-height: 1.1;
             width: 100%; pointer-events: none; z-index: 10;
         }
         .donut-inner-text span { font-size: 8px; color: #64748b; font-weight: bold; }
@@ -36,7 +36,6 @@
             width: 100%; padding-top: 5px; border-top: 1px dashed #e2e8f0;
         }
 
-        /* Style Tabel Detail G:J & H:J */
         .detail-table { width: 100%; font-size: 9px; border-collapse: collapse; }
         .detail-table th { background: #f8fafc; color: #64748b; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding: 2px; }
         .detail-table td { padding: 4px 2px; text-align: center; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
@@ -72,6 +71,41 @@
         </header>
 
         <section class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
+            
+            <div class="donut-card special-wide-card">
+                <h4 class="text-[10px] font-black text-slate-700 uppercase mb-1 text-center">Total Stock Overview</h4>
+                <div class="flex items-center justify-center w-full h-full gap-4 px-4">
+                    <div class="w-1/2 max-h-[140px] overflow-y-auto">
+                        <table class="detail-table">
+                            <thead><tr><th>Category</th><th>Value</th></tr></thead>
+                            <tbody id="totalStockTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="flex-none">
+                        <div class="donut-container chart-3d-effect">
+                            <canvas id="pieTotalChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="donut-card special-wide-card">
+                <h4 class="text-[10px] font-black text-slate-700 uppercase mb-1 text-center">Product Detail Stock</h4>
+                <div class="flex items-center justify-center w-full h-full gap-4 px-4">
+                    <div class="w-1/2 max-h-[140px] overflow-y-auto">
+                        <table class="detail-table">
+                            <thead><tr><th>Product</th><th>Qty</th></tr></thead>
+                            <tbody id="detailStockTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="flex-none">
+                        <div class="donut-container chart-3d-effect">
+                            <canvas id="pieDetailChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="donut-card special-wide-card">
                 <h4 class="text-[10px] font-black text-slate-700 uppercase mb-2 text-center">Small Fish Inventory (MT)</h4>
                 <div class="flex items-center justify-center w-full h-full gap-4 px-2">
@@ -132,24 +166,10 @@
             </div>
         </section>
 
-        <div class="flex flex-col lg:flex-row gap-4 mb-6">
-            <div class="w-full lg:w-[65%] bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-                <h3 class="font-bold text-[10px] uppercase mb-4 text-slate-400 border-b pb-2">Main Stock Overview</h3>
-                <div class="h-[250px] mb-4"><canvas id="mainBarChart"></canvas></div>
-                <div class="overflow-x-auto"><table class="chart-table" id="dataTable"><thead><tr id="tableHeader"></tr></thead><tbody id="tableBody"></tbody></table></div>
-            </div>
-            <div class="w-full lg:w-[35%] flex flex-col gap-4">
-                <div class="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex-1">
-                    <h4 class="text-center font-bold text-[9px] uppercase border-b mb-1">Total Stock</h4>
-                    <div class="h-[120px] flex items-center justify-center"><canvas id="pieTotalChart"></canvas></div>
-                    <div id="pieTotalLegend" class="mt-2 text-[9px]"></div>
-                </div>
-                <div class="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex-1">
-                    <h4 class="text-center font-bold text-[9px] uppercase border-b mb-1">Product Detail</h4>
-                    <div class="h-[120px] flex items-center justify-center"><canvas id="pieDetailChart"></canvas></div>
-                    <div id="pieDetailLegend" class="mt-2 grid grid-cols-2 text-[8px] max-h-[80px] overflow-y-auto"></div>
-                </div>
-            </div>
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6">
+            <h3 class="font-bold text-[10px] uppercase mb-4 text-slate-400 border-b pb-2">Main Stock Overview</h3>
+            <div class="h-[250px] mb-4"><canvas id="mainBarChart"></canvas></div>
+            <div class="overflow-x-auto"><table class="chart-table" id="dataTable"><thead><tr id="tableHeader"></tr></thead><tbody id="tableBody"></tbody></table></div>
         </div>
 
         <iframe id="sheetFrame" src="" class="w-full h-[500px] border-none rounded-2xl shadow-lg bg-white"></iframe>
@@ -159,8 +179,8 @@
         const ID_GSHEET = "2PACX-1vShq3eIcceGMXuR6dBbMut6K99pAQZV4g86Aq5DWkP7yrFTGNMPkdfg4y6vbWeofWpFRO4gGNqLE4h8";
         const GID_SMALL_PIE = "1052774962", GID_SMALL_BAR = "1026658023";
         const GID_OLD = "885583216", GID_OCCUPANCY = "23039051";
-        const GID_HALF = "972941295";
-        const GID_BAR = "0", GID_TOTAL = "252078912", GID_DETAIL = "1764500224";
+        const GID_HALF = "972941295", GID_BAR = "0";
+        const GID_TOTAL = "252078912", GID_DETAIL = "1764500224";
         const ID_LAPORAN = "2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk";
 
         Chart.register(ChartDataLabels);
@@ -172,6 +192,38 @@
             return parseFloat(str) || 0;
         }
 
+        async function fetchTopCharts() {
+            const t = new Date().getTime();
+            try {
+                // Fetch Total Stock
+                const respT = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_TOTAL}&range=A1:C2&output=csv&t=${t}`);
+                const csvT = await respT.text();
+                const rT = csvT.split('\n').map(r => r.split(','));
+                
+                if(charts['pieTotal']) charts['pieTotal'].destroy();
+                charts['pieTotal'] = new Chart(document.getElementById('pieTotalChart'), {
+                    type: 'doughnut',
+                    data: { labels: rT[0], datasets: [{ data: rT[1].map(v=>cleanNum(v)), backgroundColor: ["#ef4444", "#3b82f6", "#facc15"], borderWidth: 0 }] },
+                    options: { cutout: '70%', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } } }
+                });
+                document.getElementById('totalStockTableBody').innerHTML = rT[0].map((l,i)=>`<tr><td>${l}</td><td>${cleanNum(rT[1][i]).toLocaleString('id-ID')}</td></tr>`).join('');
+
+                // Fetch Product Detail
+                const respD = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_DETAIL}&range=A1:I2&output=csv&t=${t}`);
+                const csvD = await respD.text();
+                const rD = csvD.split('\n').map(r => r.split(','));
+
+                if(charts['pieDetail']) charts['pieDetail'].destroy();
+                charts['pieDetail'] = new Chart(document.getElementById('pieDetailChart'), {
+                    type: 'doughnut',
+                    data: { labels: rD[0], datasets: [{ data: rD[1].map(v=>cleanNum(v)), backgroundColor: ["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899"], borderWidth: 0 }] },
+                    options: { cutout: '70%', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } } }
+                });
+                document.getElementById('detailStockTableBody').innerHTML = rD[0].map((l,i)=>`<tr><td>${l}</td><td>${cleanNum(rD[1][i]).toLocaleString('id-ID')}</td></tr>`).join('');
+
+            } catch (e) { console.error(e); }
+        }
+
         async function fetchOldStock() {
             try {
                 const t = new Date().getTime();
@@ -179,30 +231,23 @@
                     fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OLD}&range=A1:B3&output=csv&t=${t}`),
                     fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OLD}&range=H2:J5&output=csv&t=${t}`)
                 ]);
-
-                // Donut Logic
                 const csvD = await respDonut.text();
                 const rowsD = csvD.split('\n').map(r => r.split(','));
                 let val = cleanNum(rowsD[2][1]);
                 let percent = val > 1 ? val / 100 : val;
-                const ctx = document.getElementById('chart2').getContext('2d');
                 if(charts['chart2']) charts['chart2'].destroy();
-                charts['chart2'] = new Chart(ctx, {
+                charts['chart2'] = new Chart(document.getElementById('chart2').getContext('2d'), {
                     type: 'doughnut',
-                    data: { datasets: [{ data: [percent, 1-percent], backgroundColor: ['#3b82f6', '#1e293b'], borderWidth: 0, borderRadius: 2 }] },
+                    data: { datasets: [{ data: [percent, 1-percent], backgroundColor: ['#3b82f6', '#1e293b'], borderWidth: 0 }] },
                     options: { cutout: '75%', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } } }
                 });
                 document.getElementById('text2').innerHTML = `${(percent * 100).toFixed(1)}<br><span>%</span>`;
                 document.getElementById('legend2').innerHTML = `<div class="flex justify-between font-bold text-slate-700"><span>${rowsD[0][0]}</span><span>${rowsD[0][1]}</span></div><div class="flex justify-between"><span>${rowsD[1][0]}</span><span>${rowsD[1][1]}</span></div>`;
-
-                // Table Logic H:J
                 const csvT = await respTable.text();
-                const rowsT = csvT.split('\n').map(r => r.split(','));
-                let html = "";
-                rowsT.forEach(row => {
-                    if(row[0]) html += `<tr><td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td></tr>`;
-                });
-                document.getElementById('oldTableBody').innerHTML = html;
+                document.getElementById('oldTableBody').innerHTML = csvT.split('\n').map(r => {
+                    const col = r.split(',');
+                    return col[0] ? `<tr><td>${col[0]}</td><td>${col[1]}</td><td>${col[2]}</td></tr>` : '';
+                }).join('');
             } catch (e) { console.error(e); }
         }
 
@@ -214,39 +259,30 @@
                     fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=D2:E7&output=csv&t=${t}`),
                     fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=G2:J4&output=csv&t=${t}`)
                 ]);
-                const csvDonut = await respDonut.text();
-                const rowsDonut = csvDonut.split('\n').map(r => r.split(','));
+                const rowsDonut = (await respDonut.text()).split('\n').map(r => r.split(','));
                 const totalBox = cleanNum(rowsDonut[0][1]);
                 const dataDonut = [cleanNum(rowsDonut[1][1]), cleanNum(rowsDonut[2][1]), cleanNum(rowsDonut[3][1])];
-                const ctxDonut = document.getElementById('chartHalfDonut').getContext('2d');
                 if(charts['halfDonut']) charts['halfDonut'].destroy();
-                charts['halfDonut'] = new Chart(ctxDonut, {
+                charts['halfDonut'] = new Chart(document.getElementById('chartHalfDonut'), {
                     type: 'doughnut',
-                    data: { labels: ['OK', 'Hold', 'Reject'], datasets: [{ data: dataDonut, backgroundColor: ['#10b981', '#facc15', '#ef4444'], borderWidth: 0 }] },
+                    data: { datasets: [{ data: dataDonut, backgroundColor: ['#10b981', '#facc15', '#ef4444'], borderWidth: 0 }] },
                     options: { cutout: '75%', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } } }
                 });
                 document.getElementById('textHalfTotal').innerHTML = `${totalBox}<br><span>BOX</span>`;
                 document.getElementById('legendHalfDetail').innerHTML = `<span class="text-black">OK: ${dataDonut[0]}</span> | <span class="text-orange-600">Hold: ${dataDonut[1]}</span>`;
-
-                const csvLine = await respLine.text();
-                const rowsLine = csvLine.split('\n').map(r => r.split(','));
+                const rowsLine = (await respLine.text()).split('\n').map(r => r.split(','));
                 const dOK = rowsLine.map(r => cleanNum(r[0])).reverse();
                 const dHold = rowsLine.map(r => cleanNum(r[1])).reverse();
-                const ctxLine = document.getElementById('lineHalfTrend').getContext('2d');
                 if(charts['halfLine']) charts['halfLine'].destroy();
-                charts['halfLine'] = new Chart(ctxLine, {
+                charts['halfLine'] = new Chart(document.getElementById('lineHalfTrend'), {
                     type: 'line',
-                    data: { labels: dOK.map(() => ''), datasets: [{ data: dOK, borderColor: '#1e293b', borderWidth: 3, tension: 0.35 }, { data: dHold, borderColor: '#f97316', borderWidth: 3, tension: 0.35 }] },
+                    data: { labels: dOK.map(() => ''), datasets: [{ data: dOK, borderColor: '#1e293b', borderWidth: 2.5, tension: 0.35 }, { data: dHold, borderColor: '#f97316', borderWidth: 2.5, tension: 0.35 }] },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
                 });
-
-                const csvTable = await respTable.text();
-                let htmlTable = "";
-                csvTable.split('\n').forEach(row => {
-                    const r = row.split(',');
-                    if(r[0]) htmlTable += `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td class="font-bold">${r[3]}</td></tr>`;
-                });
-                document.getElementById('halfTableBody').innerHTML = htmlTable;
+                document.getElementById('halfTableBody').innerHTML = (await respTable.text()).split('\n').map(r => {
+                    const col = r.split(',');
+                    return col[0] ? `<tr><td>${col[0]}</td><td>${col[1]}</td><td>${col[2]}</td><td class="font-bold">${col[3]}</td></tr>` : '';
+                }).join('');
             } catch (e) { console.error(e); }
         }
 
@@ -254,16 +290,12 @@
             try {
                 const t = new Date().getTime();
                 const response = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_SMALL_BAR}&range=A2:B7&output=csv&t=${t}`);
-                const csv = await response.text();
-                const rows = csv.split('\n').map(r => r.split(','));
-                const labels = rows.map(r => r[0]);
-                const values = rows.map(r => cleanNum(r[1]));
-                const ctx = document.getElementById('barSmallHorizontal').getContext('2d');
+                const rows = (await response.text()).split('\n').map(r => r.split(','));
                 if(charts['barSmallH']) charts['barSmallH'].destroy();
-                charts['barSmallH'] = new Chart(ctx, {
+                charts['barSmallH'] = new Chart(document.getElementById('barSmallHorizontal'), {
                     type: 'bar',
-                    data: { labels: labels, datasets: [{ data: values, backgroundColor: '#1e293b', borderRadius: 4, barThickness: 10 }] },
-                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'right', color: '#1e293b', font: { size: 8, weight: 'bold' }, formatter: v => v + ' MT' } }, scales: { x: { display: false }, y: { grid: { display: false }, ticks: { font: { size: 7 } } } } }
+                    data: { labels: rows.map(r=>r[0]), datasets: [{ data: rows.map(r=>cleanNum(r[1])), backgroundColor: '#1e293b', borderRadius: 4, barThickness: 10 }] },
+                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'right', font: { size: 8, weight: 'bold' }, formatter: v => v + ' MT' } }, scales: { x: { display: false }, y: { grid: { display: false }, ticks: { font: { size: 7 } } } } }
                 });
             } catch (e) { console.error(e); }
         }
@@ -275,27 +307,21 @@
                     fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OCCUPANCY}&range=A1:B3&output=csv&t=${t}`),
                     fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OCCUPANCY}&range=E2:E7&output=csv&t=${t}`)
                 ]);
-                const csvPie = await respPie.text();
-                const rowsPie = csvPie.split('\n').map(r => r.split(','));
-                let valPie = cleanNum(rowsPie[2][1]);
-                let percent = valPie > 1 ? valPie / 100 : valPie;
-                const ctxDonut = document.getElementById('chart3').getContext('2d');
+                const rowsPie = (await respPie.text()).split('\n').map(r => r.split(','));
+                let percent = cleanNum(rowsPie[2][1]) / 100;
                 if(charts['chart3']) charts['chart3'].destroy();
-                charts['chart3'] = new Chart(ctxDonut, {
+                charts['chart3'] = new Chart(document.getElementById('chart3'), {
                     type: 'doughnut',
-                    data: { datasets: [{ data: [percent, 1-percent], backgroundColor: ['#10b981', '#1e293b'], borderWidth: 0, borderRadius: 2 }] },
+                    data: { datasets: [{ data: [percent, 1-percent], backgroundColor: ['#10b981', '#1e293b'], borderWidth: 0 }] },
                     options: { cutout: '75%', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } } }
                 });
                 document.getElementById('text3').innerHTML = `${(percent * 100).toFixed(1)}<br><span>%</span>`;
-                document.getElementById('legend3').innerHTML = `<div class="flex justify-between font-bold text-slate-700"><span>${rowsPie[0][0]}</span><span>${rowsPie[0][1]}</span></div><div class="flex justify-between"><span>${rowsPie[1][0]}</span><span>${rowsPie[1][1]}</span></div>`;
-
-                const csvLine = await respLine.text();
-                const valuesLine = csvLine.split('\n').map(r => cleanNum(r)).reverse();
-                const ctxLine = document.getElementById('lineOccupancyTrend').getContext('2d');
+                document.getElementById('legend3').innerHTML = `<div class="flex justify-between font-bold"><span>${rowsPie[0][0]}</span><span>${rowsPie[0][1]}</span></div><div class="flex justify-between"><span>${rowsPie[1][0]}</span><span>${rowsPie[1][1]}</span></div>`;
+                const valuesLine = (await respLine.text()).split('\n').map(r => cleanNum(r)).reverse();
                 if(charts['lineOcc']) charts['lineOcc'].destroy();
-                charts['lineOcc'] = new Chart(ctxLine, {
+                charts['lineOcc'] = new Chart(document.getElementById('lineOccupancyTrend'), {
                     type: 'line',
-                    data: { labels: valuesLine.map(() => ''), datasets: [{ data: valuesLine, borderColor: '#10b981', borderWidth: 3, tension: 0.4 }] },
+                    data: { labels: valuesLine.map(() => ''), datasets: [{ data: valuesLine, borderColor: '#10b981', borderWidth: 2.5, tension: 0.4 }] },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
                 });
             } catch (e) { console.error(e); }
@@ -305,32 +331,25 @@
             try {
                 const t = new Date().getTime();
                 const response = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${gid}&range=A1:B3&output=csv&t=${t}`);
-                const csv = await response.text();
-                const rows = csv.split('\n').map(r => r.split(','));
-                let val = cleanNum(rows[2][1]);
-                let percent = val > 1 ? val / 100 : val;
-                const color = (canvasId === 'chart1') ? '#f97316' : '#3b82f6';
-                const ctx = document.getElementById(canvasId).getContext('2d');
+                const rows = (await response.text()).split('\n').map(r => r.split(','));
+                let percent = cleanNum(rows[2][1]) / 100;
                 if(charts[canvasId]) charts[canvasId].destroy();
-                charts[canvasId] = new Chart(ctx, {
+                charts[canvasId] = new Chart(document.getElementById(canvasId), {
                     type: 'doughnut',
-                    data: { datasets: [{ data: [percent, 1-percent], backgroundColor: [color, '#1e293b'], borderWidth: 0 }] },
+                    data: { datasets: [{ data: [percent, 1-percent], backgroundColor: [(canvasId==='chart1'?'#f97316':'#3b82f6'), '#1e293b'], borderWidth: 0 }] },
                     options: { cutout: '75%', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } } }
                 });
                 document.getElementById(textId).innerHTML = `${(percent * 100).toFixed(1)}<br><span>${canvasId==='chart1'?'MT':'%'}</span>`;
-                document.getElementById(legendId).innerHTML = `<div class="flex justify-between font-bold text-slate-700"><span>${rows[0][0]}</span><span>${rows[0][1]}</span></div><div class="flex justify-between"><span>${rows[1][0]}</span><span>${rows[1][1]}</span></div>`;
+                document.getElementById(legendId).innerHTML = `<div class="flex justify-between font-bold"><span>${rows[0][0]}</span><span>${rows[0][1]}</span></div><div class="flex justify-between"><span>${rows[1][0]}</span><span>${rows[1][1]}</span></div>`;
             } catch (e) { console.error(e); }
         }
 
-        async function fetchBottomCharts() {
+        async function fetchBottomBar() {
             const t = new Date().getTime();
-            const fetchCSV = (gid, range) => fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${gid}&range=${range}&output=csv&t=${t}`).then(r => r.text());
             try {
-                const [csvB, csvT, csvD] = await Promise.all([fetchCSV(GID_BAR, "A1:N5"), fetchCSV(GID_TOTAL, "A1:C2"), fetchCSV(GID_DETAIL, "A1:I2")]);
+                const csvB = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_BAR}&range=A1:N5&output=csv&t=${t}`).then(r => r.text());
                 const rB = csvB.split('\n').map(r => r.split(','));
-                const rT = csvT.split('\n').map(r => r.split(','));
-                const rD = csvD.split('\n').map(r => r.split(','));
-                const barLabels = rB[0].slice(1);
+                const labels = rB[0].slice(1);
                 const datasets = [
                     { l: rB[1][0], d: rB[1].slice(1).map(v=>cleanNum(v)), c: "#5b9bd5" },
                     { l: rB[2][0], d: rB[2].slice(1).map(v=>cleanNum(v)), c: "#ed7d31" },
@@ -340,36 +359,23 @@
                 if(charts['mainBarChart']) charts['mainBarChart'].destroy();
                 charts['mainBarChart'] = new Chart(document.getElementById('mainBarChart'), {
                     type: 'bar',
-                    data: { labels: barLabels, datasets: datasets.map(s => ({ label: s.l, backgroundColor: s.c, data: s.d.map((v, i) => { let tot = datasets.reduce((a, b) => a + b.d[i], 0); return tot > 0 ? (v / tot) * 100 : 0; }) })) },
+                    data: { labels: labels, datasets: datasets.map(s => ({ label: s.l, backgroundColor: s.c, data: s.d.map((v, i) => { let tot = datasets.reduce((a, b) => a + b.d[i], 0); return tot > 0 ? (v / tot) * 100 : 0; }) })) },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false }, legend: { position: 'bottom', labels: { boxWidth: 8, font: { size: 8 } } } }, scales: { y: { stacked: true, max: 100 }, x: { stacked: true } } }
                 });
-                document.getElementById('tableHeader').innerHTML = '<th class="border-r">Cat</th>' + barLabels.map(l=>`<th>${l}</th>`).join('');
+                document.getElementById('tableHeader').innerHTML = '<th class="border-r">Cat</th>' + labels.map(l=>`<th>${l}</th>`).join('');
                 document.getElementById('tableBody').innerHTML = datasets.map(s => `<tr><td class="text-left font-bold border-r px-1"><span class="legend-box" style="background:${s.c}"></span>${s.l}</td>${s.d.map(v=>`<td>${v.toLocaleString('id-ID')}</td>`).join('')}</tr>`).join('');
-                if(charts['pieTotalChart']) charts['pieTotalChart'].destroy();
-                charts['pieTotalChart'] = new Chart(document.getElementById('pieTotalChart'), {
-                    type: 'pie',
-                    data: { labels: rT[0], datasets: [{ data: rT[1].map(v=>cleanNum(v)), backgroundColor: ["#ef4444", "#3b82f6", "#facc15"] }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-                });
-                document.getElementById('pieTotalLegend').innerHTML = (rT[0]||[]).map((l,i)=>`<div class="flex justify-between border-b pb-1"><span>${l}</span><b>${cleanNum(rT[1][i]).toLocaleString('id-ID')}</b></div>`).join('');
-                if(charts['pieDetailChart']) charts['pieDetailChart'].destroy();
-                charts['pieDetailChart'] = new Chart(document.getElementById('pieDetailChart'), {
-                    type: 'pie',
-                    data: { labels: rD[0], datasets: [{ data: rD[1].map(v=>cleanNum(v)), backgroundColor: ["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899"] }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-                });
-                document.getElementById('pieDetailLegend').innerHTML = (rD[0]||[]).map((l,i)=>`<div class="flex items-center truncate"><span class="legend-box" style="background:${["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899"][i]}"></span>${l}</div>`).join('');
             } catch (e) { console.error(e); }
         }
 
         function refreshAll() {
             document.getElementById('sheetFrame').src = `https://docs.google.com/spreadsheets/d/e/${ID_LAPORAN}/pubhtml?widget=true&headers=false`;
+            fetchTopCharts();
             fetchDonutTop(GID_SMALL_PIE, 'chart1', 'text1', 'legend1');
             fetchSmallBar();
             fetchOldStock();
             fetchOccupancyCombined();
             fetchHalfFishbox();
-            fetchBottomCharts();
+            fetchBottomBar();
         }
 
         function toggleSidebar() {
