@@ -195,30 +195,67 @@
                 });
                 document.getElementById('totalStockTableBody').innerHTML = rT[0].map((l,i)=>`<tr><td>${l}</td><td>${cleanNum(rT[1][i]).toLocaleString('id-ID')}</td></tr>`).join('');
 
-                // Product Detail Stock (Bar + Pie)
+                // Product Detail Stock (With AUTO-SORT)
                 const respD = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_DETAIL}&range=A1:I2&output=csv&t=${t}`);
                 const rD = (await respD.text()).split('\n').map(r => r.split(','));
-                const labelsD = rD[0].slice(0, 8);
-                const valuesD = rD[1].slice(0, 8).map(v=>cleanNum(v));
+                
+                // Process & Sort Data
+                let combinedData = rD[0].slice(0, 8).map((label, i) => ({
+                    label: label,
+                    value: cleanNum(rD[1][i])
+                }));
+                // Sort descending (Largest on Top)
+                combinedData.sort((a, b) => b.value - a.value);
+
+                const sortedLabels = combinedData.map(d => d.label);
+                const sortedValues = combinedData.map(d => d.value);
                 const totalVal = cleanNum(rD[1][8]);
 
-                // Update Bar Chart (Black Minimalist)
+                // Update Bar Chart (Black Minimalist + Sorted)
                 if(charts['barProduct']) charts['barProduct'].destroy();
                 charts['barProduct'] = new Chart(document.getElementById('barProductDetail'), {
                     type: 'bar',
-                    data: { labels: labelsD, datasets: [{ data: valuesD, backgroundColor: '#1e293b', borderRadius: 4, barThickness: 10 }] },
-                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'right', font: { size: 7, weight: 'bold' }, formatter: v => v.toLocaleString('id-ID') } }, scales: { x: { display: false }, y: { grid: { display: false }, ticks: { font: { size: 7 } } } } }
+                    data: { labels: sortedLabels, datasets: [{ data: sortedValues, backgroundColor: '#1e293b', borderRadius: 4, barThickness: 10 }] },
+                    options: { 
+                        indexAxis: 'y', 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        plugins: { 
+                            legend: { display: false }, 
+                            datalabels: { anchor: 'end', align: 'right', font: { size: 7, weight: 'bold' }, formatter: v => v.toLocaleString('id-ID') } 
+                        }, 
+                        scales: { x: { display: false }, y: { grid: { display: false }, ticks: { font: { size: 7 } } } } 
+                    }
                 });
 
                 // Update Pie Chart
                 if(charts['pieDetail']) charts['pieDetail'].destroy();
                 charts['pieDetail'] = new Chart(document.getElementById('pieDetailChart'), {
                     type: 'doughnut',
-                    data: { labels: labelsD, datasets: [{ data: valuesD, backgroundColor: ["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899"], borderWidth: 0 }] },
+                    data: { labels: sortedLabels, datasets: [{ data: sortedValues, backgroundColor: ["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899"], borderWidth: 0 }] },
                     options: { cutout: '70%', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } } }
                 });
                 document.getElementById('textDetailTotal').innerHTML = `${totalVal.toLocaleString('id-ID')}<br><span>TOTAL</span>`;
 
+            } catch (e) { console.error(e); }
+        }
+
+        async function fetchSmallBar() {
+            try {
+                const t = new Date().getTime();
+                const resp = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_SMALL_BAR}&range=A2:B7&output=csv&t=${t}`);
+                const rows = (await resp.text()).split('\n').map(r => r.split(','));
+                
+                // Process & Sort Data
+                let smallData = rows.map(r => ({ label: r[0], value: cleanNum(r[1]) }));
+                smallData.sort((a, b) => b.value - a.value);
+
+                if(charts['barSmallH']) charts['barSmallH'].destroy();
+                charts['barSmallH'] = new Chart(document.getElementById('barSmallHorizontal'), {
+                    type: 'bar',
+                    data: { labels: smallData.map(d=>d.label), datasets: [{ data: smallData.map(d=>d.value), backgroundColor: '#1e293b', borderRadius: 4, barThickness: 10 }] },
+                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'right', font: { size: 8, weight: 'bold' }, formatter: v => v + ' MT' } }, scales: { x: { display: false }, y: { grid: { display: false }, ticks: { font: { size: 7 } } } } }
+                });
             } catch (e) { console.error(e); }
         }
 
@@ -277,20 +314,6 @@
                     const col = r.split(',');
                     return col[0] ? `<tr><td>${col[0]}</td><td>${col[1]}</td><td>${col[2]}</td><td class="font-bold">${col[3]}</td></tr>` : '';
                 }).join('');
-            } catch (e) { console.error(e); }
-        }
-
-        async function fetchSmallBar() {
-            try {
-                const t = new Date().getTime();
-                const resp = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_SMALL_BAR}&range=A2:B7&output=csv&t=${t}`);
-                const rows = (await resp.text()).split('\n').map(r => r.split(','));
-                if(charts['barSmallH']) charts['barSmallH'].destroy();
-                charts['barSmallH'] = new Chart(document.getElementById('barSmallHorizontal'), {
-                    type: 'bar',
-                    data: { labels: rows.map(r=>r[0]), datasets: [{ data: rows.map(r=>cleanNum(r[1])), backgroundColor: '#1e293b', borderRadius: 4, barThickness: 10 }] },
-                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'right', font: { size: 8, weight: 'bold' }, formatter: v => v + ' MT' } }, scales: { x: { display: false }, y: { grid: { display: false }, ticks: { font: { size: 7 } } } } }
-                });
             } catch (e) { console.error(e); }
         }
 
