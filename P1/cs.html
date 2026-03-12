@@ -74,9 +74,7 @@
                     </div>
                 </div>
                 <div class="w-full mt-2 border-t border-dashed pt-2">
-                    <table class="detail-table">
-                        <tbody id="totalStockTableBody"></tbody>
-                    </table>
+                    <table class="detail-table"><tbody id="totalStockTableBody"></tbody></table>
                 </div>
             </div>
 
@@ -106,18 +104,10 @@
                 <h4 class="text-[10px] font-black text-slate-700 uppercase mb-1 text-center">Half Fishbox (Box)</h4>
                 <div class="flex items-center justify-center w-full h-full gap-6 px-4">
                     <div class="w-1/2 h-[100px]"><canvas id="lineHalfTrend"></canvas></div>
-                    <div class="flex-none">
-                        <div class="donut-container chart-3d-effect">
-                            <canvas id="chartHalfDonut"></canvas>
-                            <div id="textHalfTotal" class="donut-inner-text"></div>
-                        </div>
-                    </div>
+                    <div class="flex-none"><div class="donut-container chart-3d-effect"><canvas id="chartHalfDonut"></canvas><div id="textHalfTotal" class="donut-inner-text"></div></div></div>
                 </div>
                 <div class="w-full mt-2 border-t border-dashed pt-2">
-                    <table class="detail-table">
-                        <thead id="halfTableHeader"></thead>
-                        <tbody id="halfTableBody"></tbody>
-                    </table>
+                    <table class="detail-table"><thead id="halfTableHeader"></thead><tbody id="halfTableBody"></tbody></table>
                 </div>
             </div>
 
@@ -133,18 +123,8 @@
             <div class="donut-card special-wide-card">
                 <h4 class="text-[10px] font-black text-slate-700 uppercase mb-1 text-center">Old Stock Monitoring</h4>
                 <div class="flex items-center justify-center w-full h-full gap-6 px-4">
-                    <div class="w-1/2">
-                        <table class="detail-table">
-                            <thead><tr><th>Item</th><th>Box</th><th>MT</th></tr></thead>
-                            <tbody id="oldTableBody"></tbody>
-                        </table>
-                    </div>
-                    <div class="flex-none">
-                        <div class="donut-container chart-3d-effect">
-                            <canvas id="chart2"></canvas>
-                            <div id="text2" class="donut-inner-text"></div>
-                        </div>
-                    </div>
+                    <div class="w-1/2"><table class="detail-table"><thead><tr><th>Item</th><th>Box</th><th>MT</th></tr></thead><tbody id="oldTableBody"></tbody></table></div>
+                    <div class="flex-none"><div class="donut-container chart-3d-effect"><canvas id="chart2"></canvas><div id="text2" class="donut-inner-text"></div></div></div>
                 </div>
                 <div id="legend2" class="custom-legend mt-1"></div>
             </div>
@@ -185,52 +165,45 @@
             if(el) el.innerHTML = `${val || '0'}<br><span>${sub}</span>`;
         }
 
+        async function fetchWithRetry(url, retries = 3) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url + "&t=" + new Date().getTime());
+                    if (response.ok) return await response.text();
+                } catch (e) { if (i === retries - 1) throw e; }
+                await new Promise(res => setTimeout(res, 1000));
+            }
+        }
+
         async function fetchTopCharts() {
-            const t = new Date().getTime();
             try {
-                const [respT, respL] = await Promise.all([
-                    fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_TOTAL}&range=A1:C4&output=csv&t=${t}`),
-                    fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_TOTAL}&range=E2:E7&output=csv&t=${t}`)
+                const [csvT, csvL] = await Promise.all([
+                    fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_TOTAL}&range=A1:C4&output=csv`),
+                    fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_TOTAL}&range=E2:E7&output=csv`)
                 ]);
-                
-                const rT = (await respT.text()).split('\n').map(r => r.split(','));
+                const rT = csvT.split('\n').map(r => r.split(','));
                 const dataMurni = rT.slice(0, 3);
                 const grandTotalRow = rT[3];
 
                 if(charts['pieTotal']) charts['pieTotal'].destroy();
                 charts['pieTotal'] = new Chart(document.getElementById('pieTotalChart'), {
                     type: 'doughnut',
-                    data: { 
-                        labels: dataMurni.map(r => r[0]), 
-                        datasets: [{ 
-                            data: dataMurni.map(r => cleanNum(r[1])), 
-                            backgroundColor: ["#ef4444", "#3b82f6", "#facc15"], 
-                            borderWidth: 0 
-                        }] 
-                    },
+                    data: { labels: dataMurni.map(r => r[0]), datasets: [{ data: dataMurni.map(r => cleanNum(r[1])), backgroundColor: ["#ef4444", "#3b82f6", "#facc15"], borderWidth: 0 }] },
                     options: { cutout: '70%', responsive: true, maintainAspectRatio: false }
                 });
                 setSafeInner('textTotalStock', cleanNum(grandTotalRow[1]).toLocaleString('id-ID'), 'KG');
+                document.getElementById('totalStockTableBody').innerHTML = dataMurni.map(r => `<tr><td>${r[0]}</td><td>${cleanNum(r[1]).toLocaleString('id-ID')}</td><td>${r[2]}</td></tr>`).join('');
 
-                document.getElementById('totalStockTableBody').innerHTML = dataMurni.map(r => 
-                    `<tr><td>${r[0]}</td><td>${cleanNum(r[1]).toLocaleString('id-ID')}</td><td>${r[2]}</td></tr>`
-                ).join('');
-
-                // Line Chart dengan bintik dan tooltip
-                const vL = (await respL.text()).split('\n').map(r => cleanNum(r)).reverse();
+                const vL = csvL.split('\n').map(r => cleanNum(r)).reverse();
                 if(charts['lineTotalTrend']) charts['lineTotalTrend'].destroy();
                 charts['lineTotalTrend'] = new Chart(document.getElementById('lineTotalTrend'), {
                     type: 'line',
                     data: { labels: vL.map(() => ''), datasets: [{ data: vL, borderColor: '#ef4444', borderWidth: 2, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#ef4444', hoverRadius: 5 }] },
-                    options: { 
-                        responsive: true, maintainAspectRatio: false, 
-                        plugins: { tooltip: { enabled: true, displayColors: false, bodyFont: { size: 10 } } },
-                        scales: { x: { display: false }, y: { display: false } } 
-                    }
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { enabled: true } }, scales: { x: { display: false }, y: { display: false } } }
                 });
 
-                const respD = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_DETAIL}&range=A1:I2&output=csv&t=${t}`);
-                const rD = (await respD.text()).split('\n').map(r => r.split(','));
+                const csvD = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_DETAIL}&range=A1:I2&output=csv`);
+                const rD = csvD.split('\n').map(r => r.split(','));
                 let combined = rD[0].slice(0, 8).map((l, i) => ({ l, v: cleanNum(rD[1][i]) })).filter(x => x.l && x.l !== "undefined");
                 combined.sort((a,b) => b.v - a.v);
 
@@ -238,11 +211,7 @@
                 charts['barProduct'] = new Chart(document.getElementById('barProductDetail'), {
                     type: 'bar',
                     data: { labels: combined.map(d=>d.l), datasets: [{ data: combined.map(d=>d.v), backgroundColor: '#1e293b', borderRadius: 4, barThickness: 10 }] },
-                    options: { 
-                        indexAxis: 'y', layout: { padding: { right: 45 } }, responsive: true, maintainAspectRatio: false,
-                        plugins: { datalabels: { display: true, anchor: 'end', align: 'right', font: { size: 8, weight: 'bold' }, formatter: v => v.toLocaleString('id-ID') } },
-                        scales: { x: { display: false, max: Math.max(...combined.map(d=>d.v))*1.3 }, y: { grid: { display: false }, ticks: { font: { size: 7 } } } }
-                    }
+                    options: { indexAxis: 'y', layout: { padding: { right: 45 } }, responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: true, anchor: 'end', align: 'right', font: { size: 8, weight: 'bold' }, formatter: v => v.toLocaleString('id-ID') } }, scales: { x: { display: false, max: Math.max(...combined.map(d=>d.v))*1.3 }, y: { grid: { display: false }, ticks: { font: { size: 7 } } } } }
                 });
 
                 if(charts['pieDetail']) charts['pieDetail'].destroy();
@@ -255,83 +224,77 @@
             } catch (e) { console.error(e); }
         }
 
-        async function fetchSmallBar() {
+        async function fetchSmall() {
             try {
-                const t = new Date().getTime();
-                const resp = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_SMALL_BAR}&range=A2:B7&output=csv&t=${t}`);
-                const rows = (await resp.text()).split('\n').map(r => r.split(','));
-                let data = rows.map(r => ({ l: r[0], v: cleanNum(r[1]) })).filter(x => x.l && x.l !== "undefined");
-                data.sort((a,b) => b.v - a.v);
+                const [csvP, csvB] = await Promise.all([
+                    fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_SMALL_PIE}&range=A1:B3&output=csv`),
+                    fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_SMALL_BAR}&range=A2:B7&output=csv`)
+                ]);
+                const rowsP = csvP.split('\n').map(r => r.split(','));
+                let pct = cleanNum(rowsP[2][1]) / 100;
+                setSafeInner('text1', (pct * 100).toFixed(1), 'MT');
+                document.getElementById('legend1').innerHTML = `<div class="flex justify-between font-bold"><span>${rowsP[0][0]}</span><span>${rowsP[0][1]}</span></div><div class="flex justify-between"><span>${rowsP[1][0]}</span><span>${rowsP[1][1]}</span></div>`;
+                if(charts['chart1']) charts['chart1'].destroy();
+                charts['chart1'] = new Chart(document.getElementById('chart1'), {
+                    type: 'doughnut',
+                    data: { datasets: [{ data: [pct, 1-pct], backgroundColor: ['#f97316', '#1e293b'], borderWidth: 0 }] },
+                    options: { cutout: '75%', responsive: true, maintainAspectRatio: false }
+                });
 
+                const rowsB = csvB.split('\n').map(r => r.split(','));
+                let dataB = rowsB.map(r => ({ l: r[0], v: cleanNum(r[1]) })).filter(x => x.l && x.l !== "undefined");
+                dataB.sort((a,b) => b.v - a.v);
                 if(charts['barSmallH']) charts['barSmallH'].destroy();
                 charts['barSmallH'] = new Chart(document.getElementById('barSmallHorizontal'), {
                     type: 'bar',
-                    data: { labels: data.map(d=>d.l), datasets: [{ data: data.map(d=>d.v), backgroundColor: '#1e293b', borderRadius: 4, barThickness: 10 }] },
-                    options: { 
-                        indexAxis: 'y', layout: { padding: { right: 55 } }, responsive: true, maintainAspectRatio: false,
-                        plugins: { datalabels: { display: true, anchor: 'end', align: 'right', font: { size: 8, weight: 'bold' }, formatter: v => v.toLocaleString('id-ID')+' MT' } },
-                        scales: { x: { display: false, max: Math.max(...data.map(d=>d.v))*1.3 }, y: { grid: { display: false }, ticks: { font: { size: 7 } } } }
-                    }
+                    data: { labels: dataB.map(d=>d.l), datasets: [{ data: dataB.map(d=>d.v), backgroundColor: '#1e293b', borderRadius: 4, barThickness: 10 }] },
+                    options: { indexAxis: 'y', layout: { padding: { right: 55 } }, responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: true, anchor: 'end', align: 'right', font: { size: 8, weight: 'bold' }, formatter: v => v.toLocaleString('id-ID')+' MT' } }, scales: { x: { display: false, max: Math.max(...dataB.map(d=>d.v))*1.3 }, y: { grid: { display: false }, ticks: { font: { size: 7 } } } } }
                 });
             } catch (e) { console.error(e); }
         }
 
         async function fetchHalf() {
             try {
-                const t = new Date().getTime();
-                const [rDonut, rLine, rTab] = await Promise.all([
-                    fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=A1:B4&output=csv&t=${t}`),
-                    fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=D2:E7&output=csv&t=${t}`),
-                    fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=G1:K4&output=csv&t=${t}`)
+                const [csvD, csvL, csvT] = await Promise.all([
+                    fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=A1:B4&output=csv`),
+                    fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=D2:E7&output=csv`),
+                    fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=G1:K4&output=csv`)
                 ]);
-                const rowsD = (await rDonut.text()).split('\n').map(r => r.split(','));
-                const datD = [cleanNum(rowsD[1][1]), cleanNum(rowsD[2][1]), cleanNum(rowsD[3][1])];
-                setSafeInner('textHalfTotal', cleanNum(rowsD[0][1]), 'BOX');
-
+                const rowsD = csvD.split('\n').map(r => r.split(','));
+                setSafeInner('textHalfTotal', cleanNum(rowsH[0] ? rowsH[0][1] : 0).toLocaleString('id-ID'), 'BOX');
                 if(charts['halfDonut']) charts['halfDonut'].destroy();
                 charts['halfDonut'] = new Chart(document.getElementById('chartHalfDonut'), {
                     type: 'doughnut',
-                    data: { datasets: [{ data: datD, backgroundColor: ['#10b981', '#facc15', '#ef4444'], borderWidth: 0 }] },
+                    data: { datasets: [{ data: [cleanNum(rowsD[1][1]), cleanNum(rowsD[2][1]), cleanNum(rowsD[3][1])], backgroundColor: ['#10b981', '#facc15', '#ef4444'], borderWidth: 0 }] },
                     options: { cutout: '75%', responsive: true, maintainAspectRatio: false }
                 });
 
-                const rowsL = (await rLine.text()).split('\n').map(r => r.split(','));
+                const rowsL = csvL.split('\n').map(r => r.split(','));
                 const dOK = rowsL.map(r => cleanNum(r[0])).reverse();
                 const dHold = rowsL.map(r => cleanNum(r[1])).reverse();
                 if(charts['halfLine']) charts['halfLine'].destroy();
                 charts['halfLine'] = new Chart(document.getElementById('lineHalfTrend'), {
                     type: 'line',
                     data: { labels: dOK.map(() => ''), datasets: [{ data: dOK, borderColor: '#1e293b', borderWidth: 2, tension: 0.3, pointRadius: 3 }, { data: dHold, borderColor: '#f97316', borderWidth: 2, tension: 0.3, pointRadius: 3 }] },
-                    options: { 
-                        responsive: true, maintainAspectRatio: false, 
-                        plugins: { tooltip: { enabled: true } },
-                        scales: { x: { display: false }, y: { display: false } } 
-                    }
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { enabled: true } }, scales: { x: { display: false }, y: { display: false } } }
                 });
 
-                const fullTable = (await rTab.text()).split('\n').map(r => r.split(','));
-                const header = fullTable[0];
-                const body = fullTable.slice(1);
-
-                document.getElementById('halfTableHeader').innerHTML = `<tr>${header.map(h => `<th>${h}</th>`).join('')}</tr>`;
-                document.getElementById('halfTableBody').innerHTML = body.map(r => {
-                    return r[0] && r[0] !== "undefined" ? `<tr>${r.map((c, i) => `<td class="${i === r.length-1 ? 'font-bold' : ''}">${c}</td>`).join('')}</tr>` : '';
-                }).join('');
+                const fullT = csvT.split('\n').map(r => r.split(','));
+                document.getElementById('halfTableHeader').innerHTML = `<tr>${fullT[0].map(h => `<th>${h}</th>`).join('')}</tr>`;
+                document.getElementById('halfTableBody').innerHTML = fullT.slice(1).map(r => r[0] && r[0] !== "undefined" ? `<tr>${r.map((c, i) => `<td class="${i === r.length-1 ? 'font-bold' : ''}">${c}</td>`).join('')}</tr>` : '').join('');
             } catch (e) { console.error(e); }
         }
 
         async function fetchOccupancy() {
             try {
-                const t = new Date().getTime();
-                const [rP, rL] = await Promise.all([
-                    fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OCCUPANCY}&range=A1:B3&output=csv&t=${t}`),
-                    fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OCCUPANCY}&range=E2:E7&output=csv&t=${t}`)
+                const [csvP, csvL] = await Promise.all([
+                    fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OCCUPANCY}&range=A1:B3&output=csv`),
+                    fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OCCUPANCY}&range=E2:E7&output=csv`)
                 ]);
-                const rowsP = (await rP.text()).split('\n').map(r => r.split(','));
+                const rowsP = csvP.split('\n').map(r => r.split(','));
                 let pct = cleanNum(rowsP[2][1]) / 100;
                 setSafeInner('text3', (pct * 100).toFixed(1), '%');
                 document.getElementById('legend3').innerHTML = `<div class="flex justify-between font-bold"><span>${rowsP[0][0]}</span><span>${rowsP[0][1]}</span></div><div class="flex justify-between"><span>${rowsP[1][0]}</span><span>${rowsP[1][1]}</span></div>`;
-
                 if(charts['chart3']) charts['chart3'].destroy();
                 charts['chart3'] = new Chart(document.getElementById('chart3'), {
                     type: 'doughnut',
@@ -339,51 +302,42 @@
                     options: { cutout: '75%', responsive: true, maintainAspectRatio: false }
                 });
 
-                const vL = (await rL.text()).split('\n').map(r => cleanNum(r)).reverse();
+                const vL = csvL.split('\n').map(r => cleanNum(r)).reverse();
                 if(charts['lineOcc']) charts['lineOcc'].destroy();
                 charts['lineOcc'] = new Chart(document.getElementById('lineOccupancyTrend'), {
                     type: 'line',
                     data: { labels: vL.map(() => ''), datasets: [{ data: vL, borderColor: '#10b981', borderWidth: 2, tension: 0.4, pointRadius: 3 }] },
-                    options: { 
-                        responsive: true, maintainAspectRatio: false, 
-                        plugins: { tooltip: { enabled: true } },
-                        scales: { x: { display: false }, y: { display: false } } 
-                    }
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { enabled: true } }, scales: { x: { display: false }, y: { display: false } } }
                 });
             } catch (e) { console.error(e); }
         }
 
         async function fetchOld() {
             try {
-                const t = new Date().getTime();
-                const [rD, rT] = await Promise.all([
-                    fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OLD}&range=A1:B3&output=csv&t=${t}`),
-                    fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OLD}&range=H2:J5&output=csv&t=${t}`)
+                const [csvD, csvT] = await Promise.all([
+                    fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OLD}&range=A1:B3&output=csv`),
+                    fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OLD}&range=H2:J5&output=csv`)
                 ]);
-                const rowsD = (await rD.text()).split('\n').map(r => r.split(','));
+                const rowsD = csvD.split('\n').map(r => r.split(','));
                 let pct = cleanNum(rowsD[2][1]) / 100;
                 setSafeInner('text2', (pct * 100).toFixed(1), '%');
                 document.getElementById('legend2').innerHTML = `<div class="flex justify-between font-bold"><span>${rowsD[0][0]}</span><span>${rowsD[0][1]}</span></div><div class="flex justify-between"><span>${rowsD[1][0]}</span><span>${rowsD[1][1]}</span></div>`;
-
                 if(charts['chart2']) charts['chart2'].destroy();
                 charts['chart2'] = new Chart(document.getElementById('chart2'), {
                     type: 'doughnut',
                     data: { datasets: [{ data: [pct, 1-pct], backgroundColor: ['#3b82f6', '#1e293b'], borderWidth: 0 }] },
                     options: { cutout: '75%', responsive: true, maintainAspectRatio: false }
                 });
-
-                document.getElementById('oldTableBody').innerHTML = (await rT.text()).split('\n').map(r => {
-                    const c = r.split(',');
-                    return c[0] && c[0] !== "undefined" ? `<tr><td>${c[0]}</td><td>${c[1]}</td><td>${c[2]}</td></tr>` : '';
+                document.getElementById('oldTableBody').innerHTML = csvT.split('\n').map(r => {
+                    const c = r.split(','); return c[0] && c[0] !== "undefined" ? `<tr><td>${c[0]}</td><td>${c[1]}</td><td>${c[2]}</td></tr>` : '';
                 }).join('');
             } catch (e) { console.error(e); }
         }
 
         async function fetchBottom() {
             try {
-                const t = new Date().getTime();
-                const csv = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_BAR}&range=A1:O5&output=csv&t=${t}`).then(r => r.text());
-                const rB = csv.split('\n').map(r => r.split(','));
+                const csvB = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_BAR}&range=A1:O5&output=csv`);
+                const rB = csvB.split('\n').map(r => r.split(','));
                 const labels = rB[0].slice(1);
                 const datasets = [
                     { l: rB[1][0], d: rB[1].slice(1).map(v=>cleanNum(v)), c: "#5b9bd5" },
@@ -402,39 +356,23 @@
             } catch (e) { console.error(e); }
         }
 
-        async function fetchSmallPie() {
-            try {
-                const t = new Date().getTime();
-                const resp = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_SMALL_PIE}&range=A1:B3&output=csv&t=${t}`);
-                const rows = (await resp.text()).split('\n').map(r => r.split(','));
-                let pct = cleanNum(rows[2][1]) / 100;
-                if(charts['chart1']) charts['chart1'].destroy();
-                charts['chart1'] = new Chart(document.getElementById('chart1'), {
-                    type: 'doughnut',
-                    data: { datasets: [{ data: [pct, 1-pct], backgroundColor: ['#f97316', '#1e293b'], borderWidth: 0 }] },
-                    options: { cutout: '75%', responsive: true, maintainAspectRatio: false }
-                });
-                setSafeInner('text1', (pct * 100).toFixed(1), 'MT');
-                document.getElementById('legend1').innerHTML = `<div class="flex justify-between font-bold"><span>${rows[0][0]}</span><span>${rows[0][1]}</span></div><div class="flex justify-between"><span>${rows[1][0]}</span><span>${rows[1][1]}</span></div>`;
-            } catch (e) { console.error(e); }
-        }
-
-        function refreshAll() {
+        async function refreshAll() {
             document.getElementById('sheetFrame').src = `https://docs.google.com/spreadsheets/d/e/${ID_LAPORAN}/pubhtml?widget=true&headers=false`;
-            fetchTopCharts();
-            fetchSmallBar();
-            fetchSmallPie();
-            fetchHalf();
-            fetchOccupancy();
-            fetchOld();
-            fetchBottom();
+            await fetchTopCharts();
+            await new Promise(r => setTimeout(r, 800));
+            await fetchSmall();
+            await new Promise(r => setTimeout(r, 800));
+            await fetchHalf();
+            await new Promise(r => setTimeout(r, 800));
+            await fetchOccupancy();
+            await fetchOld();
+            await fetchBottom();
         }
 
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('sidebar-closed');
             document.getElementById('mainContent').style.marginLeft = document.getElementById('sidebar').classList.contains('sidebar-closed') ? "0" : "14rem";
         }
-
         window.onload = refreshAll;
     </script>
 </body>
