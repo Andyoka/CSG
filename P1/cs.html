@@ -155,7 +155,6 @@
 
         function cleanNum(val) {
             if(!val || val === "undefined" || val === "") return 0;
-            // Menghilangkan titik ribuan, lalu mengubah koma desimal menjadi titik agar dibaca sistem
             let str = val.toString().replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '');
             let n = parseFloat(str);
             return isNaN(n) ? 0 : n;
@@ -234,7 +233,7 @@
                 const rowsP = csvP.split('\n').map(r => r.split(','));
                 let valRaw = cleanNum(rowsP[2][1]);
                 let pct = valRaw / 100;
-                setSafeInner('text1', valRaw.toFixed(2), '%');
+                setSafeInner('text1', Math.round(valRaw), '%');
                 document.getElementById('legend1').innerHTML = `<div class="flex justify-between font-bold"><span>${rowsP[0][0]}</span><span>${rowsP[0][1]}</span></div><div class="flex justify-between"><span>${rowsP[1][0]}</span><span>${rowsP[1][1]}</span></div>`;
                 if(charts['chart1']) charts['chart1'].destroy();
                 charts['chart1'] = new Chart(document.getElementById('chart1'), {
@@ -292,12 +291,12 @@
             try {
                 const [csvP, csvL] = await Promise.all([
                     fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OCCUPANCY}&range=A1:B3&output=csv`),
-                    fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_OCCUPANCY}&range=E2:E7&output=csv`)
+                    fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OCCUPANCY}&range=E2:E7&output=csv`)
                 ]);
                 const rowsP = csvP.split('\n').map(r => r.split(','));
                 let valRaw = cleanNum(rowsP[2][1]);
                 let pct = valRaw / 100;
-                setSafeInner('text3', valRaw.toFixed(2), '%');
+                setSafeInner('text3', Math.round(valRaw), '%');
                 document.getElementById('legend3').innerHTML = `<div class="flex justify-between font-bold"><span>${rowsP[0][0]}</span><span>${rowsP[0][1]}</span></div><div class="flex justify-between"><span>${rowsP[1][0]}</span><span>${rowsP[1][1]}</span></div>`;
                 if(charts['chart3']) charts['chart3'].destroy();
                 charts['chart3'] = new Chart(document.getElementById('chart3'), {
@@ -325,7 +324,7 @@
                 const rowsD = csvD.split('\n').map(r => r.split(','));
                 let valRaw = cleanNum(rowsD[2][1]);
                 let pct = valRaw / 100;
-                setSafeInner('text2', valRaw.toFixed(2), '%');
+                setSafeInner('text2', Math.round(valRaw), '%');
                 document.getElementById('legend2').innerHTML = `<div class="flex justify-between font-bold"><span>${rowsD[0][0]}</span><span>${rowsD[0][1]}</span></div><div class="flex justify-between"><span>${rowsD[1][0]}</span><span>${rowsD[1][1]}</span></div>`;
                 if(charts['chart2']) charts['chart2'].destroy();
                 charts['chart2'] = new Chart(document.getElementById('chart2'), {
