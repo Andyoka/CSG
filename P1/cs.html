@@ -89,7 +89,7 @@
                     <div class="flex-none">
                         <div class="donut-container chart-3d-effect">
                             <canvas id="pieDetailChart"></canvas>
-                            <div id="textDetailTotal" class="donut-inner-text">0<br><span>TOTAL</span></div>
+                            <div id="textDetailTotal" class="donut-inner-text"></div>
                         </div>
                     </div>
                 </div>
@@ -99,7 +99,7 @@
                 <h4 class="text-[10px] font-black text-slate-700 uppercase mb-2 text-center">Small Fish Inventory (MT)</h4>
                 <div class="flex items-center justify-center w-full h-full gap-4 px-2">
                     <div class="w-2/3 h-[140px]"><canvas id="barSmallHorizontal"></canvas></div>
-                    <div class="flex-none"><div class="donut-container chart-3d-effect"><canvas id="chart1"></canvas><div id="text1" class="donut-inner-text">0<br><span>MT</span></div></div></div>
+                    <div class="flex-none"><div class="donut-container chart-3d-effect"><canvas id="chart1"></canvas><div id="text1" class="donut-inner-text"></div></div></div>
                 </div>
                 <div id="legend1" class="custom-legend mt-1"></div>
             </div>
@@ -114,7 +114,7 @@
                     <div class="flex-none">
                         <div class="donut-container chart-3d-effect">
                             <canvas id="chartHalfDonut"></canvas>
-                            <div id="textHalfTotal" class="donut-inner-text">0<br><span>BOX</span></div>
+                            <div id="textHalfTotal" class="donut-inner-text"></div>
                         </div>
                     </div>
                 </div>
@@ -130,7 +130,7 @@
                 <h4 class="text-[10px] font-black text-slate-700 uppercase mb-2 text-center">Occupancy Trend (%)</h4>
                 <div class="flex items-center justify-center w-full h-full gap-6 px-4">
                     <div class="w-1/2 h-[100px]"><canvas id="lineOccupancyTrend"></canvas></div>
-                    <div class="flex-none"><div class="donut-container chart-3d-effect"><canvas id="chart3"></canvas><div id="text3" class="donut-inner-text">0<br><span>%</span></div></div></div>
+                    <div class="flex-none"><div class="donut-container chart-3d-effect"><canvas id="chart3"></canvas><div id="text3" class="donut-inner-text"></div></div></div>
                 </div>
                 <div id="legend3" class="custom-legend mt-1"></div>
             </div>
@@ -147,7 +147,7 @@
                     <div class="flex-none">
                         <div class="donut-container chart-3d-effect">
                             <canvas id="chart2"></canvas>
-                            <div id="text2" class="donut-inner-text">0<br><span>%</span></div>
+                            <div id="text2" class="donut-inner-text"></div>
                         </div>
                     </div>
                 </div>
@@ -158,12 +158,7 @@
         <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6">
             <h3 class="font-bold text-[10px] uppercase mb-4 text-slate-400 border-b pb-2">Main Stock Overview</h3>
             <div class="h-[250px] mb-4"><canvas id="mainBarChart"></canvas></div>
-            <div class="overflow-x-auto">
-                <table class="chart-table" id="dataTable">
-                    <thead><tr id="tableHeader"></tr></thead>
-                    <tbody id="tableBody"></tbody>
-                </table>
-            </div>
+            <div class="overflow-x-auto"><table class="chart-table" id="dataTable"><thead><tr id="tableHeader"></tr></thead><tbody id="tableBody"></tbody></table></div>
         </div>
 
         <iframe id="sheetFrame" src="" class="w-full h-[500px] border-none rounded-2xl shadow-lg bg-white"></iframe>
@@ -180,8 +175,19 @@
         Chart.register(ChartDataLabels);
         let charts = {};
 
+        // Penjaga Teks: Mencegah undefined tampil ke UI
+        function setSafeText(id, value, suffix = "") {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (value === undefined || value === null || value === "undefined") {
+                el.innerHTML = `0<br><span>${suffix}</span>`;
+            } else {
+                el.innerHTML = `${value}<br><span>${suffix}</span>`;
+            }
+        }
+
         function cleanNum(val) {
-            if(!val) return 0;
+            if(!val || val === "undefined") return 0;
             let str = val.toString().replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '');
             return parseFloat(str) || 0;
         }
@@ -189,7 +195,6 @@
         async function fetchTopCharts() {
             const t = new Date().getTime();
             try {
-                // Total Stock Overview
                 const respT = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_TOTAL}&range=A1:C2&output=csv&t=${t}`);
                 const rT = (await respT.text()).split('\n').map(r => r.split(','));
                 if(charts['pieTotal']) charts['pieTotal'].destroy();
@@ -200,12 +205,10 @@
                 });
                 document.getElementById('totalStockTableBody').innerHTML = rT[0].map((l,i)=>`<tr><td>${l}</td><td>${cleanNum(rT[1][i]).toLocaleString('id-ID')}</td></tr>`).join('');
 
-                // Product Detail Stock (With AUTO-SORT)
                 const respD = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_DETAIL}&range=A1:I2&output=csv&t=${t}`);
                 const rD = (await respD.text()).split('\n').map(r => r.split(','));
                 let combinedData = rD[0].slice(0, 8).map((label, i) => ({ label: label, value: cleanNum(rD[1][i]) }));
                 combinedData.sort((a, b) => b.value - a.value);
-
                 const maxValDetail = Math.max(...combinedData.map(d => d.value)) * 1.3;
 
                 if(charts['barProduct']) charts['barProduct'].destroy();
@@ -227,7 +230,7 @@
                     data: { labels: combinedData.map(d=>d.label), datasets: [{ data: combinedData.map(d=>d.value), backgroundColor: ["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899"], borderWidth: 0 }] },
                     options: { cutout: '70%', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } } }
                 });
-                document.getElementById('textDetailTotal').innerHTML = `${cleanNum(rD[1][8]).toLocaleString('id-ID')}<br><span>TOTAL</span>`;
+                setSafeText('textDetailTotal', cleanNum(rD[1][8]).toLocaleString('id-ID'), 'TOTAL');
             } catch (e) { console.error(e); }
         }
 
@@ -266,7 +269,7 @@
                 const rowsDonut = (await respDonut.text()).split('\n').map(r => r.split(','));
                 const dataDonut = [cleanNum(rowsDonut[1][1]), cleanNum(rowsDonut[2][1]), cleanNum(rowsDonut[3][1])];
                 
-                document.getElementById('textHalfTotal').innerHTML = `${cleanNum(rowsDonut[0][1])}<br><span>BOX</span>`;
+                setSafeText('textHalfTotal', cleanNum(rowsDonut[0][1]), 'BOX');
                 document.getElementById('legendHalfDetail').innerHTML = `<span class="text-black">OK: ${dataDonut[0]}</span> | <span class="text-orange-600">Hold: ${dataDonut[1]}</span>`;
 
                 if(charts['halfDonut']) charts['halfDonut'].destroy();
@@ -288,7 +291,7 @@
 
                 document.getElementById('halfTableBody').innerHTML = (await respTable.text()).split('\n').map(r => {
                     const col = r.split(',');
-                    return col[0] ? `<tr><td>${col[0]}</td><td>${col[1]}</td><td>${col[2]}</td><td class="font-bold">${col[3]}</td></tr>` : '';
+                    return col[0] && col[0] !== "undefined" ? `<tr><td>${col[0]}</td><td>${col[1]}</td><td>${col[2]}</td><td class="font-bold">${col[3]}</td></tr>` : '';
                 }).join('');
             } catch (e) { console.error(e); }
         }
@@ -302,8 +305,14 @@
                 ]);
                 const rowsPie = (await respPie.text()).split('\n').map(r => r.split(','));
                 let percent = cleanNum(rowsPie[2][1]) / 100;
-                document.getElementById('text3').innerHTML = `${(percent * 100).toFixed(1)}<br><span>%</span>`;
-                document.getElementById('legend3').innerHTML = `<div class="flex justify-between font-bold"><span>${rowsPie[0][0] || ''}</span><span>${rowsPie[0][1] || ''}</span></div><div class="flex justify-between"><span>${rowsPie[1][0] || ''}</span><span>${rowsPie[1][1] || ''}</span></div>`;
+                setSafeText('text3', (percent * 100).toFixed(1), '%');
+                
+                const label1 = rowsPie[0][0] && rowsPie[0][0] !== "undefined" ? rowsPie[0][0] : "";
+                const val1 = rowsPie[0][1] && rowsPie[0][1] !== "undefined" ? rowsPie[0][1] : "";
+                const label2 = rowsPie[1][0] && rowsPie[1][0] !== "undefined" ? rowsPie[1][0] : "";
+                const val2 = rowsPie[1][1] && rowsPie[1][1] !== "undefined" ? rowsPie[1][1] : "";
+                
+                document.getElementById('legend3').innerHTML = `<div class="flex justify-between font-bold"><span>${label1}</span><span>${val1}</span></div><div class="flex justify-between"><span>${label2}</span><span>${val2}</span></div>`;
 
                 if(charts['chart3']) charts['chart3'].destroy();
                 charts['chart3'] = new Chart(document.getElementById('chart3'), {
@@ -334,7 +343,7 @@
                     data: { datasets: [{ data: [percent, 1-percent], backgroundColor: [(canvasId==='chart1'?'#f97316':'#3b82f6'), '#1e293b'], borderWidth: 0 }] },
                     options: { cutout: '75%', responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false } } }
                 });
-                document.getElementById(textId).innerHTML = `${(percent * 100).toFixed(1)}<br><span>${canvasId==='chart1'?'MT':'%'}</span>`;
+                setSafeText(textId, (percent * 100).toFixed(1), canvasId==='chart1'?'MT':'%');
                 document.getElementById(legendId).innerHTML = `<div class="flex justify-between font-bold"><span>${rows[0][0]}</span><span>${rows[0][1]}</span></div><div class="flex justify-between"><span>${rows[1][0]}</span><span>${rows[1][1]}</span></div>`;
             } catch (e) { console.error(e); }
         }
@@ -348,7 +357,7 @@
                 ]);
                 const rowsD = (await respDonut.text()).split('\n').map(r => r.split(','));
                 let percent = cleanNum(rowsD[2][1]) / 100;
-                document.getElementById('text2').innerHTML = `${(percent * 100).toFixed(1)}<br><span>%</span>`;
+                setSafeText('text2', (percent * 100).toFixed(1), '%');
                 document.getElementById('legend2').innerHTML = `<div class="flex justify-between font-bold text-slate-700"><span>${rowsD[0][0]}</span><span>${rowsD[0][1]}</span></div><div class="flex justify-between"><span>${rowsD[1][0]}</span><span>${rowsD[1][1]}</span></div>`;
                 
                 if(charts['chart2']) charts['chart2'].destroy();
@@ -360,7 +369,7 @@
 
                 document.getElementById('oldTableBody').innerHTML = (await respTable.text()).split('\n').map(r => {
                     const col = r.split(',');
-                    return col[0] ? `<tr><td>${col[0]}</td><td>${col[1]}</td><td>${col[2]}</td></tr>` : '';
+                    return col[0] && col[0] !== "undefined" ? `<tr><td>${col[0]}</td><td>${col[1]}</td><td>${col[2]}</td></tr>` : '';
                 }).join('');
             } catch (e) { console.error(e); }
         }
