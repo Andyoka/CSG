@@ -75,7 +75,6 @@
                 </div>
                 <div class="w-full mt-2 border-t border-dashed pt-2">
                     <table class="detail-table">
-                        <thead><tr><th>Category</th><th>Qty</th><th>Unit</th></tr></thead>
                         <tbody id="totalStockTableBody"></tbody>
                     </table>
                 </div>
@@ -189,7 +188,6 @@
         async function fetchTopCharts() {
             const t = new Date().getTime();
             try {
-                // Ambil data A1:C4 untuk Pie & Tabel, dan Kolom E untuk Line
                 const [respT, respL] = await Promise.all([
                     fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_TOTAL}&range=A1:C4&output=csv&t=${t}`),
                     fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_TOTAL}&range=E2:E7&output=csv&t=${t}`)
@@ -199,7 +197,6 @@
                 const dataMurni = rT.slice(0, 3);
                 const grandTotalRow = rT[3];
 
-                // Pie Chart
                 if(charts['pieTotal']) charts['pieTotal'].destroy();
                 charts['pieTotal'] = new Chart(document.getElementById('pieTotalChart'), {
                     type: 'doughnut',
@@ -215,21 +212,23 @@
                 });
                 setSafeInner('textTotalStock', cleanNum(grandTotalRow[1]).toLocaleString('id-ID'), 'KG');
 
-                // Tabel di bawah Pie
                 document.getElementById('totalStockTableBody').innerHTML = dataMurni.map(r => 
                     `<tr><td>${r[0]}</td><td>${cleanNum(r[1]).toLocaleString('id-ID')}</td><td>${r[2]}</td></tr>`
                 ).join('');
 
-                // Line Chart Tren (Kolom E)
+                // Line Chart dengan bintik dan tooltip
                 const vL = (await respL.text()).split('\n').map(r => cleanNum(r)).reverse();
                 if(charts['lineTotalTrend']) charts['lineTotalTrend'].destroy();
                 charts['lineTotalTrend'] = new Chart(document.getElementById('lineTotalTrend'), {
                     type: 'line',
-                    data: { labels: vL.map(() => ''), datasets: [{ data: vL, borderColor: '#ef4444', borderWidth: 2, tension: 0.4, pointRadius: 0 }] },
-                    options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { display: false } } }
+                    data: { labels: vL.map(() => ''), datasets: [{ data: vL, borderColor: '#ef4444', borderWidth: 2, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#ef4444', hoverRadius: 5 }] },
+                    options: { 
+                        responsive: true, maintainAspectRatio: false, 
+                        plugins: { tooltip: { enabled: true, displayColors: false, bodyFont: { size: 10 } } },
+                        scales: { x: { display: false }, y: { display: false } } 
+                    }
                 });
 
-                // PRODUCT DETAIL
                 const respD = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_DETAIL}&range=A1:I2&output=csv&t=${t}`);
                 const rD = (await respD.text()).split('\n').map(r => r.split(','));
                 let combined = rD[0].slice(0, 8).map((l, i) => ({ l, v: cleanNum(rD[1][i]) })).filter(x => x.l && x.l !== "undefined");
@@ -302,8 +301,12 @@
                 if(charts['halfLine']) charts['halfLine'].destroy();
                 charts['halfLine'] = new Chart(document.getElementById('lineHalfTrend'), {
                     type: 'line',
-                    data: { labels: dOK.map(() => ''), datasets: [{ data: dOK, borderColor: '#1e293b', borderWidth: 2, tension: 0.3 }, { data: dHold, borderColor: '#f97316', borderWidth: 2, tension: 0.3 }] },
-                    options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { display: false } } }
+                    data: { labels: dOK.map(() => ''), datasets: [{ data: dOK, borderColor: '#1e293b', borderWidth: 2, tension: 0.3, pointRadius: 3 }, { data: dHold, borderColor: '#f97316', borderWidth: 2, tension: 0.3, pointRadius: 3 }] },
+                    options: { 
+                        responsive: true, maintainAspectRatio: false, 
+                        plugins: { tooltip: { enabled: true } },
+                        scales: { x: { display: false }, y: { display: false } } 
+                    }
                 });
 
                 const fullTable = (await rTab.text()).split('\n').map(r => r.split(','));
@@ -340,8 +343,12 @@
                 if(charts['lineOcc']) charts['lineOcc'].destroy();
                 charts['lineOcc'] = new Chart(document.getElementById('lineOccupancyTrend'), {
                     type: 'line',
-                    data: { labels: vL.map(() => ''), datasets: [{ data: vL, borderColor: '#10b981', borderWidth: 2, tension: 0.4 }] },
-                    options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { display: false } } }
+                    data: { labels: vL.map(() => ''), datasets: [{ data: vL, borderColor: '#10b981', borderWidth: 2, tension: 0.4, pointRadius: 3 }] },
+                    options: { 
+                        responsive: true, maintainAspectRatio: false, 
+                        plugins: { tooltip: { enabled: true } },
+                        scales: { x: { display: false }, y: { display: false } } 
+                    }
                 });
             } catch (e) { console.error(e); }
         }
