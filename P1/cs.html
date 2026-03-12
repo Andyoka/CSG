@@ -28,7 +28,7 @@
             width: 100%; pointer-events: none; z-index: 10;
         }
         .donut-inner-text span { font-size: 8px; color: #64748b; font-weight: bold; }
-        .custom-legend { font-size: 10px; text-align: center; width: 100%; padding-top: 5px; border-top: 1px dashed #e2e8f0; }
+        .custom-legend { font-size: 10px; text-align: center; width: 100%; padding-top: 5px; border-top: 1px dashed #e2e8f0; min-height: 20px; }
         .detail-table { width: 100%; font-size: 9px; border-collapse: collapse; }
         .detail-table th { background: #f8fafc; color: #64748b; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding: 2px; }
         .detail-table td { padding: 4px 2px; text-align: center; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
@@ -199,44 +199,33 @@
                 const respD = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_DETAIL}&range=A1:I2&output=csv&t=${t}`);
                 const rD = (await respD.text()).split('\n').map(r => r.split(','));
                 
-                // Process & Sort Data
-                let combinedData = rD[0].slice(0, 8).map((label, i) => ({
-                    label: label,
-                    value: cleanNum(rD[1][i])
-                }));
-                // Sort descending (Largest on Top)
+                let combinedData = rD[0].slice(0, 8).map((label, i) => ({ label: label, value: cleanNum(rD[1][i]) }));
                 combinedData.sort((a, b) => b.value - a.value);
 
-                const sortedLabels = combinedData.map(d => d.label);
-                const sortedValues = combinedData.map(d => d.value);
-                const totalVal = cleanNum(rD[1][8]);
-
-                // Update Bar Chart (Black Minimalist + Sorted)
                 if(charts['barProduct']) charts['barProduct'].destroy();
                 charts['barProduct'] = new Chart(document.getElementById('barProductDetail'), {
                     type: 'bar',
-                    data: { labels: sortedLabels, datasets: [{ data: sortedValues, backgroundColor: '#1e293b', borderRadius: 4, barThickness: 10 }] },
+                    data: { labels: combinedData.map(d=>d.label), datasets: [{ data: combinedData.map(d=>d.value), backgroundColor: '#1e293b', borderRadius: 4, barThickness: 10 }] },
                     options: { 
                         indexAxis: 'y', 
+                        layout: { padding: { top: 15 } }, // Add padding to avoid number cutoff
                         responsive: true, 
                         maintainAspectRatio: false, 
                         plugins: { 
                             legend: { display: false }, 
-                            datalabels: { anchor: 'end', align: 'right', font: { size: 7, weight: 'bold' }, formatter: v => v.toLocaleString('id-ID') } 
+                            datalabels: { anchor: 'end', align: 'right', offset: 4, font: { size: 7, weight: 'bold' }, formatter: v => v.toLocaleString('id-ID') } 
                         }, 
                         scales: { x: { display: false }, y: { grid: { display: false }, ticks: { font: { size: 7 } } } } 
                     }
                 });
 
-                // Update Pie Chart
                 if(charts['pieDetail']) charts['pieDetail'].destroy();
                 charts['pieDetail'] = new Chart(document.getElementById('pieDetailChart'), {
                     type: 'doughnut',
-                    data: { labels: sortedLabels, datasets: [{ data: sortedValues, backgroundColor: ["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899"], borderWidth: 0 }] },
+                    data: { labels: combinedData.map(d=>d.label), datasets: [{ data: combinedData.map(d=>d.value), backgroundColor: ["#ef4444", "#3b82f6", "#facc15", "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899"], borderWidth: 0 }] },
                     options: { cutout: '70%', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } } }
                 });
-                document.getElementById('textDetailTotal').innerHTML = `${totalVal.toLocaleString('id-ID')}<br><span>TOTAL</span>`;
-
+                document.getElementById('textDetailTotal').innerHTML = `${cleanNum(rD[1][8]).toLocaleString('id-ID')}<br><span>TOTAL</span>`;
             } catch (e) { console.error(e); }
         }
 
@@ -246,7 +235,6 @@
                 const resp = await fetch(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_SMALL_BAR}&range=A2:B7&output=csv&t=${t}`);
                 const rows = (await resp.text()).split('\n').map(r => r.split(','));
                 
-                // Process & Sort Data
                 let smallData = rows.map(r => ({ label: r[0], value: cleanNum(r[1]) }));
                 smallData.sort((a, b) => b.value - a.value);
 
@@ -254,7 +242,17 @@
                 charts['barSmallH'] = new Chart(document.getElementById('barSmallHorizontal'), {
                     type: 'bar',
                     data: { labels: smallData.map(d=>d.label), datasets: [{ data: smallData.map(d=>d.value), backgroundColor: '#1e293b', borderRadius: 4, barThickness: 10 }] },
-                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'right', font: { size: 8, weight: 'bold' }, formatter: v => v + ' MT' } }, scales: { x: { display: false }, y: { grid: { display: false }, ticks: { font: { size: 7 } } } } }
+                    options: { 
+                        indexAxis: 'y', 
+                        layout: { padding: { top: 15 } }, // Add padding to avoid number cutoff
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        plugins: { 
+                            legend: { display: false }, 
+                            datalabels: { anchor: 'end', align: 'right', offset: 4, font: { size: 8, weight: 'bold' }, formatter: v => v.toLocaleString('id-ID') + ' MT' } 
+                        }, 
+                        scales: { x: { display: false }, y: { grid: { display: false }, ticks: { font: { size: 7 } } } } 
+                    }
                 });
             } catch (e) { console.error(e); }
         }
@@ -300,7 +298,11 @@
                     options: { cutout: '75%', responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false } } }
                 });
                 document.getElementById('textHalfTotal').innerHTML = `${cleanNum(rowsDonut[0][1])}<br><span>BOX</span>`;
-                document.getElementById('legendHalfDetail').innerHTML = `<span class="text-black">OK: ${dataDonut[0]}</span> | <span class="text-orange-600">Hold: ${dataDonut[1]}</span>`;
+                
+                // Clear and Update Legend (Hides 'undefined')
+                const legendEl = document.getElementById('legendHalfDetail');
+                legendEl.innerHTML = `<span class="text-black">OK: ${dataDonut[0]}</span> | <span class="text-orange-600">Hold: ${dataDonut[1]}</span>`;
+
                 const rowsLine = (await respLine.text()).split('\n').map(r => r.split(','));
                 const dOK = rowsLine.map(r => cleanNum(r[0])).reverse();
                 const dHold = rowsLine.map(r => cleanNum(r[1])).reverse();
@@ -333,7 +335,10 @@
                     options: { cutout: '75%', responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false } } }
                 });
                 document.getElementById('text3').innerHTML = `${(percent * 100).toFixed(1)}<br><span>%</span>`;
-                document.getElementById('legend3').innerHTML = `<div class="flex justify-between font-bold"><span>${rowsPie[0][0]}</span><span>${rowsPie[0][1]}</span></div><div class="flex justify-between"><span>${rowsPie[1][0]}</span><span>${rowsPie[1][1]}</span></div>`;
+                
+                // Update Legend safely
+                document.getElementById('legend3').innerHTML = `<div class="flex justify-between font-bold"><span>${rowsPie[0][0] || ''}</span><span>${rowsPie[0][1] || ''}</span></div><div class="flex justify-between"><span>${rowsPie[1][0] || ''}</span><span>${rowsPie[1][1] || ''}</span></div>`;
+                
                 const valuesLine = (await respLine.text()).split('\n').map(r => cleanNum(r)).reverse();
                 if(charts['lineOcc']) charts['lineOcc'].destroy();
                 charts['lineOcc'] = new Chart(document.getElementById('lineOccupancyTrend'), {
