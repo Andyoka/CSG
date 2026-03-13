@@ -36,8 +36,7 @@
         .chart-table th, .chart-table td { border: 1px solid #cbd5e1; padding: 2px; text-align: center; }
         .chart-table th { background-color: #f1f5f9; font-weight: bold; }
         .legend-box { width: 7px; height: 7px; display: inline-block; margin-right: 4px; border-radius: 2px; }
-        /* Style tambahan untuk tabel incoming */
-        .incoming-table-container { max-height: 400px; overflow-y: auto; }
+        .incoming-table-container { max-height: 450px; overflow-y: auto; }
         .incoming-table th { position: sticky; top: 0; background: #334155; color: white; z-index: 5; }
     </style>
 </head>
@@ -143,7 +142,7 @@
         </div>
 
         <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6">
-            <h3 class="font-bold text-[10px] uppercase mb-4 text-slate-400 border-b pb-2">Incoming Goods Detail (A:K)</h3>
+            <h3 class="font-bold text-[10px] uppercase mb-4 text-slate-400 border-b pb-2">Incoming Goods Detail</h3>
             <div class="incoming-table-container overflow-x-auto">
                 <table class="chart-table incoming-table" id="incomingTable">
                     <thead id="incomingHeader"></thead>
@@ -206,16 +205,19 @@
 
         async function fetchIncomingTable() {
             try {
-                const csv = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_INCOMING}&range=A1:K30&output=csv`);
+                // Mengambil range A:K secara luas (baris 1-100)
+                const csv = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_INCOMING}&range=A1:K100&output=csv`);
                 const rows = csv.split('\n').map(r => r.split(','));
                 
                 if (rows.length > 0) {
-                    // Header
+                    // Header (Baris 1)
                     document.getElementById('incomingHeader').innerHTML = `<tr>${rows[0].map(h => `<th>${h.replace(/"/g, '')}</th>`).join('')}</tr>`;
-                    // Body
+                    
+                    // Body (Baris 2 ke bawah)
                     let bodyHtml = "";
                     for (let i = 1; i < rows.length; i++) {
-                        if (rows[i][0] && rows[i][0].trim() !== "") {
+                        // Pastikan kolom A tidak kosong dan bukan "undefined"
+                        if (rows[i][0] && rows[i][0].trim() !== "" && rows[i][0].trim() !== "undefined") {
                             bodyHtml += `<tr>${rows[i].map(c => `<td>${c.replace(/"/g, '')}</td>`).join('')}</tr>`;
                         }
                     }
@@ -412,7 +414,7 @@
         async function refreshAll() {
             document.getElementById('sheetFrame').src = `https://docs.google.com/spreadsheets/d/e/${ID_LAPORAN}/pubhtml?widget=true&headers=false`;
             await fetchStatusText();
-            await fetchIncomingTable(); // Ambil data tabel Incoming A:K
+            await fetchIncomingTable();
             await fetchTopCharts();
             await new Promise(r => setTimeout(r, 800));
             await fetchSmall();
