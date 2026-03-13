@@ -58,8 +58,8 @@
                 <button onclick="toggleSidebar()" class="hover:text-[#4ade80]">☰</button>
                 <h1 class="text-lg font-extrabold uppercase tracking-tight">Cold Storage <span class="text-[#4ade80]">Monitor</span></h1>
             </div>
-            <div class="flex items-center gap-4">
-                <div id="statusText" class="text-[10px] font-bold text-[#4ade80] italic bg-slate-800 px-3 py-1 rounded-md border border-slate-700">Loading...</div>
+            <div class="flex items-center gap-6">
+                <div id="statusText" class="text-sm font-black text-white bg-slate-800 px-4 py-1.5 rounded-md border border-slate-600 shadow-inner">Loading...</div>
                 <button onclick="refreshAll()" class="bg-[#4ade80] text-black px-5 py-1.5 rounded-lg text-[10px] font-black hover:scale-95 transition">🔄 REFRESH</button>
             </div>
         </header>
@@ -181,7 +181,6 @@
 
         async function fetchStatusText() {
             try {
-                // Mengambil cell N1 dari sheet Incoming
                 const csv = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_INCOMING}&range=N1&output=csv`);
                 if(csv) {
                     document.getElementById('statusText').innerText = csv.trim().replace(/"/g, '');
@@ -379,7 +378,7 @@
 
         async function refreshAll() {
             document.getElementById('sheetFrame').src = `https://docs.google.com/spreadsheets/d/e/${ID_LAPORAN}/pubhtml?widget=true&headers=false`;
-            await fetchStatusText(); // Update Tulisan dari Sheet Incoming
+            await fetchStatusText();
             await fetchTopCharts();
             await new Promise(r => setTimeout(r, 800));
             await fetchSmall();
