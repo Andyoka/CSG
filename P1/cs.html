@@ -36,7 +36,7 @@
         .chart-table th, .chart-table td { border: 1px solid #cbd5e1; padding: 2px; text-align: center; }
         .chart-table th { background-color: #f1f5f9; font-weight: bold; }
         .legend-box { width: 7px; height: 7px; display: inline-block; margin-right: 4px; border-radius: 2px; }
-        .incoming-table-container { max-height: 450px; overflow-y: auto; }
+        .incoming-table-container { max-height: 300px; overflow-y: auto; }
         .incoming-table th { position: sticky; top: 0; background: #334155; color: white; z-index: 5; }
     </style>
 </head>
@@ -135,19 +135,21 @@
             </div>
         </section>
 
-        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6">
-            <h3 class="font-bold text-[10px] uppercase mb-4 text-slate-400 border-b pb-2">Main Stock Overview</h3>
-            <div class="h-[250px] mb-4"><canvas id="mainBarChart"></canvas></div>
-            <div class="overflow-x-auto"><table class="chart-table" id="dataTable"><thead><tr id="tableHeader"></tr></thead><tbody id="tableBody"></tbody></table></div>
-        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                <h3 class="font-bold text-[10px] uppercase mb-4 text-slate-400 border-b pb-2">Main Stock Overview</h3>
+                <div class="h-[200px] mb-4"><canvas id="mainBarChart"></canvas></div>
+                <div class="overflow-x-auto"><table class="chart-table" id="dataTable"><thead><tr id="tableHeader"></tr></thead><tbody id="tableBody"></tbody></table></div>
+            </div>
 
-        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6">
-            <h3 class="font-bold text-[10px] uppercase mb-4 text-slate-400 border-b pb-2">Incoming Goods Detail</h3>
-            <div class="incoming-table-container overflow-x-auto">
-                <table class="chart-table incoming-table" id="incomingTable">
-                    <thead id="incomingHeader"></thead>
-                    <tbody id="incomingBody"></tbody>
-                </table>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                <h3 class="font-bold text-[10px] uppercase mb-4 text-slate-400 border-b pb-2">Incoming Goods Detail</h3>
+                <div class="incoming-table-container overflow-x-auto">
+                    <table class="chart-table incoming-table" id="incomingTable">
+                        <thead id="incomingHeader"></thead>
+                        <tbody id="incomingBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -205,19 +207,16 @@
 
         async function fetchIncomingTable() {
             try {
-                // Mengambil range A:K secara luas (baris 1-100)
                 const csv = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_INCOMING}&range=A1:K100&output=csv`);
                 const rows = csv.split('\n').map(r => r.split(','));
                 
                 if (rows.length > 0) {
-                    // Header (Baris 1)
                     document.getElementById('incomingHeader').innerHTML = `<tr>${rows[0].map(h => `<th>${h.replace(/"/g, '')}</th>`).join('')}</tr>`;
                     
-                    // Body (Baris 2 ke bawah)
                     let bodyHtml = "";
                     for (let i = 1; i < rows.length; i++) {
-                        // Pastikan kolom A tidak kosong dan bukan "undefined"
-                        if (rows[i][0] && rows[i][0].trim() !== "" && rows[i][0].trim() !== "undefined") {
+                        // ACUAN DIUBAH KE KOLOM H (index 7)
+                        if (rows[i][7] && rows[i][7].trim() !== "" && rows[i][7].trim() !== "undefined") {
                             bodyHtml += `<tr>${rows[i].map(c => `<td>${c.replace(/"/g, '')}</td>`).join('')}</tr>`;
                         }
                     }
