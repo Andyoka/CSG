@@ -70,34 +70,19 @@
         </header>
 
         <section class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
-            <div class="md:col-span-2 flex flex-col gap-3">
-                <div class="donut-card w-full">
-                    <h4 class="text-[10px] font-black text-slate-700 uppercase mb-1 text-center">Total Stock Overview</h4>
-                    <div class="flex items-center justify-center w-full h-full gap-6 px-4">
-                        <div class="w-1/2 h-[100px]"><canvas id="lineTotalTrend"></canvas></div>
-                        <div class="flex-none">
-                            <div class="donut-container chart-3d-effect">
-                                <canvas id="pieTotalChart"></canvas>
-                                <div id="textTotalStock" class="donut-inner-text"></div>
-                            </div>
+            <div class="donut-card special-wide-card">
+                <h4 class="text-[10px] font-black text-slate-700 uppercase mb-1 text-center">Total Stock Overview</h4>
+                <div class="flex items-center justify-center w-full h-full gap-6 px-4">
+                    <div class="w-1/2 h-[100px]"><canvas id="lineTotalTrend"></canvas></div>
+                    <div class="flex-none">
+                        <div class="donut-container chart-3d-effect">
+                            <canvas id="pieTotalChart"></canvas>
+                            <div id="textTotalStock" class="donut-inner-text"></div>
                         </div>
                     </div>
-                    <div class="w-full mt-2 border-t border-dashed pt-2">
-                        <table class="detail-table"><tbody id="totalStockTableBody"></tbody></table>
-                    </div>
                 </div>
-
-                <div class="donut-card w-full">
-                    <h4 class="text-[10px] font-black text-slate-700 uppercase mb-1 text-center">Kapasitas Ruang</h4>
-                    <div class="w-full h-[130px] px-2">
-                        <canvas id="barKapasitasChart"></canvas>
-                    </div>
-                    <div class="w-full mt-2 border-t border-dashed pt-2 overflow-x-auto">
-                        <table class="detail-table">
-                            <thead id="kapasitasTableHeader"></thead>
-                            <tbody id="kapasitasTableBody"></tbody>
-                        </table>
-                    </div>
+                <div class="w-full mt-2 border-t border-dashed pt-2">
+                    <table class="detail-table"><tbody id="totalStockTableBody"></tbody></table>
                 </div>
             </div>
 
@@ -166,6 +151,19 @@
                     <table class="chart-table incoming-table" id="incomingTable">
                         <thead id="incomingHeader"></thead>
                         <tbody id="incomingBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 mb-6">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                <h3 class="font-bold text-[10px] uppercase mb-4 text-slate-400 border-b pb-2 text-center">Kapasitas Ruang</h3>
+                <div class="h-[200px] mb-4"><canvas id="barKapasitasChart"></canvas></div>
+                <div class="overflow-x-auto mt-4">
+                    <table class="chart-table">
+                        <thead id="kapasitasTableHeader"></thead>
+                        <tbody id="kapasitasTableBody"></tbody>
                     </table>
                 </div>
             </div>
@@ -242,7 +240,6 @@
 
         async function fetchKapasitasRuang() {
             try {
-                // Ambil Data Chart (J:L)
                 const csvC = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_KAPASITAS}&range=J1:L9&output=csv`);
                 const rowsC = csvC.split('\n').map(r => r.split(','));
                 const labels = rowsC.slice(1).map(r => r[0].replace(/"/g, ''));
@@ -254,54 +251,30 @@
                     data: {
                         labels: labels,
                         datasets: [
-                            {
-                                type: 'line',
-                                label: 'Std',
-                                data: dataStd,
-                                borderColor: '#f97316',
-                                borderWidth: 2,
-                                pointRadius: 0,
-                                tension: 0,
-                                fill: false,
-                                order: 1
-                            },
-                            {
-                                type: 'bar',
-                                label: 'Occupancy',
-                                data: dataOcc,
-                                backgroundColor: '#5b9bd5',
-                                borderRadius: 2,
-                                order: 2
-                            }
+                            { type: 'line', label: 'Std', data: dataStd, borderColor: '#f97316', borderWidth: 2, pointRadius: 0, tension: 0, fill: false, order: 1 },
+                            { type: 'bar', label: 'Occupancy', data: dataOcc, backgroundColor: '#5b9bd5', borderRadius: 2, order: 2 }
                         ]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
-                            datalabels: {
-                                display: true,
-                                anchor: 'end',
-                                align: 'top',
-                                font: { size: 8, weight: 'bold' },
-                                formatter: v => Math.round(v) + '%'
-                            }
+                            datalabels: { display: true, anchor: 'end', align: 'top', font: { size: 8, weight: 'bold' }, formatter: v => Math.round(v) + '%' }
                         },
                         scales: {
-                            y: { beginAtZero: true, max: Math.max(...dataOcc, 110), ticks: { font: { size: 8 } } },
-                            x: { ticks: { font: { size: 8 } } }
+                            y: { beginAtZero: true, max: 150, ticks: { font: { size: 8 } } },
+                            x: { ticks: { font: { size: 9, weight: 'bold' } } }
                         }
                     }
                 });
 
-                // Ambil Data Tabel (A:G)
                 const csvT = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_KAPASITAS}&range=A1:G9&output=csv`);
                 const rowsT = csvT.split('\n').map(r => r.split(','));
                 if(rowsT.length > 0) {
                     document.getElementById('kapasitasTableHeader').innerHTML = `<tr>${rowsT[0].map(h => `<th>${h.replace(/"/g, '')}</th>`).join('')}</tr>`;
                     document.getElementById('kapasitasTableBody').innerHTML = rowsT.slice(1).map(r => `<tr>${r.map(c => `<td>${c.replace(/"/g, '')}</td>`).join('')}</tr>`).join('');
                 }
-            } catch (e) { console.error("Gagal Kapasitas:", e); }
+            } catch (e) { console.error(e); }
         }
 
         async function fetchTopCharts() {
@@ -484,7 +457,7 @@
             document.getElementById('sheetFrame').src = `https://docs.google.com/spreadsheets/d/e/${ID_LAPORAN}/pubhtml?widget=true&headers=false`;
             await fetchStatusText();
             await fetchIncomingTable();
-            await fetchKapasitasRuang(); // FUNGSI BARU
+            await fetchKapasitasRuang();
             await fetchTopCharts();
             await new Promise(r => setTimeout(r, 800));
             await fetchSmall();
