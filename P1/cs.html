@@ -70,19 +70,34 @@
         </header>
 
         <section class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
-            <div class="donut-card special-wide-card">
-                <h4 class="text-[10px] font-black text-slate-700 uppercase mb-1 text-center">Total Stock Overview</h4>
-                <div class="flex items-center justify-center w-full h-full gap-6 px-4">
-                    <div class="w-1/2 h-[100px]"><canvas id="lineTotalTrend"></canvas></div>
-                    <div class="flex-none">
-                        <div class="donut-container chart-3d-effect">
-                            <canvas id="pieTotalChart"></canvas>
-                            <div id="textTotalStock" class="donut-inner-text"></div>
+            <div class="md:col-span-2 flex flex-col gap-3">
+                <div class="donut-card w-full">
+                    <h4 class="text-[10px] font-black text-slate-700 uppercase mb-1 text-center">Total Stock Overview</h4>
+                    <div class="flex items-center justify-center w-full h-full gap-6 px-4">
+                        <div class="w-1/2 h-[100px]"><canvas id="lineTotalTrend"></canvas></div>
+                        <div class="flex-none">
+                            <div class="donut-container chart-3d-effect">
+                                <canvas id="pieTotalChart"></canvas>
+                                <div id="textTotalStock" class="donut-inner-text"></div>
+                            </div>
                         </div>
                     </div>
+                    <div class="w-full mt-2 border-t border-dashed pt-2">
+                        <table class="detail-table"><tbody id="totalStockTableBody"></tbody></table>
+                    </div>
                 </div>
-                <div class="w-full mt-2 border-t border-dashed pt-2">
-                    <table class="detail-table"><tbody id="totalStockTableBody"></tbody></table>
+
+                <div class="donut-card w-full">
+                    <h4 class="text-[10px] font-black text-slate-700 uppercase mb-1 text-center">Kapasitas Ruang</h4>
+                    <div class="w-full h-[130px] px-2">
+                        <canvas id="barKapasitasChart"></canvas>
+                    </div>
+                    <div class="w-full mt-2 border-t border-dashed pt-2 overflow-x-auto">
+                        <table class="detail-table">
+                            <thead id="kapasitasTableHeader"></thead>
+                            <tbody id="kapasitasTableBody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -166,6 +181,7 @@
         const GID_HALF = "972941295", GID_BAR = "0";
         const GID_TOTAL = "252078912", GID_DETAIL = "1764500224";
         const GID_INCOMING = "1777430590";
+        const GID_KAPASITAS = "1213168";
         const ID_LAPORAN = "2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk";
 
         Chart.register(ChartDataLabels);
@@ -198,18 +214,13 @@
 
         async function fetchStatusText() {
             try {
-                // Ambil data dari rentang N1:N2
                 const csv = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_INCOMING}&range=N1:N2&output=csv`);
                 if(csv) {
                     const rows = csv.split('\n');
                     if (rows[0]) document.getElementById('statusText').innerText = rows[0].trim().replace(/"/g, '');
                     if (rows[1]) document.getElementById('statusText2').innerText = rows[1].trim().replace(/"/g, '');
                 }
-            } catch (e) { 
-                console.error("Gagal ambil status:", e);
-                document.getElementById('statusText').innerText = "-";
-                document.getElementById('statusText2').innerText = "-";
-            }
+            } catch (e) { console.error(e); }
         }
 
         async function fetchIncomingTable() {
@@ -226,7 +237,71 @@
                     }
                     document.getElementById('incomingBody').innerHTML = bodyHtml;
                 }
-            } catch (e) { console.error("Gagal ambil tabel incoming:", e); }
+            } catch (e) { console.error(e); }
+        }
+
+        async function fetchKapasitasRuang() {
+            try {
+                // Ambil Data Chart (J:L)
+                const csvC = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_KAPASITAS}&range=J1:L9&output=csv`);
+                const rowsC = csvC.split('\n').map(r => r.split(','));
+                const labels = rowsC.slice(1).map(r => r[0].replace(/"/g, ''));
+                const dataOcc = rowsC.slice(1).map(r => cleanNum(r[1]) * 100);
+                const dataStd = rowsC.slice(1).map(r => cleanNum(r[2]) * 100);
+
+                if(charts['barKapasitas']) charts['barKapasitas'].destroy();
+                charts['barKapasitas'] = new Chart(document.getElementById('barKapasitasChart'), {
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                type: 'line',
+                                label: 'Std',
+                                data: dataStd,
+                                borderColor: '#f97316',
+                                borderWidth: 2,
+                                pointRadius: 0,
+                                tension: 0,
+                                fill: false,
+                                order: 1
+                            },
+                            {
+                                type: 'bar',
+                                label: 'Occupancy',
+                                data: dataOcc,
+                                backgroundColor: '#5b9bd5',
+                                borderRadius: 2,
+                                order: 2
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            datalabels: {
+                                display: true,
+                                anchor: 'end',
+                                align: 'top',
+                                font: { size: 8, weight: 'bold' },
+                                formatter: v => Math.round(v) + '%'
+                            }
+                        },
+                        scales: {
+                            y: { beginAtZero: true, max: Math.max(...dataOcc, 110), ticks: { font: { size: 8 } } },
+                            x: { ticks: { font: { size: 8 } } }
+                        }
+                    }
+                });
+
+                // Ambil Data Tabel (A:G)
+                const csvT = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_KAPASITAS}&range=A1:G9&output=csv`);
+                const rowsT = csvT.split('\n').map(r => r.split(','));
+                if(rowsT.length > 0) {
+                    document.getElementById('kapasitasTableHeader').innerHTML = `<tr>${rowsT[0].map(h => `<th>${h.replace(/"/g, '')}</th>`).join('')}</tr>`;
+                    document.getElementById('kapasitasTableBody').innerHTML = rowsT.slice(1).map(r => `<tr>${r.map(c => `<td>${c.replace(/"/g, '')}</td>`).join('')}</tr>`).join('');
+                }
+            } catch (e) { console.error("Gagal Kapasitas:", e); }
         }
 
         async function fetchTopCharts() {
@@ -253,6 +328,7 @@
                     data: { labels: vL.map(() => ''), datasets: [{ data: vL, borderColor: '#ef4444', borderWidth: 2, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#ef4444', hoverRadius: 5 }] },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { enabled: true } }, scales: { x: { display: false }, y: { display: false } } }
                 });
+
                 const csvD = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_DETAIL}&range=A1:I2&output=csv`);
                 const rD = csvD.split('\n').map(r => r.split(','));
                 let combined = rD[0].slice(0, 8).map((l, i) => ({ l, v: cleanNum(rD[1][i]) })).filter(x => x.l && x.l !== "undefined");
@@ -408,6 +484,7 @@
             document.getElementById('sheetFrame').src = `https://docs.google.com/spreadsheets/d/e/${ID_LAPORAN}/pubhtml?widget=true&headers=false`;
             await fetchStatusText();
             await fetchIncomingTable();
+            await fetchKapasitasRuang(); // FUNGSI BARU
             await fetchTopCharts();
             await new Promise(r => setTimeout(r, 800));
             await fetchSmall();
