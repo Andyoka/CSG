@@ -61,7 +61,10 @@
                 <h1 class="text-lg font-extrabold uppercase tracking-tight">Cold Storage <span class="text-[#4ade80]">Monitor</span></h1>
             </div>
             <div class="flex items-center gap-6">
-                <div id="statusText" class="text-sm font-black text-white bg-slate-800 px-4 py-1.5 rounded-md border border-slate-600 shadow-inner">Loading...</div>
+                <div id="statusContainer" class="flex gap-2">
+                    <div id="statusText" class="text-[10px] font-black text-white bg-slate-800 px-3 py-1.5 rounded-md border border-slate-600 shadow-inner">Loading N1...</div>
+                    <div id="statusText2" class="text-[10px] font-black text-white bg-slate-800 px-3 py-1.5 rounded-md border border-slate-600 shadow-inner">Loading N2...</div>
+                </div>
                 <button onclick="refreshAll()" class="bg-[#4ade80] text-black px-5 py-1.5 rounded-lg text-[10px] font-black hover:scale-95 transition">🔄 REFRESH</button>
             </div>
         </header>
@@ -143,7 +146,7 @@
             </div>
 
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-                <h3 class="font-bold text-[10px] uppercase mb-4 text-slate-400 border-b pb-2">Incoming</h3>
+                <h3 class="font-bold text-[10px] uppercase mb-4 text-slate-400 border-b pb-2">Incoming Goods Detail</h3>
                 <div class="incoming-table-container overflow-x-auto">
                     <table class="chart-table incoming-table" id="incomingTable">
                         <thead id="incomingHeader"></thead>
@@ -195,13 +198,17 @@
 
         async function fetchStatusText() {
             try {
-                const csv = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_INCOMING}&range=N1&output=csv`);
+                // Ambil data dari rentang N1:N2
+                const csv = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_INCOMING}&range=N1:N2&output=csv`);
                 if(csv) {
-                    document.getElementById('statusText').innerText = csv.trim().replace(/"/g, '');
+                    const rows = csv.split('\n');
+                    if (rows[0]) document.getElementById('statusText').innerText = rows[0].trim().replace(/"/g, '');
+                    if (rows[1]) document.getElementById('statusText2').innerText = rows[1].trim().replace(/"/g, '');
                 }
             } catch (e) { 
                 console.error("Gagal ambil status:", e);
                 document.getElementById('statusText').innerText = "-";
+                document.getElementById('statusText2').innerText = "-";
             }
         }
 
@@ -209,13 +216,10 @@
             try {
                 const csv = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_INCOMING}&range=A1:K100&output=csv`);
                 const rows = csv.split('\n').map(r => r.split(','));
-                
                 if (rows.length > 0) {
                     document.getElementById('incomingHeader').innerHTML = `<tr>${rows[0].map(h => `<th>${h.replace(/"/g, '')}</th>`).join('')}</tr>`;
-                    
                     let bodyHtml = "";
                     for (let i = 1; i < rows.length; i++) {
-                        // ACUAN DIUBAH KE KOLOM H (index 7)
                         if (rows[i][7] && rows[i][7].trim() !== "" && rows[i][7].trim() !== "undefined") {
                             bodyHtml += `<tr>${rows[i].map(c => `<td>${c.replace(/"/g, '')}</td>`).join('')}</tr>`;
                         }
@@ -234,7 +238,6 @@
                 const rT = csvT.split('\n').map(r => r.split(','));
                 const dataMurni = rT.slice(0, 3);
                 const grandTotalRow = rT[3];
-
                 if(charts['pieTotal']) charts['pieTotal'].destroy();
                 charts['pieTotal'] = new Chart(document.getElementById('pieTotalChart'), {
                     type: 'doughnut',
@@ -243,7 +246,6 @@
                 });
                 setSafeInner('textTotalStock', cleanNum(grandTotalRow[1]).toLocaleString('id-ID'), 'KG');
                 document.getElementById('totalStockTableBody').innerHTML = dataMurni.map(r => `<tr><td>${r[0]}</td><td>${cleanNum(r[1]).toLocaleString('id-ID')}</td><td>${r[2]}</td></tr>`).join('');
-
                 const vL = csvL.split('\n').map(r => cleanNum(r)).reverse();
                 if(charts['lineTotalTrend']) charts['lineTotalTrend'].destroy();
                 charts['lineTotalTrend'] = new Chart(document.getElementById('lineTotalTrend'), {
@@ -251,19 +253,16 @@
                     data: { labels: vL.map(() => ''), datasets: [{ data: vL, borderColor: '#ef4444', borderWidth: 2, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#ef4444', hoverRadius: 5 }] },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { enabled: true } }, scales: { x: { display: false }, y: { display: false } } }
                 });
-
                 const csvD = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_DETAIL}&range=A1:I2&output=csv`);
                 const rD = csvD.split('\n').map(r => r.split(','));
                 let combined = rD[0].slice(0, 8).map((l, i) => ({ l, v: cleanNum(rD[1][i]) })).filter(x => x.l && x.l !== "undefined");
                 combined.sort((a,b) => b.v - a.v);
-
                 if(charts['barProduct']) charts['barProduct'].destroy();
                 charts['barProduct'] = new Chart(document.getElementById('barProductDetail'), {
                     type: 'bar',
                     data: { labels: combined.map(d=>d.l), datasets: [{ data: combined.map(d=>d.v), backgroundColor: '#1e293b', borderRadius: 4, barThickness: 10 }] },
                     options: { indexAxis: 'y', layout: { padding: { right: 45 } }, responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: true, anchor: 'end', align: 'right', font: { size: 8, weight: 'bold' }, formatter: v => v.toLocaleString('id-ID') } }, scales: { x: { display: false, max: Math.max(...combined.map(d=>d.v))*1.3 }, y: { grid: { display: false }, ticks: { font: { size: 7 } } } } }
                 });
-
                 if(charts['pieDetail']) charts['pieDetail'].destroy();
                 charts['pieDetail'] = new Chart(document.getElementById('pieDetailChart'), {
                     type: 'doughnut',
@@ -291,7 +290,6 @@
                     data: { datasets: [{ data: [pct, 1-pct], backgroundColor: ['#f97316', '#1e293b'], borderWidth: 0 }] },
                     options: { cutout: '75%', responsive: true, maintainAspectRatio: false }
                 });
-
                 const rowsB = csvB.split('\n').map(r => r.split(','));
                 let dataB = rowsB.map(r => ({ l: r[0], v: cleanNum(r[1]) })).filter(x => x.l && x.l !== "undefined");
                 dataB.sort((a,b) => b.v - a.v);
@@ -313,14 +311,12 @@
                 ]);
                 const rowsD = csvD.split('\n').map(r => r.split(','));
                 setSafeInner('textHalfTotal', cleanNum(rowsD[0][1]).toLocaleString('id-ID'), 'BOX');
-                
                 if(charts['halfDonut']) charts['halfDonut'].destroy();
                 charts['halfDonut'] = new Chart(document.getElementById('chartHalfDonut'), {
                     type: 'doughnut',
                     data: { datasets: [{ data: [cleanNum(rowsD[1][1]), cleanNum(rowsD[2][1]), cleanNum(rowsD[3][1])], backgroundColor: ['#10b981', '#facc15', '#ef4444'], borderWidth: 0 }] },
                     options: { cutout: '75%', responsive: true, maintainAspectRatio: false }
                 });
-
                 const rowsL = csvL.split('\n').map(r => r.split(','));
                 const dOK = rowsL.map(r => cleanNum(r[0])).reverse();
                 const dHold = rowsL.map(r => cleanNum(r[1])).reverse();
@@ -330,7 +326,6 @@
                     data: { labels: dOK.map(() => ''), datasets: [{ data: dOK, borderColor: '#1e293b', borderWidth: 2, tension: 0.3, pointRadius: 3, hoverRadius: 5 }, { data: dHold, borderColor: '#f97316', borderWidth: 2, tension: 0.3, pointRadius: 3, hoverRadius: 5 }] },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { enabled: true } }, scales: { x: { display: false }, y: { display: false } } }
                 });
-
                 const fullT = csvT.split('\n').map(r => r.split(','));
                 document.getElementById('halfTableHeader').innerHTML = `<tr>${fullT[0].map(h => `<th>${h}</th>`).join('')}</tr>`;
                 document.getElementById('halfTableBody').innerHTML = fullT.slice(1).map(r => r[0] && r[0] !== "undefined" ? `<tr>${r.map((c, i) => `<td class="${i === r.length-1 ? 'font-bold' : ''}">${c}</td>`).join('')}</tr>` : '').join('');
@@ -341,7 +336,7 @@
             try {
                 const [csvP, csvL] = await Promise.all([
                     fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OCCUPANCY}&range=A1:B3&output=csv`),
-                    fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OCCUPANCY}&range=E2:E7&output=csv`)
+                    fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=23039051&range=E2:E7&output=csv`)
                 ]);
                 const rowsP = csvP.split('\n').map(r => r.split(','));
                 let valRaw = cleanNum(rowsP[2][1]);
@@ -354,7 +349,6 @@
                     data: { datasets: [{ data: [pct, 1-pct], backgroundColor: ['#10b981', '#1e293b'], borderWidth: 0 }] },
                     options: { cutout: '75%', responsive: true, maintainAspectRatio: false }
                 });
-
                 const vL = csvL.split('\n').map(r => cleanNum(r)).reverse();
                 if(charts['lineOcc']) charts['lineOcc'].destroy();
                 charts['lineOcc'] = new Chart(document.getElementById('lineOccupancyTrend'), {
