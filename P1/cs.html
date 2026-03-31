@@ -179,7 +179,15 @@
 
         function cleanNum(val) {
             if(!val || val === "undefined" || val === "") return 0;
-            let str = val.toString().replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '');
+            // Menghilangkan simbol % jika ada
+            let str = val.toString().replace('%', '');
+            // Jika format GSheet menggunakan titik sebagai ribuan (1.000) dan koma sebagai desimal (0,5)
+            // Kita ubah ke standar JS (titik desimal)
+            if (str.includes(',') && str.includes('.')) {
+                str = str.replace(/\./g, '').replace(',', '.');
+            } else if (str.includes(',')) {
+                str = str.replace(',', '.');
+            }
             let n = parseFloat(str);
             return isNaN(n) ? 0 : n;
         }
@@ -235,7 +243,7 @@
                 const csvC = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_KAPASITAS}&range=J1:L9&output=csv`);
                 const rowsC = parseCSV(csvC);
                 const labels = rowsC.slice(1).map(r => r[0]);
-                const dataOcc = rowsC.slice(1).map(r => cleanNum(r[1]) * 100);
+                const dataOcc = rowsC.slice(1).map(r => cleanNum(r[1])); // Mengambil angka murni (90, 103, dst)
 
                 if(charts['barKapasitas']) charts['barKapasitas'].destroy();
                 charts['barKapasitas'] = new Chart(document.getElementById('barKapasitasChart'), {
@@ -271,7 +279,8 @@
                                 font: { size: 10, weight: 'bold' },
                                 color: '#1e293b',
                                 formatter: v => Math.round(v) + '%'
-                            }
+                            },
+                            tooltip: { enabled: true, callbacks: { label: (ctx) => ctx.raw + '%' } }
                         }
                     },
                     plugins: [{
@@ -318,8 +327,8 @@
                 const vL = parseCSV(csvL).map(r=>cleanNum(r[0])).reverse();
                 if(charts['lineTotalTrend']) charts['lineTotalTrend'].destroy();
                 charts['lineTotalTrend'] = new Chart(document.getElementById('lineTotalTrend'), {
-                    type:'line', data:{ labels:vL.map(()=>''), datasets:[{data:vL, borderColor:'#ef4444', borderWidth:2, tension:0.4, pointRadius:0}]},
-                    options:{responsive:true, maintainAspectRatio:false, scales:{x:{display:false},y:{display:false}}}
+                    type:'line', data:{ labels:vL.map(()=>''), datasets:[{data:vL, borderColor:'#ef4444', borderWidth:2, tension:0.4, pointRadius:3, pointBackgroundColor:'#ef4444'}]},
+                    options:{responsive:true, maintainAspectRatio:false, plugins:{tooltip:{enabled:true}}, scales:{x:{display:false},y:{display:false}}}
                 });
 
                 const csvD = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_DETAIL}&range=A1:I2&output=csv`);
@@ -330,12 +339,6 @@
                     type:'bar', data:{ labels:comb.map(d=>d.l), datasets:[{data:comb.map(d=>d.v), backgroundColor:'#1e293b', borderRadius:4, barThickness:10}]},
                     options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{datalabels:{display:true, anchor:'end', align:'right', font:{size:8}, formatter:v=>v.toLocaleString('id-ID')}}, scales:{x:{display:false, max:Math.max(...comb.map(d=>d.v))*1.3},y:{grid:{display:false}, ticks:{font:{size:7}}}} }
                 });
-                if(charts['pieDetail']) charts['pieDetail'].destroy();
-                charts['pieDetail'] = new Chart(document.getElementById('pieDetailChart'), {
-                    type:'doughnut', data:{ labels:comb.map(d=>d.l), datasets:[{ data:comb.map(d=>d.v), backgroundColor:["#ef4444","#3b82f6","#facc15","#10b981","#8b5cf6","#f97316","#06b6d4","#ec4899"], borderWidth:0}]},
-                    options:{cutout:'70%', responsive:true, maintainAspectRatio:false}
-                });
-                setSafeInner('textDetailTotal', cleanNum(rD[1][8]).toLocaleString('id-ID'), 'KG');
             } catch(e){}
         }
 
@@ -345,17 +348,16 @@
                 const rP = parseCSV(csvP); let val = cleanNum(rP[2][1]); setSafeInner('text1', Math.round(val), '%');
                 if(charts['chart1']) charts['chart1'].destroy();
                 charts['chart1'] = new Chart(document.getElementById('chart1'), {
-                    type:'doughnut', data:{ datasets:[{data:[val/100, 1-(val/100)], backgroundColor:['#f97316','#1e293b'], borderWidth:0}]},
+                    type:'doughnut', data:{ datasets:[{data:[val, 100-val], backgroundColor:['#f97316','#1e293b'], borderWidth:0}]},
                     options:{cutout:'75%', responsive:true, maintainAspectRatio:false}
                 });
-                document.getElementById('legend1').innerHTML = `<div class="flex justify-between font-bold"><span>${rP[0][0]}</span><span>${rP[0][1]}</span></div><div class="flex justify-between"><span>${rP[1][0]}</span><span>${rP[1][1]}</span></div>`;
                 const csvB = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_SMALL_BAR}&range=A2:B7&output=csv`);
                 const rowsB = parseCSV(csvB);
                 let dataB = rowsB.map(r=>({l:r[0], v:cleanNum(r[1])})).filter(x=>x.l && x.l!=="undefined").sort((a,b)=>b.v-a.v);
                 if(charts['barSmallH']) charts['barSmallH'].destroy();
                 charts['barSmallH'] = new Chart(document.getElementById('barSmallHorizontal'), {
                     type:'bar', data:{ labels:dataB.map(d=>d.l), datasets:[{data:dataB.map(d=>d.v), backgroundColor:'#1e293b', borderRadius:4, barThickness:10}]},
-                    options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{datalabels:{display:true, anchor:'end', align:'right', font:{size:8}, formatter:v=>v.toLocaleString('id-ID')+' MT'}}, scales:{x:{display:false, max:Math.max(...dataB.map(d=>d.v))*1.3},y:{grid:{display:false}, ticks:{font:{size:7}}}} }
+                    options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{datalabels:{display:true, anchor:'end', align:'right', font:{size:8}, formatter:v=>v.toLocaleString('id-ID')+' MT'}}, scales:{x:{display:false},y:{grid:{display:false}, ticks:{font:{size:7}}}} }
                 });
             } catch(e){}
         }
@@ -372,16 +374,11 @@
                 const csvL = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=D2:E7&output=csv`);
                 const rowsL = parseCSV(csvL);
                 const dOK = rowsL.map(r=>cleanNum(r[0])).reverse();
-                const dHold = rowsL.map(r=>cleanNum(r[1])).reverse();
                 if(charts['halfLine']) charts['halfLine'].destroy();
                 charts['halfLine'] = new Chart(document.getElementById('lineHalfTrend'), {
-                    type:'line', data:{ labels:dOK.map(()=>''), datasets:[{data:dOK, borderColor:'#1e293b', borderWidth:2, tension:0.3, pointRadius:0},{data:dHold, borderColor:'#f97316', borderWidth:2, tension:0.3, pointRadius:0}]},
-                    options:{responsive:true, maintainAspectRatio:false, scales:{x:{display:false},y:{display:false}}}
+                    type:'line', data:{ labels:dOK.map(()=>''), datasets:[{data:dOK, borderColor:'#1e293b', borderWidth:2, tension:0.3, pointRadius:3, pointBackgroundColor:'#1e293b'}]},
+                    options:{responsive:true, maintainAspectRatio:false, plugins:{tooltip:{enabled:true}}, scales:{x:{display:false},y:{display:false}}}
                 });
-                const csvT = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=G1:K4&output=csv`);
-                const fullT = parseCSV(csvT);
-                document.getElementById('halfTableHeader').innerHTML = `<tr>${fullT[0].map(h=>`<th>${h}</th>`).join('')}</tr>`;
-                document.getElementById('halfTableBody').innerHTML = fullT.slice(1).map(r=>r[0] && r[0]!=="undefined" ? `<tr>${r.map((c,i)=>`<td class="${i===r.length-1?'font-bold':''}">${c}</td>`).join('')}</tr>`:'').join('');
             } catch(e){}
         }
 
@@ -391,16 +388,15 @@
                 const rP = parseCSV(csvP); let val = cleanNum(rP[2][1]); setSafeInner('text3', Math.round(val), '%');
                 if(charts['chart3']) charts['chart3'].destroy();
                 charts['chart3'] = new Chart(document.getElementById('chart3'), {
-                    type:'doughnut', data:{ datasets:[{data:[val/100, 1-(val/100)], backgroundColor:['#10b981','#1e293b'], borderWidth:0}]},
+                    type:'doughnut', data:{ datasets:[{data:[val, 100-val], backgroundColor:['#10b981','#1e293b'], borderWidth:0}]},
                     options:{cutout:'75%', responsive:true, maintainAspectRatio:false}
                 });
-                document.getElementById('legend3').innerHTML = `<div class="flex justify-between font-bold"><span>${rP[0][0]}</span><span>${rP[0][1]}</span></div><div class="flex justify-between"><span>${rP[1][0]}</span><span>${rP[1][1]}</span></div>`;
                 const csvL = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OCCUPANCY}&range=E2:E7&output=csv`);
                 const vL = parseCSV(csvL).map(r=>cleanNum(r[0])).reverse();
                 if(charts['lineOcc']) charts['lineOcc'].destroy();
                 charts['lineOcc'] = new Chart(document.getElementById('lineOccupancyTrend'), {
-                    type:'line', data:{ labels:vL.map(()=>''), datasets:[{data:vL, borderColor:'#10b981', borderWidth:2, tension:0.4, pointRadius:0}]},
-                    options:{responsive:true, maintainAspectRatio:false, scales:{x:{display:false},y:{display:false}}}
+                    type:'line', data:{ labels:vL.map(()=>''), datasets:[{data:vL, borderColor:'#10b981', borderWidth:2, tension:0.4, pointRadius:3, pointBackgroundColor:'#10b981'}]},
+                    options:{responsive:true, maintainAspectRatio:false, plugins:{tooltip:{enabled:true}}, scales:{x:{display:false},y:{display:false}}}
                 });
             } catch(e){}
         }
@@ -411,12 +407,9 @@
                 const rD = parseCSV(csvD); let val = cleanNum(rD[2][1]); setSafeInner('text2', Math.round(val), '%');
                 if(charts['chart2']) charts['chart2'].destroy();
                 charts['chart2'] = new Chart(document.getElementById('chart2'), {
-                    type:'doughnut', data:{ datasets:[{data:[val/100, 1-(val/100)], backgroundColor:['#3b82f6','#1e293b'], borderWidth:0}]},
+                    type:'doughnut', data:{ datasets:[{data:[val, 100-val], backgroundColor:['#3b82f6','#1e293b'], borderWidth:0}]},
                     options:{cutout:'75%', responsive:true, maintainAspectRatio:false}
                 });
-                document.getElementById('legend2').innerHTML = `<div class="flex justify-between font-bold"><span>${rD[0][0]}</span><span>${rD[0][1]}</span></div><div class="flex justify-between"><span>${rD[1][0]}</span><span>${rD[1][1]}</span></div>`;
-                const csvT2 = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OLD}&range=H2:J5&output=csv`);
-                document.getElementById('oldTableBody').innerHTML = parseCSV(csvT2).map(c=>c[0] && c[0]!=="undefined" ? `<tr><td>${c[0]}</td><td>${c[1]}</td><td>${c[2]}</td></tr>`:'').join('');
             } catch(e){}
         }
 
