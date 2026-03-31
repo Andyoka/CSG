@@ -102,12 +102,7 @@
                     <div class="w-1/2 h-[100px]"><canvas id="lineHalfTrend"></canvas></div>
                     <div class="flex-none"><div class="donut-container chart-3d-effect"><canvas id="chartHalfDonut"></canvas><div id="textHalfTotal" class="donut-inner-text"></div></div></div>
                 </div>
-                <div class="w-full mt-2 border-t border-dashed pt-2">
-                    <table class="detail-table">
-                        <thead id="halfTableHeader"></thead>
-                        <tbody id="halfTableBody"></tbody>
-                    </table>
-                </div>
+                <div class="w-full mt-2 border-t border-dashed pt-2"><table class="detail-table"><thead id="halfTableHeader"></thead><tbody id="halfTableBody"></tbody></table></div>
             </div>
 
             <div class="donut-card special-wide-card">
@@ -218,13 +213,23 @@
                 setSafeInner('textTotalStock', cleanNum(rT[3][1]).toLocaleString('id-ID'), 'KG');
                 document.getElementById('totalStockTableBody').innerHTML = rT.slice(0,3).map(r=>`<tr><td>${r[0]}</td><td>${cleanNum(r[1]).toLocaleString('id-ID')}</td><td>${r[2]}</td></tr>`).join('');
             }
-            // Detail Product - SORTED (Largest at Top)
+
+            const csvL = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_TOTAL}&range=E2:E7&output=csv`);
+            if(csvL){
+                const vL = parseCSV(csvL).map(r=>cleanNum(r[0])).reverse();
+                if(charts['lineTotalTrend']) charts['lineTotalTrend'].destroy();
+                charts['lineTotalTrend'] = new Chart(document.getElementById('lineTotalTrend'), {
+                    type:'line', data:{ labels:vL.map(()=>''), datasets:[{data:vL, borderColor:'#ef4444', borderWidth:2, tension:0.4, pointRadius:3, pointBackgroundColor:'#ef4444'}]},
+                    options:{responsive:true, maintainAspectRatio:false, plugins:{tooltip:{enabled:true}}, scales:{x:{display:false},y:{display:false}}}
+                });
+            }
+
             const csvD = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_DETAIL}&range=A1:I2&output=csv`);
             if(csvD){
                 const rD = parseCSV(csvD);
                 let comb = rD[0].slice(0,8).map((l,i)=>({l, v:cleanNum(rD[1][i])}))
                             .filter(x=>x.l && x.l!=="")
-                            .sort((a,b)=>a.v - b.v); // Diurutkan terkecil ke terbesar karena indexAxis Y membalik urutan (terbesar akan jadi di atas)
+                            .sort((a,b)=>b.v - a.v); // Urutan Descending untuk Horizontal Bar
                 
                 if(charts['barProduct']) charts['barProduct'].destroy();
                 charts['barProduct'] = new Chart(document.getElementById('barProductDetail'), {
@@ -251,7 +256,6 @@
                     options:{cutout:'75%', responsive:true, maintainAspectRatio:false}
                 });
             }
-            // Half Fishbox Line Trend - TWO LINES (Black & Orange)
             const csvL = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=D2:E7&output=csv`);
             if(csvL){
                 const rows = parseCSV(csvL);
@@ -270,12 +274,36 @@
                     options:{responsive:true, maintainAspectRatio:false, plugins:{tooltip:{enabled:true}}, scales:{x:{display:false},y:{display:false}}}
                 });
             }
-            // Table Half
             const csvT = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=G1:K4&output=csv`);
             if(csvT){
                 const fullT = parseCSV(csvT);
                 document.getElementById('halfTableHeader').innerHTML = `<tr>${fullT[0].map(h=>`<th>${h}</th>`).join('')}</tr>`;
                 document.getElementById('halfTableBody').innerHTML = fullT.slice(1).map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('');
+            }
+        }
+
+        async function fetchSmall() {
+            const csvP = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_SMALL_PIE}&range=A1:B3&output=csv`);
+            if(csvP){
+                const rP = parseCSV(csvP); let val = cleanNum(rP[2][1]); setSafeInner('text1', Math.round(val), '%');
+                if(charts['chart1']) charts['chart1'].destroy();
+                charts['chart1'] = new Chart(document.getElementById('chart1'), {
+                    type:'doughnut', data:{ datasets:[{data:[val, 100-val], backgroundColor:['#f97316','#1e293b'], borderWidth:0}]},
+                    options:{cutout:'75%', responsive:true, maintainAspectRatio:false}
+                });
+                document.getElementById('legend1').innerHTML = `<div class="flex justify-between font-bold"><span>${rP[0][0]}</span><span>${rP[0][1]}</span></div><div class="flex justify-between"><span>${rP[1][0]}</span><span>${rP[1][1]}</span></div>`;
+            }
+            const csvB = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_SMALL_BAR}&range=A2:B7&output=csv`);
+            if(csvB){
+                const rowsB = parseCSV(csvB);
+                let dataB = rowsB.map(r=>({l:r[0], v:cleanNum(r[1])}))
+                            .filter(x=>x.l && x.l!=="")
+                            .sort((a,b)=>a.v - b.v); // Urutan Descending untuk Horizontal Bar
+                if(charts['barSmallH']) charts['barSmallH'].destroy();
+                charts['barSmallH'] = new Chart(document.getElementById('barSmallHorizontal'), {
+                    type:'bar', data:{ labels:dataB.map(d=>d.l), datasets:[{data:dataB.map(d=>d.v), backgroundColor:'#1e293b', borderRadius:4, barThickness:10}]},
+                    options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{datalabels:{display:true, anchor:'end', align:'right', font:{size:8}, formatter:v=>v.toLocaleString('id-ID')+' MT'}}, scales:{x:{display:false, max:Math.max(...dataB.map(d=>d.v))*1.5},y:{grid:{display:false}, ticks:{font:{size:7}}}} }
+                });
             }
         }
 
@@ -314,31 +342,6 @@
                 const rowsT = parseCSV(csvT);
                 document.getElementById('kapasitasTableHeader').innerHTML = `<tr>${rowsT[0].map(h => `<th>${h}</th>`).join('')}</tr>`;
                 document.getElementById('kapasitasTableBody').innerHTML = rowsT.slice(1).map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
-            }
-        }
-
-        async function fetchSmall() {
-            const csvP = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_SMALL_PIE}&range=A1:B3&output=csv`);
-            if(csvP){
-                const rP = parseCSV(csvP); let val = cleanNum(rP[2][1]); setSafeInner('text1', Math.round(val), '%');
-                if(charts['chart1']) charts['chart1'].destroy();
-                charts['chart1'] = new Chart(document.getElementById('chart1'), {
-                    type:'doughnut', data:{ datasets:[{data:[val, 100-val], backgroundColor:['#f97316','#1e293b'], borderWidth:0}]},
-                    options:{cutout:'75%', responsive:true, maintainAspectRatio:false}
-                });
-                document.getElementById('legend1').innerHTML = `<div class="flex justify-between font-bold"><span>${rP[0][0]}</span><span>${rP[0][1]}</span></div><div class="flex justify-between"><span>${rP[1][0]}</span><span>${rP[1][1]}</span></div>`;
-            }
-            const csvB = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_SMALL_BAR}&range=A2:B7&output=csv`);
-            if(csvB){
-                const rowsB = parseCSV(csvB);
-                let dataB = rowsB.map(r=>({l:r[0], v:cleanNum(r[1])}))
-                            .filter(x=>x.l && x.l!=="")
-                            .sort((a,b)=>a.v - b.v); // Sama, sort terkecil ke terbesar untuk tampilan visual terbesar di atas
-                if(charts['barSmallH']) charts['barSmallH'].destroy();
-                charts['barSmallH'] = new Chart(document.getElementById('barSmallHorizontal'), {
-                    type:'bar', data:{ labels:dataB.map(d=>d.l), datasets:[{data:dataB.map(d=>d.v), backgroundColor:'#1e293b', borderRadius:4, barThickness:10}]},
-                    options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{datalabels:{display:true, anchor:'end', align:'right', font:{size:8}, formatter:v=>v.toLocaleString('id-ID')+' MT'}}, scales:{x:{display:false, max:Math.max(...dataB.map(d=>d.v))*1.5},y:{grid:{display:false}, ticks:{font:{size:7}}}} }
-                });
             }
         }
 
