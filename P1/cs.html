@@ -11,21 +11,29 @@
         #sidebar { transition: all 0.3s ease-in-out; }
         .sidebar-closed { transform: translateX(-100%); }
         .main-content { transition: margin-left 0.3s ease-in-out; }
-        .chart-3d-effect { filter: drop-shadow(0px 8px 6px rgba(0,0,0,0.15)); }
+        
+        /* Efek Semi 3D pada Chart Container */
+        .chart-3d-effect { 
+            filter: drop-shadow(0px 10px 8px rgba(0,0,0,0.2)); 
+            perspective: 1000px;
+        }
+        
         .donut-card {
             background: white; border-radius: 1.25rem; padding: 1rem;
-            box-shadow: 0 4px 15px -3px rgba(0,0,0,0.07);
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
             display: flex; flex-direction: column; align-items: center;
             justify-content: space-between; min-height: 250px;
             transition: transform 0.2s ease; border: 1px solid #f1f5f9;
         }
         .special-wide-card { grid-column: span 2; align-items: stretch; overflow: hidden; }
-        .donut-container { position: relative; width: 110px; height: 110px; margin: 0 auto; flex-shrink: 0; }
+        .donut-container { position: relative; width: 115px; height: 115px; margin: 0 auto; flex-shrink: 0; }
+        
         .donut-inner-text {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             font-size: 14px; font-weight: 900; color: #1e293b; text-align: center; line-height: 1.1;
             width: 100%; pointer-events: none; z-index: 10;
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
         }
         .donut-inner-text span { font-size: 8px; color: #64748b; font-weight: bold; }
         .custom-legend { font-size: 10px; text-align: center; width: 100%; padding-top: 5px; border-top: 1px dashed #e2e8f0; min-height: 20px; }
@@ -160,6 +168,15 @@
         Chart.defaults.set('plugins.legend', { display: false });
         Chart.defaults.set('plugins.datalabels', { display: false });
 
+        // Global Semi-3D Config untuk Donut
+        const semi3DConfig = {
+            borderWidth: 2,
+            borderColor: '#ffffff',
+            hoverOffset: 15,
+            borderRadius: 3,
+            spacing: 2
+        };
+
         let charts = {};
 
         function parseCSV(text) {
@@ -207,8 +224,15 @@
                 if(charts['pieTotal']) charts['pieTotal'].destroy();
                 charts['pieTotal'] = new Chart(document.getElementById('pieTotalChart'), {
                     type: 'doughnut',
-                    data: { labels: rT.slice(0,3).map(r=>r[0]), datasets: [{ data: rT.slice(0,3).map(r=>cleanNum(r[1])), backgroundColor: ["#ef4444","#3b82f6","#facc15"], borderWidth: 0 }] },
-                    options: { cutout:'70%', responsive:true, maintainAspectRatio:false }
+                    data: { 
+                        labels: rT.slice(0,3).map(r=>r[0]), 
+                        datasets: [{ 
+                            data: rT.slice(0,3).map(r=>cleanNum(r[1])), 
+                            backgroundColor: ["#ef4444","#3b82f6","#facc15"],
+                            ...semi3DConfig 
+                        }] 
+                    },
+                    options: { cutout:'65%', responsive:true, maintainAspectRatio:false }
                 });
                 setSafeInner('textTotalStock', cleanNum(rT[3][1]).toLocaleString('id-ID'), 'KG');
                 document.getElementById('totalStockTableBody').innerHTML = rT.slice(0,3).map(r=>`<tr><td>${r[0]}</td><td>${cleanNum(r[1]).toLocaleString('id-ID')}</td><td>${r[2]}</td></tr>`).join('');
@@ -229,7 +253,7 @@
                 const rD = parseCSV(csvD);
                 let comb = rD[0].slice(0,8).map((l,i)=>({l, v:cleanNum(rD[1][i])}))
                             .filter(x=>x.l && x.l!=="")
-                            .sort((a,b)=>b.v - a.v); // Urutan Descending untuk Horizontal Bar
+                            .sort((a,b)=>b.v - a.v); // Descending (Terbesar di atas)
                 
                 if(charts['barProduct']) charts['barProduct'].destroy();
                 charts['barProduct'] = new Chart(document.getElementById('barProductDetail'), {
@@ -239,8 +263,15 @@
                 if(charts['pieDetail']) charts['pieDetail'].destroy();
                 charts['pieDetail'] = new Chart(document.getElementById('pieDetailChart'), {
                     type:'doughnut',
-                    data: { labels: comb.map(d=>d.l), datasets:[{ data: comb.map(d=>d.v), backgroundColor:["#ef4444","#3b82f6","#facc15","#10b981","#8b5cf6","#f97316","#06b6d4","#ec4899"], borderWidth:0 }]},
-                    options: { cutout:'70%', responsive:true, maintainAspectRatio:false }
+                    data: { 
+                        labels: comb.map(d=>d.l), 
+                        datasets:[{ 
+                            data: comb.map(d=>d.v), 
+                            backgroundColor:["#ef4444","#3b82f6","#facc15","#10b981","#8b5cf6","#f97316","#06b6d4","#ec4899"], 
+                            ...semi3DConfig 
+                        }]
+                    },
+                    options: { cutout:'65%', responsive:true, maintainAspectRatio:false }
                 });
                 setSafeInner('textDetailTotal', cleanNum(rD[1][8]).toLocaleString('id-ID'), 'KG');
             }
@@ -252,8 +283,13 @@
                 const rD = parseCSV(csvD); setSafeInner('textHalfTotal', cleanNum(rD[0][1]).toLocaleString('id-ID'), 'BOX');
                 if(charts['halfDonut']) charts['halfDonut'].destroy();
                 charts['halfDonut'] = new Chart(document.getElementById('chartHalfDonut'), {
-                    type:'doughnut', data:{ datasets:[{data:[cleanNum(rD[1][1]),cleanNum(rD[2][1]),cleanNum(rD[3][1])], backgroundColor:['#10b981','#facc15','#ef4444'], borderWidth:0}]},
-                    options:{cutout:'75%', responsive:true, maintainAspectRatio:false}
+                    type:'doughnut', 
+                    data:{ datasets:[{
+                        data:[cleanNum(rD[1][1]),cleanNum(rD[2][1]),cleanNum(rD[3][1])], 
+                        backgroundColor:['#10b981','#facc15','#ef4444'], 
+                        ...semi3DConfig
+                    }]},
+                    options:{cutout:'65%', responsive:true, maintainAspectRatio:false}
                 });
             }
             const csvL = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=D2:E7&output=csv`);
@@ -288,8 +324,8 @@
                 const rP = parseCSV(csvP); let val = cleanNum(rP[2][1]); setSafeInner('text1', Math.round(val), '%');
                 if(charts['chart1']) charts['chart1'].destroy();
                 charts['chart1'] = new Chart(document.getElementById('chart1'), {
-                    type:'doughnut', data:{ datasets:[{data:[val, 100-val], backgroundColor:['#f97316','#1e293b'], borderWidth:0}]},
-                    options:{cutout:'75%', responsive:true, maintainAspectRatio:false}
+                    type:'doughnut', data:{ datasets:[{data:[val, 100-val], backgroundColor:['#f97316','#1e293b'], ...semi3DConfig }]},
+                    options:{cutout:'65%', responsive:true, maintainAspectRatio:false}
                 });
                 document.getElementById('legend1').innerHTML = `<div class="flex justify-between font-bold"><span>${rP[0][0]}</span><span>${rP[0][1]}</span></div><div class="flex justify-between"><span>${rP[1][0]}</span><span>${rP[1][1]}</span></div>`;
             }
@@ -298,13 +334,50 @@
                 const rowsB = parseCSV(csvB);
                 let dataB = rowsB.map(r=>({l:r[0], v:cleanNum(r[1])}))
                             .filter(x=>x.l && x.l!=="")
-                            .sort((a,b)=>a.v - b.v); // Urutan Descending untuk Horizontal Bar
+                            .sort((a,b)=>b.v - a.v); // Descending
                 if(charts['barSmallH']) charts['barSmallH'].destroy();
                 charts['barSmallH'] = new Chart(document.getElementById('barSmallHorizontal'), {
                     type:'bar', data:{ labels:dataB.map(d=>d.l), datasets:[{data:dataB.map(d=>d.v), backgroundColor:'#1e293b', borderRadius:4, barThickness:10}]},
                     options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{datalabels:{display:true, anchor:'end', align:'right', font:{size:8}, formatter:v=>v.toLocaleString('id-ID')+' MT'}}, scales:{x:{display:false, max:Math.max(...dataB.map(d=>d.v))*1.5},y:{grid:{display:false}, ticks:{font:{size:7}}}} }
                 });
             }
+        }
+
+        async function fetchOccupancy() {
+            const csvP = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OCCUPANCY}&range=A1:B3&output=csv`);
+            if(csvP){
+                const rP = parseCSV(csvP); let val = cleanNum(rP[2][1]); setSafeInner('text3', Math.round(val), '%');
+                if(charts['chart3']) charts['chart3'].destroy();
+                charts['chart3'] = new Chart(document.getElementById('chart3'), {
+                    type:'doughnut', data:{ datasets:[{data:[val, 100-val], backgroundColor:['#10b981','#1e293b'], ...semi3DConfig }]},
+                    options:{cutout:'65%', responsive:true, maintainAspectRatio:false}
+                });
+                document.getElementById('legend3').innerHTML = `<div class="flex justify-between font-bold"><span>${rP[0][0]}</span><span>${rP[0][1]}</span></div><div class="flex justify-between"><span>${rP[1][0]}</span><span>${rP[1][1]}</span></div>`;
+            }
+            const csvL = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OCCUPANCY}&range=E2:E7&output=csv`);
+            if(csvL){
+                const vL = parseCSV(csvL).map(r=>cleanNum(r[0])).reverse();
+                if(charts['lineOcc']) charts['lineOcc'].destroy();
+                charts['lineOcc'] = new Chart(document.getElementById('lineOccupancyTrend'), {
+                    type:'line', data:{ labels:vL.map(()=>''), datasets:[{data:vL, borderColor:'#10b981', borderWidth:2, tension:0.4, pointRadius:3, pointBackgroundColor:'#10b981'}]},
+                    options:{responsive:true, maintainAspectRatio:false, plugins:{tooltip:{enabled:true}}, scales:{x:{display:false},y:{display:false}}}
+                });
+            }
+        }
+
+        async function fetchOld() {
+            const csvD = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OLD}&range=A1:B3&output=csv`);
+            if(csvD){
+                const rD = parseCSV(csvD); let val = cleanNum(rD[2][1]); setSafeInner('text2', Math.round(val), '%');
+                if(charts['chart2']) charts['chart2'].destroy();
+                charts['chart2'] = new Chart(document.getElementById('chart2'), {
+                    type:'doughnut', data:{ datasets:[{data:[val, 100-val], backgroundColor:['#3b82f6','#1e293b'], ...semi3DConfig }]},
+                    options:{cutout:'65%', responsive:true, maintainAspectRatio:false}
+                });
+                document.getElementById('legend2').innerHTML = `<div class="flex justify-between font-bold"><span>${rD[0][0]}</span><span>${rD[0][1]}</span></div><div class="flex justify-between"><span>${rD[1][0]}</span><span>${rD[1][1]}</span></div>`;
+            }
+            const csvT2 = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OLD}&range=H2:J5&output=csv`);
+            if(csvT2) document.getElementById('oldTableBody').innerHTML = parseCSV(csvT2).map(c=>`<tr><td>${c[0]}</td><td>${c[1]}</td><td>${c[2]}</td></tr>`).join('');
         }
 
         async function fetchKapasitasRuang() {
@@ -343,43 +416,6 @@
                 document.getElementById('kapasitasTableHeader').innerHTML = `<tr>${rowsT[0].map(h => `<th>${h}</th>`).join('')}</tr>`;
                 document.getElementById('kapasitasTableBody').innerHTML = rowsT.slice(1).map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
             }
-        }
-
-        async function fetchOccupancy() {
-            const csvP = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OCCUPANCY}&range=A1:B3&output=csv`);
-            if(csvP){
-                const rP = parseCSV(csvP); let val = cleanNum(rP[2][1]); setSafeInner('text3', Math.round(val), '%');
-                if(charts['chart3']) charts['chart3'].destroy();
-                charts['chart3'] = new Chart(document.getElementById('chart3'), {
-                    type:'doughnut', data:{ datasets:[{data:[val, 100-val], backgroundColor:['#10b981','#1e293b'], borderWidth:0}]},
-                    options:{cutout:'75%', responsive:true, maintainAspectRatio:false}
-                });
-                document.getElementById('legend3').innerHTML = `<div class="flex justify-between font-bold"><span>${rP[0][0]}</span><span>${rP[0][1]}</span></div><div class="flex justify-between"><span>${rP[1][0]}</span><span>${rP[1][1]}</span></div>`;
-            }
-            const csvL = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OCCUPANCY}&range=E2:E7&output=csv`);
-            if(csvL){
-                const vL = parseCSV(csvL).map(r=>cleanNum(r[0])).reverse();
-                if(charts['lineOcc']) charts['lineOcc'].destroy();
-                charts['lineOcc'] = new Chart(document.getElementById('lineOccupancyTrend'), {
-                    type:'line', data:{ labels:vL.map(()=>''), datasets:[{data:vL, borderColor:'#10b981', borderWidth:2, tension:0.4, pointRadius:3, pointBackgroundColor:'#10b981'}]},
-                    options:{responsive:true, maintainAspectRatio:false, plugins:{tooltip:{enabled:true}}, scales:{x:{display:false},y:{display:false}}}
-                });
-            }
-        }
-
-        async function fetchOld() {
-            const csvD = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OLD}&range=A1:B3&output=csv`);
-            if(csvD){
-                const rD = parseCSV(csvD); let val = cleanNum(rD[2][1]); setSafeInner('text2', Math.round(val), '%');
-                if(charts['chart2']) charts['chart2'].destroy();
-                charts['chart2'] = new Chart(document.getElementById('chart2'), {
-                    type:'doughnut', data:{ datasets:[{data:[val, 100-val], backgroundColor:['#3b82f6','#1e293b'], borderWidth:0}]},
-                    options:{cutout:'75%', responsive:true, maintainAspectRatio:false}
-                });
-                document.getElementById('legend2').innerHTML = `<div class="flex justify-between font-bold"><span>${rD[0][0]}</span><span>${rD[0][1]}</span></div><div class="flex justify-between"><span>${rD[1][0]}</span><span>${rD[1][1]}</span></div>`;
-            }
-            const csvT2 = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OLD}&range=H2:J5&output=csv`);
-            if(csvT2) document.getElementById('oldTableBody').innerHTML = parseCSV(csvT2).map(c=>`<tr><td>${c[0]}</td><td>${c[1]}</td><td>${c[2]}</td></tr>`).join('');
         }
 
         async function fetchBottom() {
