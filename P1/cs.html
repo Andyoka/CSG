@@ -108,22 +108,10 @@
             <div class="donut-card special-wide-card">
                 <h4 class="text-[10px] font-black text-slate-700 uppercase mb-1 text-center">Half Fishbox (Box)</h4>
                 <div class="flex items-center justify-center w-full h-full gap-6 px-4">
-                    <div class="w-1/2 h-[100px]"><canvas id="lineHalfTrend"></canvas></div>
+                    <div class="w-1/2 h-[100px] relative"><canvas id="lineHalfTrend"></canvas></div>
                     <div class="flex-none"><div class="donut-container chart-3d-effect"><canvas id="chartHalfDonut"></canvas><div id="textHalfTotal" class="donut-inner-text"></div></div></div>
                 </div>
-                <div class="w-full mt-2 border-t border-dashed pt-2 flex gap-4 items-center justify-between">
-                    <div class="flex-1"><table class="detail-table"><thead id="halfTableHeader"></thead><tbody id="halfTableBody"></tbody></table></div>
-                    <div class="flex gap-2 flex-shrink-0">
-                        <div class="bg-emerald-50 border border-emerald-200 rounded-lg px-2 py-1 text-center min-w-[50px]">
-                            <div class="text-[8px] font-bold text-emerald-600 tracking-wider">OK</div>
-                            <div id="statusOkVal" class="text-[11px] font-black text-emerald-700">0</div>
-                        </div>
-                        <div class="bg-amber-50 border border-amber-200 rounded-lg px-2 py-1 text-center min-w-[50px]">
-                            <div class="text-[8px] font-bold text-amber-600 tracking-wider">HOLD</div>
-                            <div id="statusHoldVal" class="text-[11px] font-black text-amber-700">0</div>
-                        </div>
-                    </div>
-                </div>
+                <div class="w-full mt-2 border-t border-dashed pt-2"><table class="detail-table"><thead id="halfTableHeader"></thead><tbody id="halfTableBody"></tbody></table></div>
             </div>
 
             <div class="donut-card special-wide-card">
@@ -270,7 +258,7 @@
                 if(charts['barProduct']) charts['barProduct'].destroy();
                 charts['barProduct'] = new Chart(document.getElementById('barProductDetail'), {
                     type:'bar', data:{ labels:comb.map(d=>d.l), datasets:[{data:comb.map(d=>d.v), backgroundColor:'#1e293b', borderRadius:4, barThickness:10}]},
-                    options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{datalabels:{display:true, anchor:'end', align:'right', font:{size:8}, formatter:v=>v.toLocaleString('id-ID')export}}, scales:{x:{display:false, max:Math.max(...comb.map(d=>d.v))*1.4},y:{grid:{display:false}, ticks:{font:{size:7}}}} }
+                    options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{datalabels:{display:true, anchor:'end', align:'right', font:{size:8}, formatter:v=>v.toLocaleString('id-ID')}}, scales:{x:{display:false, max:Math.max(...comb.map(d=>d.v))*1.4},y:{grid:{display:false}, ticks:{font:{size:7}}}} }
                 });
                 if(charts['pieDetail']) charts['pieDetail'].destroy();
                 charts['pieDetail'] = new Chart(document.getElementById('pieDetailChart'), {
@@ -303,10 +291,6 @@
                     }]},
                     options:{cutout:'65%', responsive:true, maintainAspectRatio:false}
                 });
-
-                // Memasukkan Nilai OK (B2) dan HOLD (B3) khusus untuk Half Fishbox
-                if(rD[1]) document.getElementById('statusOkVal').innerText = cleanNum(rD[1][1]).toLocaleString('id-ID');
-                if(rD[2]) document.getElementById('statusHoldVal').innerText = cleanNum(rD[2][1]).toLocaleString('id-ID');
             }
             const csvL = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=D2:E7&output=csv`);
             if(csvL){
@@ -323,7 +307,24 @@
                             {data:dataOrange, borderColor:'#ed7d31', borderWidth:2, tension:0.3, pointRadius:3, pointBackgroundColor:'#ed7d31'}
                         ]
                     },
-                    options:{responsive:true, maintainAspectRatio:false, plugins:{tooltip:{enabled:true}}, scales:{x:{display:false},y:{display:false}}}
+                    options:{
+                        responsive:true, 
+                        maintainAspectRatio:false, 
+                        layout: { padding: { right: 25 } },
+                        plugins:{
+                            tooltip:{enabled:true},
+                            datalabels:{
+                                display: (context) => context.dataIndex === context.dataset.data.length - 1,
+                                anchor: 'end',
+                                align: 'right',
+                                offset: 4,
+                                font: { size: 9, weight: 'bold' },
+                                color: (context) => context.dataset.borderColor,
+                                formatter: (value, context) => context.datasetIndex === 0 ? 'OK' : 'HOLD'
+                            }
+                        }, 
+                        scales:{x:{display:false},y:{display:false}}
+                    }
                 });
             }
             const csvT = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=G1:K4&output=csv`);
