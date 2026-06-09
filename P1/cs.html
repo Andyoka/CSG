@@ -310,13 +310,13 @@
                     options:{
                         responsive:true, 
                         maintainAspectRatio:false, 
-                        layout: { padding: { right: 25 } },
+                        layout: { padding: { left: 25 } }, // Memberi ruang ekstra di kiri agar label tidak terpotong
                         plugins:{
                             tooltip:{enabled:true},
                             datalabels:{
-                                display: (context) => context.dataIndex === context.dataset.data.length - 1,
-                                anchor: 'end',
-                                align: 'right',
+                                display: (context) => context.dataIndex === 0, // Dipasang di indeks pertama (paling kiri)
+                                anchor: 'start',
+                                align: 'left',
                                 offset: 4,
                                 font: { size: 9, weight: 'bold' },
                                 color: (context) => context.dataset.borderColor,
