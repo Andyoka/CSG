@@ -107,7 +107,13 @@
             <div class="donut-card special-wide-card">
                 <h4 class="text-[10px] font-black text-slate-700 uppercase mb-1 text-center">Half Fishbox (Box)</h4>
                 <div class="flex items-center justify-center w-full h-full gap-6 px-4">
-                    <div class="w-1/2 h-[100px]"><canvas id="lineHalfTrend"></canvas></div>
+                    <div class="w-1/2 flex flex-col justify-between h-[115px]">
+                        <div class="h-[95px]"><canvas id="lineHalfTrend"></canvas></div>
+                        <div class="flex justify-center gap-4 text-[9px] font-bold text-slate-600">
+                            <div class="flex items-center gap-1"><span class="w-2 h-2 bg-[#1e293b] inline-block rounded-sm"></span> OK</div>
+                            <div class="flex items-center gap-1"><span class="w-2 h-2 bg-[#ed7d31] inline-block rounded-sm"></span> Hold</div>
+                        </div>
+                    </div>
                     <div class="flex-none"><div class="donut-container chart-3d-effect"><canvas id="chartHalfDonut"></canvas><div id="textHalfTotal" class="donut-inner-text"></div></div></div>
                 </div>
                 <div class="w-full mt-2 border-t border-dashed pt-2"><table class="detail-table"><thead id="halfTableHeader"></thead><tbody id="halfTableBody"></tbody></table></div>
@@ -258,7 +264,7 @@
                 if(charts['barProduct']) charts['barProduct'].destroy();
                 charts['barProduct'] = new Chart(document.getElementById('barProductDetail'), {
                     type:'bar', data:{ labels:comb.map(d=>d.l), datasets:[{data:comb.map(d=>d.v), backgroundColor:'#1e293b', borderRadius:4, barThickness:10}]},
-                    options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{datalabels:{display:true, anchor:'end', align:'right', font:{size:8}, formatter:v=>v.toLocaleString('id-ID')}}, scales:{x:{display:false, max:Math.max(...comb.map(d=>d.v))*1.4},y:{grid:{display:false}, ticks:{font:{size:7}}}} }
+                    options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{datalabels:{display:true, anchor:'end', align:'right', font:{size:8}, formatter:v=>v.toLocaleString('id-ID')}}}, scales:{x:{display:false, max:Math.max(...comb.map(d=>d.v))*1.4},y:{grid:{display:false}, ticks:{font:{size:7}}}} }
                 });
                 if(charts['pieDetail']) charts['pieDetail'].destroy();
                 charts['pieDetail'] = new Chart(document.getElementById('pieDetailChart'), {
