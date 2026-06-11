@@ -157,12 +157,23 @@
             </div>
         </div>
 
+        <div class="grid grid-cols-1 gap-4 mb-6">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                <h3 class="font-bold text-[11px] uppercase mb-4 text-slate-700 border-b pb-2 tracking-wider">🐟 FISH USING TREND</h3>
+                <div class="h-[240px] w-full"><canvas id="chartFishUsing"></canvas></div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                <h3 class="font-bold text-[11px] uppercase mb-4 text-slate-700 border-b pb-2 tracking-wider">🥩 LOIN USING TREND</h3>
+                <div class="h-[240px] w-full"><canvas id="chartLoinUsing"></canvas></div>
+            </div>
+        </div>
+
         <iframe id="sheetFrame" src="" class="w-full h-[500px] border-none rounded-2xl shadow-lg bg-white"></iframe>
     </main>
 
     <script>
         const ID_GSHEET = "2PACX-1vShq3eIcceGMXuR6dBbMut6K99pAQZV4g86Aq5DWkP7yrFTGNMPkdfg4y6vbWeofWpFRO4gGNqLE4h8";
-        const GID_SMALL_PIE = "1052774962", GID_SMALL_BAR = "1026658023", GID_OLD = "885583216", GID_OCCUPANCY = "23039051", GID_HALF = "972941295", GID_BAR = "0", GID_TOTAL = "252078912", GID_DETAIL = "1764500224", GID_INCOMING = "1777430590", GID_KAPASITAS = "1213168";
+        const GID_SMALL_PIE = "1052774962", GID_SMALL_BAR = "1026658023", GID_OLD = "885583216", GID_OCCUPANCY = "23039051", GID_HALF = "972941295", GID_BAR = "0", GID_TOTAL = "252078912", GID_DETAIL = "1764500224", GID_INCOMING = "1777430590", GID_KAPASITAS = "1213168", GID_QTY_PRODUKSI = "132529449";
         const ID_LAPORAN = "2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk";
 
         Chart.register(ChartDataLabels);
@@ -310,11 +321,11 @@
                     options:{
                         responsive:true, 
                         maintainAspectRatio:false, 
-                        layout: { padding: { left: 25 } }, // Memberi ruang ekstra di kiri agar label tidak terpotong
+                        layout: { padding: { left: 25 } },
                         plugins:{
                             tooltip:{enabled:true},
                             datalabels:{
-                                display: (context) => context.dataIndex === 0, // Dipasang di indeks pertama (paling kiri)
+                                display: (context) => context.dataIndex === 0, 
                                 anchor: 'start',
                                 align: 'left',
                                 offset: 4,
@@ -464,6 +475,76 @@
             }
         }
 
+        // Fungsi Baru untuk Mengambil Data dan Menggambar Grafik Tren Produksi Baru (FISH USING & LOIN USING)
+        async function fetchQtyProduksiTrend() {
+            // Mengambil baris data yang cukup untuk tren harian (misal ambil 15 baris data teratas)
+            const csv = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_QTY_PRODUKSI}&range=A2:I16&output=csv`);
+            if (!csv) return;
+
+            const rows = parseCSV(csv).filter(r => r[0] && r[0] !== "").reverse(); // Dibalik agar tanggal berjalan maju
+            const labelTanggal = rows.map(r => r[0].substring(0, 5)); // Potong format tanggal pendek (dd/mm) agar rapi
+
+            // --- 1. PROSES CHART FISH USING ---
+            const dataFishKg = rows.map(r => cleanNum(r[1]));
+            const dataTotalFishbox = rows.map(r => cleanNum(r[3]));
+            const dataFishboxKembali = rows.map(r => cleanNum(r[5]));
+            const dataFishboxHabis = rows.map(r => cleanNum(r[6]));
+
+            if (charts['fishUsing']) charts['fishUsing'].destroy();
+            charts['fishUsing'] = new Chart(document.getElementById('chartFishUsing'), {
+                type: 'line',
+                data: {
+                    labels: labelTanggal,
+                    datasets: [
+                        { label: 'Qty Produksi Ikan (Kg)', data: dataFishKg, borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: 0.3, yAxisID: 'yKg', borderWidth: 2.5, pointRadius: 3 },
+                        { label: 'Total Fishbox Ikan', data: dataTotalFishbox, borderColor: '#1e293b', backgroundColor: '#1e293b', tension: 0.3, yAxisID: 'yBox', borderWidth: 2, pointRadius: 2 },
+                        { label: 'FB Ikan Kembali', data: dataFishboxKembali, borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.3, yAxisID: 'yBox', borderWidth: 1.5, pointRadius: 2, borderDash: [4,4] },
+                        { label: 'FB Ikan Habis', data: dataFishboxHabis, borderColor: '#ef4444', backgroundColor: '#ef4444', tension: 0.3, yAxisID: 'yBox', borderWidth: 1.5, pointRadius: 2, borderDash: [2,2] }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 12, font: { size: 9, weight: 'bold' } } }, tooltip: { enabled: true } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 9 } } },
+                        yKg: { type: 'linear', position: 'left', title: { display: true, text: 'Kilogram (Kg)', font: { size: 9, weight: 'bold' } }, ticks: { font: { size: 8 } } },
+                        yBox: { type: 'linear', position: 'right', title: { display: true, text: 'Box', font: { size: 9, weight: 'bold' } }, grid: { display: false }, ticks: { font: { size: 8 } } }
+                    }
+                }
+            });
+
+            // --- 2. PROSES CHART LOIN USING ---
+            const dataLoinKg = rows.map(r => cleanNum(r[2]));
+            const dataTotalLoinbox = rows.map(r => cleanNum(r[4]));
+            const dataLoinboxKembali = rows.map(r => cleanNum(r[7]));
+            const dataLoinboxHabis = rows.map(r => cleanNum(r[8]));
+
+            if (charts['loinUsing']) charts['loinUsing'].destroy();
+            charts['loinUsing'] = new Chart(document.getElementById('chartLoinUsing'), {
+                type: 'line',
+                data: {
+                    labels: labelTanggal,
+                    datasets: [
+                        { label: 'Qty Produksi Loin (Kg)', data: dataLoinKg, borderColor: '#f97316', backgroundColor: '#f97316', tension: 0.3, yAxisID: 'yKg', borderWidth: 2.5, pointRadius: 3 },
+                        { label: 'Total Fishbox Loin', data: dataTotalLoinbox, borderColor: '#475569', backgroundColor: '#475569', tension: 0.3, yAxisID: 'yBox', borderWidth: 2, pointRadius: 2 },
+                        { label: 'FB Loin Kembali', data: dataLoinboxKembali, borderColor: '#06b6d4', backgroundColor: '#06b6d4', tension: 0.3, yAxisID: 'yBox', borderWidth: 1.5, pointRadius: 2, borderDash: [4,4] },
+                        { label: 'FB Loin Habis', data: dataLoinboxHabis, borderColor: '#ec4899', backgroundColor: '#ec4899', tension: 0.3, yAxisID: 'yBox', borderWidth: 1.5, pointRadius: 2, borderDash: [2,2] }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 12, font: { size: 9, weight: 'bold' } } }, tooltip: { enabled: true } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 9 } } },
+                        yKg: { type: 'linear', position: 'left', title: { display: true, text: 'Kilogram (Kg)', font: { size: 9, weight: 'bold' } }, ticks: { font: { size: 8 } } },
+                        yBox: { type: 'linear', position: 'right', title: { display: true, text: 'Box', font: { size: 9, weight: 'bold' } }, grid: { display: false }, ticks: { font: { size: 8 } } }
+                    }
+                }
+            });
+        }
+
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('sidebar-closed');
             document.getElementById('mainContent').style.marginLeft = document.getElementById('sidebar').classList.contains('sidebar-closed') ? "0" : "14rem";
@@ -479,7 +560,8 @@
                 fetchHalf(), 
                 fetchOccupancy(), 
                 fetchOld(), 
-                fetchBottom()
+                fetchBottom(),
+                fetchQtyProduksiTrend() // Memanggil fungsi pembuat tren baru saat refresh
             ]);
             document.getElementById('sheetFrame').src = `https://docs.google.com/spreadsheets/d/e/${ID_LAPORAN}/pubhtml?widget=true&headers=false`;
         }
