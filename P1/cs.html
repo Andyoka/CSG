@@ -475,7 +475,7 @@
             }
         }
 
-        // Fungsi dengan Penyelarasan Grid Sumbu Y Kiri (Kg) dan Kanan (Box) Berdasarkan Rasio Proporsional
+        // Fungsi dengan Penyelarasan Skala & Ruang Udara (Buffer) 15% Otomatis Berdasarkan Data Tertinggi
         async function fetchQtyProduksiTrend() {
             const csv = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_QTY_PRODUKSI}&range=A2:I40&output=csv`);
             if (!csv) return;
@@ -483,17 +483,17 @@
             const rows = parseCSV(csv).filter(r => r[0] && r[0] !== "").reverse(); 
             const labelTanggal = rows.map(r => r[0].substring(0, 5)); 
 
-            // --- 1. PROSES DATA & PENYELARASAN SKALA SIKLUS UNTUK FISH USING ---
+            // --- 1. PROSES DATA & PENYELARASAN SKALA DINAMIS UNTUK FISH USING ---
             const dataFishKg = rows.map(r => cleanNum(r[1]));
             const dataTotalFishbox = rows.map(r => cleanNum(r[3]));
             const dataFishboxKembali = rows.map(r => cleanNum(r[5]));
             const dataFishboxHabis = rows.map(r => cleanNum(r[6]));
 
-            // Kalkulasi nilai maksimal dinamis agar jumlah baris grid YKiri dan YKanan sinkron perfectly
-            let maxFishKg = Math.max(...dataFishKg, 1000); 
-            // Pembulatan ke kelipatan 5000 terdekat agar label sumbu Y rapi dan tidak nanggung
-            maxFishKg = Math.ceil(maxFishKg / 5000) * 5000;
-            // Gunakan rasio 1 Box = 1000 Kg untuk titik maksimum visual sumbu kanan
+            // Mencari nilai tertinggi asli dari semua komponen data grafik Fish
+            let rawMaxFish = Math.max(...dataFishKg, ...dataTotalFishbox.map(v=>v*1000), ...dataFishboxKembali.map(v=>v*1000), ...dataFishboxHabis.map(v=>v*1000), 1000);
+            
+            // Memberikan ruang atas sebesar 15% lalu membulatkannya ke kelipatan 10.000 terdekat agar grafik ber-AC (tidak pengap)
+            let maxFishKg = Math.ceil((rawMaxFish * 1.15) / 10000) * 10000;
             let maxFishBox = maxFishKg / 1000; 
 
             if (charts['fishUsing']) charts['fishUsing'].destroy();
@@ -520,14 +520,17 @@
                 }
             });
 
-            // --- 2. PROSES DATA & PENYELARASAN SKALA SIKLUS UNTUK LOIN USING ---
+            // --- 2. PROSES DATA & PENYELARASAN SKALA DINAMIS UNTUK LOIN USING ---
             const dataLoinKg = rows.map(r => cleanNum(r[2]));
             const dataTotalLoinbox = rows.map(r => cleanNum(r[4]));
             const dataLoinboxKembali = rows.map(r => cleanNum(r[7]));
             const dataLoinboxHabis = rows.map(r => cleanNum(r[8]));
 
-            let maxLoinKg = Math.max(...dataLoinKg, 1000);
-            maxLoinKg = Math.ceil(maxLoinKg / 5000) * 5000;
+            // Mencari nilai tertinggi asli dari semua komponen data grafik Loin
+            let rawMaxLoin = Math.max(...dataLoinKg, ...dataTotalLoinbox.map(v=>v*1000), ...dataLoinboxKembali.map(v=>v*1000), ...dataLoinboxHabis.map(v=>v*1000), 1000);
+            
+            // Memberikan ruang atas sebesar 15% lalu membulatkannya ke kelipatan 10.000 terdekat
+            let maxLoinKg = Math.ceil((rawMaxLoin * 1.15) / 10000) * 10000;
             let maxLoinBox = maxLoinKg / 1000;
 
             if (charts['loinUsing']) charts['loinUsing'].destroy();
