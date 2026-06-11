@@ -478,7 +478,7 @@
         // Fungsi Baru untuk Mengambil Data dan Menggambar Grafik Tren Produksi Baru (FISH USING & LOIN USING)
         async function fetchQtyProduksiTrend() {
             // Mengambil baris data yang cukup untuk tren harian (misal ambil 15 baris data teratas)
-            const csv = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_QTY_PRODUKSI}&range=A2:I16&output=csv`);
+            const csv = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_QTY_PRODUKSI}&range=A2:I31&output=csv`);
             if (!csv) return;
 
             const rows = parseCSV(csv).filter(r => r[0] && r[0] !== "").reverse(); // Dibalik agar tanggal berjalan maju
