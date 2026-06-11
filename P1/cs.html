@@ -371,7 +371,7 @@
             }
         }
 
-        async function fetchOccupancy() {
+        async function fetchPageOccupancy() {
             const csvP = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OCCUPANCY}&range=A1:B3&output=csv`);
             if(csvP){
                 const rP = parseCSV(csvP); let val = cleanNum(rP[2][1]); setSafeInner('text3', Math.round(val), '%');
@@ -475,20 +475,26 @@
             }
         }
 
-        // Fungsi Baru untuk Mengambil Data dan Menggambar Grafik Tren Produksi Baru (FISH USING & LOIN USING)
+        // Fungsi dengan Penyelarasan Grid Sumbu Y Kiri (Kg) dan Kanan (Box) Berdasarkan Rasio Proporsional
         async function fetchQtyProduksiTrend() {
-            // Mengambil baris data yang cukup untuk tren harian (misal ambil 15 baris data teratas)
-            const csv = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_QTY_PRODUKSI}&range=A2:I31&output=csv`);
+            const csv = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_QTY_PRODUKSI}&range=A2:I40&output=csv`);
             if (!csv) return;
 
-            const rows = parseCSV(csv).filter(r => r[0] && r[0] !== "").reverse(); // Dibalik agar tanggal berjalan maju
-            const labelTanggal = rows.map(r => r[0].substring(0, 5)); // Potong format tanggal pendek (dd/mm) agar rapi
+            const rows = parseCSV(csv).filter(r => r[0] && r[0] !== "").reverse(); 
+            const labelTanggal = rows.map(r => r[0].substring(0, 5)); 
 
-            // --- 1. PROSES CHART FISH USING ---
+            // --- 1. PROSES DATA & PENYELARASAN SKALA SIKLUS UNTUK FISH USING ---
             const dataFishKg = rows.map(r => cleanNum(r[1]));
             const dataTotalFishbox = rows.map(r => cleanNum(r[3]));
             const dataFishboxKembali = rows.map(r => cleanNum(r[5]));
             const dataFishboxHabis = rows.map(r => cleanNum(r[6]));
+
+            // Kalkulasi nilai maksimal dinamis agar jumlah baris grid YKiri dan YKanan sinkron perfectly
+            let maxFishKg = Math.max(...dataFishKg, 1000); 
+            // Pembulatan ke kelipatan 5000 terdekat agar label sumbu Y rapi dan tidak nanggung
+            maxFishKg = Math.ceil(maxFishKg / 5000) * 5000;
+            // Gunakan rasio 1 Box = 1000 Kg untuk titik maksimum visual sumbu kanan
+            let maxFishBox = maxFishKg / 1000; 
 
             if (charts['fishUsing']) charts['fishUsing'].destroy();
             charts['fishUsing'] = new Chart(document.getElementById('chartFishUsing'), {
@@ -508,17 +514,21 @@
                     plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 12, font: { size: 9, weight: 'bold' } } }, tooltip: { enabled: true } },
                     scales: {
                         x: { grid: { display: false }, ticks: { font: { size: 9 } } },
-                        yKg: { type: 'linear', position: 'left', title: { display: true, text: 'Kilogram (Kg)', font: { size: 9, weight: 'bold' } }, ticks: { font: { size: 8 } } },
-                        yBox: { type: 'linear', position: 'right', title: { display: true, text: 'Box', font: { size: 9, weight: 'bold' } }, grid: { display: false }, ticks: { font: { size: 8 } } }
+                        yKg: { type: 'linear', position: 'left', min: 0, max: maxFishKg, title: { display: true, text: 'Kilogram (Kg)', font: { size: 9, weight: 'bold' } }, ticks: { font: { size: 8 } } },
+                        yBox: { type: 'linear', position: 'right', min: 0, max: maxFishBox, title: { display: true, text: 'Box', font: { size: 9, weight: 'bold' } }, grid: { display: false }, ticks: { font: { size: 8 } } }
                     }
                 }
             });
 
-            // --- 2. PROSES CHART LOIN USING ---
+            // --- 2. PROSES DATA & PENYELARASAN SKALA SIKLUS UNTUK LOIN USING ---
             const dataLoinKg = rows.map(r => cleanNum(r[2]));
             const dataTotalLoinbox = rows.map(r => cleanNum(r[4]));
             const dataLoinboxKembali = rows.map(r => cleanNum(r[7]));
             const dataLoinboxHabis = rows.map(r => cleanNum(r[8]));
+
+            let maxLoinKg = Math.max(...dataLoinKg, 1000);
+            maxLoinKg = Math.ceil(maxLoinKg / 5000) * 5000;
+            let maxLoinBox = maxLoinKg / 1000;
 
             if (charts['loinUsing']) charts['loinUsing'].destroy();
             charts['loinUsing'] = new Chart(document.getElementById('chartLoinUsing'), {
@@ -538,8 +548,8 @@
                     plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 12, font: { size: 9, weight: 'bold' } } }, tooltip: { enabled: true } },
                     scales: {
                         x: { grid: { display: false }, ticks: { font: { size: 9 } } },
-                        yKg: { type: 'linear', position: 'left', title: { display: true, text: 'Kilogram (Kg)', font: { size: 9, weight: 'bold' } }, ticks: { font: { size: 8 } } },
-                        yBox: { type: 'linear', position: 'right', title: { display: true, text: 'Box', font: { size: 9, weight: 'bold' } }, grid: { display: false }, ticks: { font: { size: 8 } } }
+                        yKg: { type: 'linear', position: 'left', min: 0, max: maxLoinKg, title: { display: true, text: 'Kilogram (Kg)', font: { size: 9, weight: 'bold' } }, ticks: { font: { size: 8 } } },
+                        yBox: { type: 'linear', position: 'right', min: 0, max: maxLoinBox, title: { display: true, text: 'Box', font: { size: 9, weight: 'bold' } }, grid: { display: false }, ticks: { font: { size: 8 } } }
                     }
                 }
             });
@@ -558,10 +568,10 @@
                 fetchTopCharts(), 
                 fetchSmall(), 
                 fetchHalf(), 
-                fetchOccupancy(), 
+                fetchPageOccupancy(), 
                 fetchOld(), 
                 fetchBottom(),
-                fetchQtyProduksiTrend() // Memanggil fungsi pembuat tren baru saat refresh
+                fetchQtyProduksiTrend() 
             ]);
             document.getElementById('sheetFrame').src = `https://docs.google.com/spreadsheets/d/e/${ID_LAPORAN}/pubhtml?widget=true&headers=false`;
         }
