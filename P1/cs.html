@@ -155,6 +155,14 @@
                     <table class="chart-table"><thead id="kapasitasTableHeader"></thead><tbody id="kapasitasTableBody"></tbody></table>
                 </div>
             </div>
+            
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                <h3 id="judulAlokasi" class="font-bold text-[10px] uppercase mb-2 text-slate-600 border-b pb-2 text-center italic">Alokasi Ruang</h3>
+                <div class="h-[180px] mb-4 px-2"><canvas id="barAlokasiChart"></canvas></div>
+                <div class="overflow-x-auto">
+                    <table class="chart-table"><thead id="alokasiTableHeader"></thead><tbody id="alokasiTableBody"></tbody></table>
+                </div>
+            </div>
         </div>
 
         <div class="grid grid-cols-1 gap-4 mb-6">
@@ -173,7 +181,7 @@
 
     <script>
         const ID_GSHEET = "2PACX-1vShq3eIcceGMXuR6dBbMut6K99pAQZV4g86Aq5DWkP7yrFTGNMPkdfg4y6vbWeofWpFRO4gGNqLE4h8";
-        const GID_SMALL_PIE = "1052774962", GID_SMALL_BAR = "1026658023", GID_OLD = "885583216", GID_OCCUPANCY = "23039051", GID_HALF = "972941295", GID_BAR = "0", GID_TOTAL = "252078912", GID_DETAIL = "1764500224", GID_INCOMING = "1777430590", GID_KAPASITAS = "1213168", GID_QTY_PRODUKSI = "132529449";
+        const GID_SMALL_PIE = "1052774962", GID_SMALL_BAR = "1026658023", GID_OLD = "885583216", GID_OCCUPANCY = "23039051", GID_HALF = "972941295", GID_BAR = "0", GID_TOTAL = "252078912", GID_DETAIL = "1764500224", GID_INCOMING = "1777430590", GID_KAPASITAS = "1213168", GID_QTY_PRODUKSI = "132529449", GID_ALOKASI = "1056372075";
         const ID_LAPORAN = "2PACX-1vRQ6OPRqsuPRmTvAgsJNrU1ISOZ4x-0r1WSmpziuRNdecq42VVxgqferykNrUjJrB-KPWbt_NxgkpFk";
 
         Chart.register(ChartDataLabels);
@@ -224,6 +232,7 @@
                 if (rows[1]) {
                     document.getElementById('statusText2').innerText = rows[1][0];
                     document.getElementById('judulKapasitas').innerText = `KAPASITAS RUANG ${rows[1][0]}`;
+                    document.getElementById('judulAlokasi').innerText = `ALOKASI RUANG ${rows[1][0]}`;
                 }
             }
         }
@@ -446,6 +455,51 @@
             }
         }
 
+        // Fungsi Baru untuk Mengambil Data dan Merender Grafik Alokasi Ruang (Model Sesuai Kapasitas Ruang)
+        async function fetchAlokasiRuang() {
+            // Pengambilan Data Chart Batang dari Kolom H s.d J (H1:J9)
+            const csvC = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_ALOKASI}&range=H1:J9&output=csv`);
+            if (csvC) {
+                const rowsC = parseCSV(csvC);
+                const labels = rowsC.slice(1).map(r => r[0]); 
+                const dataAlloc = rowsC.slice(1).map(r => cleanNum(r[1])); 
+
+                if(charts['barAlokasi']) charts['barAlokasi'].destroy();
+                charts['barAlokasi'] = new Chart(document.getElementById('barAlokasiChart'), {
+                    type: 'bar',
+                    data: { labels: labels, datasets: [{ data: dataAlloc, backgroundColor: '#ffcc99', barThickness: 25 }] }, // Batang Orange Muda
+                    options: {
+                        responsive: true, maintainAspectRatio: false, layout: { padding: { top: 35 } },
+                        scales: {
+                            y: { beginAtZero: true, max: 150, ticks: { font: { size: 8 }, callback: v => v + '%' } },
+                            x: { grid: { display: false }, ticks: { font: { size: 9, weight: 'bold' } } }
+                        },
+                        plugins: {
+                            datalabels: { display: true, anchor: 'end', align: 'top', offset: 5, font: { size: 10, weight: 'bold' }, formatter: v => Math.round(v) + '%' },
+                            tooltip: { enabled: true, callbacks: { label: (ctx) => ctx.raw + '%' } }
+                        }
+                    },
+                    plugins: [{
+                        id: 'line100Blue',
+                        afterDraw: (chart) => {
+                            const {ctx, scales: {y, x}} = chart;
+                            const yCoor = y.getPixelForValue(100);
+                            ctx.save(); ctx.strokeStyle = '#3b82f6'; ctx.setLineDash([6, 4]); ctx.lineWidth = 2; // Garis Standar Biru
+                            ctx.beginPath(); ctx.moveTo(x.left, yCoor); ctx.lineTo(x.right, yCoor); ctx.stroke(); ctx.restore();
+                        }
+                    }]
+                });
+            }
+
+            // Pengambilan Data Tabel Bawah dari Kolom A s.d F (A1:F9)
+            const csvT = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_ALOKASI}&range=A1:F9&output=csv`);
+            if (csvT) {
+                const rowsT = parseCSV(csvT);
+                document.getElementById('alokasiTableHeader').innerHTML = `<tr>${rowsT[0].map(h => `<th>${h}</th>`).join('')}</tr>`;
+                document.getElementById('alokasiTableBody').innerHTML = rowsT.slice(1).map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
+            }
+        }
+
         async function fetchBottom() {
             const csvB = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_BAR}&range=A1:O5&output=csv`);
             if(csvB){
@@ -475,7 +529,6 @@
             }
         }
 
-        // Fungsi dengan Penyelarasan Skala & Ruang Udara (Buffer) 15% Otomatis Berdasarkan Data Tertinggi
         async function fetchQtyProduksiTrend() {
             const csv = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_QTY_PRODUKSI}&range=A2:I40&output=csv`);
             if (!csv) return;
@@ -483,16 +536,12 @@
             const rows = parseCSV(csv).filter(r => r[0] && r[0] !== "").reverse(); 
             const labelTanggal = rows.map(r => r[0].substring(0, 5)); 
 
-            // --- 1. PROSES DATA & PENYELARASAN SKALA DINAMIS UNTUK FISH USING ---
             const dataFishKg = rows.map(r => cleanNum(r[1]));
             const dataTotalFishbox = rows.map(r => cleanNum(r[3]));
             const dataFishboxKembali = rows.map(r => cleanNum(r[5]));
             const dataFishboxHabis = rows.map(r => cleanNum(r[6]));
 
-            // Mencari nilai tertinggi asli dari semua komponen data grafik Fish
             let rawMaxFish = Math.max(...dataFishKg, ...dataTotalFishbox.map(v=>v*1000), ...dataFishboxKembali.map(v=>v*1000), ...dataFishboxHabis.map(v=>v*1000), 1000);
-            
-            // Memberikan ruang atas sebesar 15% lalu membulatkannya ke kelipatan 10.000 terdekat agar grafik ber-AC (tidak pengap)
             let maxFishKg = Math.ceil((rawMaxFish * 1.15) / 10000) * 10000;
             let maxFishBox = maxFishKg / 1000; 
 
@@ -520,16 +569,12 @@
                 }
             });
 
-            // --- 2. PROSES DATA & PENYELARASAN SKALA DINAMIS UNTUK LOIN USING ---
             const dataLoinKg = rows.map(r => cleanNum(r[2]));
             const dataTotalLoinbox = rows.map(r => cleanNum(r[4]));
             const dataLoinboxKembali = rows.map(r => cleanNum(r[7]));
             const dataLoinboxHabis = rows.map(r => cleanNum(r[8]));
 
-            // Mencari nilai tertinggi asli dari semua komponen data grafik Loin
             let rawMaxLoin = Math.max(...dataLoinKg, ...dataTotalLoinbox.map(v=>v*1000), ...dataLoinboxKembali.map(v=>v*1000), ...dataLoinboxHabis.map(v=>v*1000), 1000);
-            
-            // Memberikan ruang atas sebesar 15% lalu membulatkannya ke kelipatan 10.000 terdekat
             let maxLoinKg = Math.ceil((rawMaxLoin * 1.15) / 10000) * 10000;
             let maxLoinBox = maxLoinKg / 1000;
 
@@ -568,6 +613,7 @@
                 fetchStatusText(), 
                 fetchIncomingTable(), 
                 fetchKapasitasRuang(), 
+                fetchAlokasiRuang(), // Menjalankan fungsi fetch alokasi ruang baru
                 fetchTopCharts(), 
                 fetchSmall(), 
                 fetchHalf(), 
