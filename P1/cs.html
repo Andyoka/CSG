@@ -217,11 +217,19 @@
             if(el) el.innerHTML = `${val || '0'}<br><span>${sub}</span>`;
         }
 
+        // Optimalisasi internal: Ditambahkan timeout 5 detik agar antrean fetch tidak macet jika Google Sheets lambat merespons
         async function fetchWithRetry(url) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
             try {
-                const response = await fetch(url + "&t=" + new Date().getTime());
+                // Menggunakan timestamp milidetik murni yang selalu unik agar tidak tersumbat cache browser
+                const response = await fetch(url + "&t=" + Date.now(), { signal: controller.signal });
+                clearTimeout(timeoutId);
                 return response.ok ? await response.text() : null;
-            } catch (e) { return null; }
+            } catch (e) { 
+                clearTimeout(timeoutId);
+                return null; 
+            }
         }
 
         async function fetchStatusText() {
@@ -480,36 +488,36 @@
                     if(charts['barAlokasi']) charts['barAlokasi'].destroy();
                     charts['barAlokasi'] = new Chart(document.getElementById('barAlokasiChart'), {
                         type: 'bar',
-                        data: { labels: labels, datasets: [{ data: dataAlloc, backgroundColor: '#ed7d31', barThickness: 25 }] }, 
+                        data: { labels: labels, datasets: [{ data: dataAlloc, backgroundColor: '#ed7d31', barThickness: 25 }] },
                         options: {
                             responsive: true, maintainAspectRatio: false, layout: { padding: { top: 35 } },
                             scales: {
                                 y: { beginAtZero: true, max: 150, ticks: { font: { size: 8 }, callback: v => v + '%' } },
                                 x: { grid: { display: false }, ticks: { font: { size: 9, weight: 'bold' } } }
+                            },
+                            plugins: {
+                                datalabels: { display: true, anchor: 'end', align: 'top', offset: 5, font: { size: 10, weight: 'bold' }, formatter: v => Math.round(v) + '%' },
+                                tooltip: { enabled: true, callbacks: { label: (ctx) => ctx.raw + '%' } }
+                            }
                         },
-                        plugins: {
-                            datalabels: { display: true, anchor: 'end', align: 'top', offset: 5, font: { size: 10, weight: 'bold' }, formatter: v => Math.round(v) + '%' },
-                            tooltip: { enabled: true, callbacks: { label: (ctx) => ctx.raw + '%' } }
-                        }
-                    },
-                    plugins: [{
-                        id: 'line100Blue',
-                        afterDraw: (chart) => {
-                            const {ctx, scales: {y, x}} = chart;
-                            const yCoor = y.getPixelForValue(100);
-                            ctx.save(); ctx.strokeStyle = '#3b82f6'; ctx.setLineDash([6, 4]); ctx.lineWidth = 2; 
-                            ctx.beginPath(); ctx.moveTo(x.left, yCoor); ctx.lineTo(x.right, yCoor); ctx.stroke(); ctx.restore();
-                        }
-                    }]
-                });
-            }
+                        plugins: [{
+                            id: 'line100Blue',
+                            afterDraw: (chart) => {
+                                const {ctx, scales: {y, x}} = chart;
+                                const yCoor = y.getPixelForValue(100);
+                                ctx.save(); ctx.strokeStyle = '#3b82f6'; ctx.setLineDash([6, 4]); ctx.lineWidth = 2; 
+                                ctx.beginPath(); ctx.moveTo(x.left, yCoor); ctx.lineTo(x.right, yCoor); ctx.stroke(); ctx.restore();
+                            }
+                        }]
+                    });
+                }
 
-            const csvT = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_ALOKASI}&range=A1:F9&output=csv`);
-            if (csvT) {
-                const rowsT = parseCSV(csvT);
-                document.getElementById('alokasiTableHeader').innerHTML = `<tr>${rowsT[0].map(h => `<th>${h}</th>`).join('')}</tr>`;
-                document.getElementById('alokasiTableBody').innerHTML = rowsT.slice(1).map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
-            }
+                const csvT = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_ALOKASI}&range=A1:F9&output=csv`);
+                if (csvT) {
+                    const rowsT = parseCSV(csvT);
+                    document.getElementById('alokasiTableHeader').innerHTML = `<tr>${rowsT[0].map(h => `<th>${h}</th>`).join('')}</tr>`;
+                    document.getElementById('alokasiTableBody').innerHTML = rowsT.slice(1).map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
+                }
             } catch(e) { console.error(e); }
         }
 
@@ -627,7 +635,6 @@
             document.getElementById('mainContent').style.marginLeft = document.getElementById('sidebar').classList.contains('sidebar-closed') ? "0" : "14rem";
         }
 
-        // Perubahan Kunci: Proses dijalankan satu demi satu secara berurutan (Sequential execution)
         async function refreshAll() {
             await fetchStatusText(); 
             await fetchIncomingTable(); 
