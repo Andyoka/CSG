@@ -47,61 +47,65 @@
         .incoming-table-container { max-height: 300px; overflow-y: auto; }
         .incoming-table th { position: sticky; top: 0; background: #334155; color: white; z-index: 5; }
 
-        /* --- ANIMASI JUGGLING LOADING (CSS MURNI) --- */
-        .juggler-container {
-            position: fixed; bottom: 20px; right: 20px;
+        /* --- ANIMASI TUNA LOADING POJOK KANAN ATAS --- */
+        .tuna-loader-container {
+            position: fixed; top: 85px; right: 24px;
             display: flex; flex-direction: column; align-items: center;
             z-index: 9999; pointer-events: none;
-            transition: opacity 0.5s ease-in-out; opacity: 0;
+            transition: opacity 0.4s ease-in-out; opacity: 0;
+            background: rgba(255, 255, 255, 0.85);
+            padding: 6px 12px; border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
         }
-        .juggler-container.active { opacity: 1; }
+        .tuna-loader-container.active { opacity: 1; }
         
-        /* Siluet Orang */
-        .juggler-body {
-            width: 32px; height: 32px; background: #64748b; opacity: 0.25;
-            border-radius: 50% 50% 0 0; position: relative; margin-top: 24px;
-        }
-        .juggler-body::before {
-            content: ''; position: absolute; top: -18px; left: 8px;
-            width: 16px; height: 16px; background: #64748b; border-radius: 50%;
+        /* Area Berenang Lapang */
+        .swim-pool {
+            width: 70px; height: 24px; position: relative; overflow: hidden;
         }
 
-        /* Bola Juggling */
-        .juggling-ball {
-            position: absolute; width: 6px; height: 6px;
-            background: #ed7d31; border-radius: 50%; opacity: 0.6;
+        /* Desain Bentuk Siluet Ikan Tuna (CSS MURNI) */
+        .tuna-fish {
+            position: absolute; width: 28px; height: 12px;
+            background: #334155; opacity: 0.25;
+            border-radius: 80% 40% 40% 40%;
+            top: 6px; left: 0;
+            animation: swimAround 2.5s infinite ease-in-out;
         }
-        .ball-1 { animation: juggle1 1.2s infinite ease-in-out; bottom: 32px; left: -5px; }
-        .ball-2 { animation: juggle2 1.2s infinite ease-in-out; bottom: 32px; left: 13px; animation-delay: 0.4s; }
-        .ball-3 { animation: juggle3 1.2s infinite ease-in-out; bottom: 32px; left: 31px; animation-delay: 0.8s; }
+        /* Ekor Tuna */
+        .tuna-fish::before {
+            content: ''; position: absolute; right: -5px; top: -2px;
+            width: 0; height: 0;
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+            border-left: 8px solid #334155;
+        }
+        /* Sirip Atas Khas Tuna */
+        .tuna-fish::after {
+            content: ''; position: absolute; left: 8px; top: -4px;
+            width: 0; height: 0;
+            border-bottom: 5px solid #334155;
+            border-left: 6px solid transparent;
+        }
 
-        @keyframes juggle1 {
-            0% { transform: translate(0, 0); }
-            50% { transform: translate(18px, -35px); }
-            100% { transform: translate(36px, 0); }
-        }
-        @keyframes juggle2 {
-            0% { transform: translate(0, 0); }
-            50% { transform: translate(10px, -35px); }
-            100% { transform: translate(-18px, 0); }
-        }
-        @keyframes juggle3 {
-            0% { transform: translate(0, 0); }
-            50% { transform: translate(-18px, -35px); }
-            100% { transform: translate(-36px, 0); }
+        /* Logika Gerakan Berenang Bolak Balik & Membalikkan Badan */
+        @keyframes swimAround {
+            0% { transform: translateX(0) scaleX(1); }
+            45% { transform: translateX(40px) scaleX(1); }
+            50% { transform: translateX(40px) scaleX(-1); }
+            95% { transform: translateX(0) scaleX(-1); }
+            100% { transform: translateX(0) scaleX(1); }
         }
     </style>
 </head>
 <body class="bg-gray-50 font-sans overflow-x-hidden">
 
-    <div id="jugglingLoader" class="juggler-container">
-        <div class="relative w-[36px] h-[50px]">
-            <div class="juggling-ball ball-1"></div>
-            <div class="juggling-ball ball-2"></div>
-            <div class="juggling-ball ball-3"></div>
-            <div class="juggler-body"></div>
+    <div id="tunaLoader" class="tuna-loader-container">
+        <div class="swim-pool">
+            <div class="tuna-fish"></div>
         </div>
-        <span class="text-[8px] font-bold text-slate-400 opacity-40 mt-1 uppercase tracking-widest">Loading...</span>
+        <span class="text-[8px] font-black text-slate-500 opacity-40 uppercase tracking-widest mt-0.5">Loading...</span>
     </div>
 
     <aside id="sidebar" class="fixed top-0 left-0 h-screen w-56 bg-[#1e293b] text-white z-50 shadow-2xl">
@@ -253,7 +257,7 @@
         let charts = {};
 
         function showLoader(show) {
-            const loader = document.getElementById('jugglingLoader');
+            const loader = document.getElementById('tunaLoader');
             if(loader) {
                 if(show) loader.classList.add('active');
                 else loader.classList.remove('active');
@@ -261,7 +265,7 @@
         }
 
         function parseCSV(text) {
-            const regex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
+            const regex = /,(?=(?:?:[^"]*"){2})*[^"]*$)/;
             return text.split('\n').map(row => row.split(regex).map(cell => cell.replace(/"/g, '').trim()));
         }
 
@@ -696,7 +700,7 @@
         }
 
         async function refreshAll() {
-            showLoader(true); // Memunculkan animasi Juggling di pojok kanan bawah
+            showLoader(true); // Memunculkan animasi tuna berenang
             
             await fetchStatusText(); 
             await fetchIncomingTable(); 
@@ -712,7 +716,7 @@
             
             document.getElementById('sheetFrame').src = `https://docs.google.com/spreadsheets/d/e/${ID_LAPORAN}/pubhtml?widget=true&headers=false`;
             
-            showLoader(false); // Menyembunyikan animasi Juggling begitu semua data selesai dimuat
+            showLoader(false); // Menyembunyikan animasi setelah selesai dimuat
         }
 
         window.onload = refreshAll;
