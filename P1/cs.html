@@ -49,29 +49,28 @@
 
         /* --- ANIMASI TUNA LOADING POJOK KANAN ATAS --- */
         .tuna-loader-container {
-            position: fixed; top: 85px; right: 24px;
+            position: absolute; top: 75px; right: 24px;
             display: flex; flex-direction: column; align-items: center;
-            z-index: 9999; pointer-events: none;
-            transition: opacity 0.4s ease-in-out; opacity: 0;
-            background: rgba(255, 255, 255, 0.85);
-            padding: 6px 12px; border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            border: 1px solid #e2e8f0;
+            z-index: 100; pointer-events: none;
+            transition: opacity 0.3s ease-in-out; opacity: 0;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 6px 14px; border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            border: 1px solid #cbd5e1;
         }
         .tuna-loader-container.active { opacity: 1; }
         
-        /* Area Berenang Lapang */
         .swim-pool {
             width: 70px; height: 24px; position: relative; overflow: hidden;
         }
 
-        /* Desain Bentuk Siluet Ikan Tuna (CSS MURNI) */
+        /* Desain Bentuk Siluet Ikan Tuna (Lebih Jelas) */
         .tuna-fish {
-            position: absolute; width: 28px; height: 12px;
-            background: #334155; opacity: 0.25;
+            position: absolute; width: 30px; height: 13px;
+            background: #475569; opacity: 0.4;
             border-radius: 80% 40% 40% 40%;
-            top: 6px; left: 0;
-            animation: swimAround 2.5s infinite ease-in-out;
+            top: 5px; left: 0;
+            animation: swimAround 2s infinite ease-in-out;
         }
         /* Ekor Tuna */
         .tuna-fish::before {
@@ -79,34 +78,27 @@
             width: 0; height: 0;
             border-top: 8px solid transparent;
             border-bottom: 8px solid transparent;
-            border-left: 8px solid #334155;
+            border-left: 8px solid #475569;
         }
         /* Sirip Atas Khas Tuna */
         .tuna-fish::after {
             content: ''; position: absolute; left: 8px; top: -4px;
             width: 0; height: 0;
-            border-bottom: 5px solid #334155;
+            border-bottom: 5px solid #475569;
             border-left: 6px solid transparent;
         }
 
-        /* Logika Gerakan Berenang Bolak Balik & Membalikkan Badan */
+        /* Animasi Berenang Maju Mundur & Balik Badan */
         @keyframes swimAround {
             0% { transform: translateX(0) scaleX(1); }
-            45% { transform: translateX(40px) scaleX(1); }
-            50% { transform: translateX(40px) scaleX(-1); }
+            45% { transform: translateX(35px) scaleX(1); }
+            50% { transform: translateX(35px) scaleX(-1); }
             95% { transform: translateX(0) scaleX(-1); }
             100% { transform: translateX(0) scaleX(1); }
         }
     </style>
 </head>
 <body class="bg-gray-50 font-sans overflow-x-hidden">
-
-    <div id="tunaLoader" class="tuna-loader-container">
-        <div class="swim-pool">
-            <div class="tuna-fish"></div>
-        </div>
-        <span class="text-[8px] font-black text-slate-500 opacity-40 uppercase tracking-widest mt-0.5">Loading...</span>
-    </div>
 
     <aside id="sidebar" class="fixed top-0 left-0 h-screen w-56 bg-[#1e293b] text-white z-50 shadow-2xl">
         <div class="p-6 text-center border-b border-slate-700">
@@ -120,7 +112,15 @@
         </nav>
     </aside>
 
-    <main id="mainContent" class="ml-56 p-4 main-content">
+    <main id="mainContent" class="ml-56 p-4 main-content relative">
+        
+        <div id="tunaLoader" class="tuna-loader-container">
+            <div class="swim-pool">
+                <div class="tuna-fish"></div>
+            </div>
+            <span class="text-[8px] font-black text-slate-600 opacity-60 uppercase tracking-widest mt-0.5">Loading...</span>
+        </div>
+
         <header class="flex justify-between items-center mb-6 bg-[#1e293b] text-white p-3 rounded-xl border-l-4 border-[#4ade80] shadow-md">
             <div class="flex items-center gap-4">
                 <button onclick="toggleSidebar()" class="hover:text-[#4ade80]">☰</button>
@@ -265,6 +265,7 @@
         }
 
         function parseCSV(text) {
+            if (!text) return [];
             const regex = /,(?=(?:?:[^"]*"){2})*[^"]*$)/;
             return text.split('\n').map(row => row.split(regex).map(cell => cell.replace(/"/g, '').trim()));
         }
@@ -285,7 +286,7 @@
 
         async function fetchWithRetry(url) {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            const timeoutId = setTimeout(() => controller.abort(), 6000);
             try {
                 const response = await fetch(url + "&t=" + Date.now(), { signal: controller.signal });
                 clearTimeout(timeoutId);
@@ -301,14 +302,14 @@
                 const csv = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_INCOMING}&range=N1:N2&output=csv`);
                 if(csv) {
                     const rows = parseCSV(csv);
-                    if (rows[0]) document.getElementById('statusText').innerText = rows[0][0];
-                    if (rows[1]) {
+                    if (rows[0] && rows[0][0]) document.getElementById('statusText').innerText = rows[0][0];
+                    if (rows[1] && rows[1][0]) {
                         document.getElementById('statusText2').innerText = rows[1][0];
                         document.getElementById('judulKapasitas').innerText = `KAPASITAS RUANG ${rows[1][0]}`;
                         document.getElementById('judulAlokasi').innerText = `ALOKASI RUANG ${rows[1][0]}`;
                     }
                 }
-            } catch(e) { console.error(e); }
+            } catch(e) { console.error("Error Status Text:", e); }
         }
 
         async function fetchTopCharts() {
@@ -329,8 +330,8 @@
                         },
                         options: { cutout:'65%', responsive:true, maintainAspectRatio:false }
                     });
-                    setSafeInner('textTotalStock', cleanNum(rT[3][1]).toLocaleString('id-ID'), 'KG');
-                    document.getElementById('totalStockTableBody').innerHTML = rT.slice(0,3).map(r=>`<tr><td>${r[0]}</td><td>${cleanNum(r[1]).toLocaleString('id-ID')}</td><td>${r[2]}</td></tr>`).join('');
+                    if(rT[3]) setSafeInner('textTotalStock', cleanNum(rT[3][1]).toLocaleString('id-ID'), 'KG');
+                    document.getElementById('totalStockTableBody').innerHTML = rT.slice(0,3).map(r=>`<tr><td>${r[0]}</td><td>${cleanNum(r[1]).toLocaleString('id-ID')}</td><td>${r[2] || ''}</td></tr>`).join('');
                 }
 
                 const csvL = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_TOTAL}&range=E2:E7&output=csv`);
@@ -346,31 +347,33 @@
                 const csvD = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_DETAIL}&range=A1:I2&output=csv`);
                 if(csvD){
                     const rD = parseCSV(csvD);
-                    let comb = rD[0].slice(0,8).map((l,i)=>({l, v:cleanNum(rD[1][i])}))
-                                .filter(x=>x.l && x.l!=="")
-                                .sort((a,b)=>b.v - a.v);
-                    
-                    if(charts['barProduct']) charts['barProduct'].destroy();
-                    charts['barProduct'] = new Chart(document.getElementById('barProductDetail'), {
-                        type:'bar', data:{ labels:comb.map(d=>d.l), datasets:[{data:comb.map(d=>d.v), backgroundColor:'#1e293b', borderRadius:4, barThickness:10}]},
-                        options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{datalabels:{display:true, anchor:'end', align:'right', font:{size:8}, formatter:v=>v.toLocaleString('id-ID')}}, scales:{x:{display:false, max:Math.max(...comb.map(d=>d.v))*1.4},y:{grid:{display:false}, ticks:{font:{size:7}}}} }
-                    });
-                    if(charts['pieDetail']) charts['pieDetail'].destroy();
-                    charts['pieDetail'] = new Chart(document.getElementById('pieDetailChart'), {
-                        type:'doughnut',
-                        data: { 
-                            labels: comb.map(d=>d.l), 
-                            datasets:[{ 
-                                data: comb.map(d=>d.v), 
-                                backgroundColor:["#ef4444","#3b82f6","#facc15","#10b981","#8b5cf6","#f97316","#06b6d4","#ec4899"], 
-                                ...semi3DConfig 
-                            }]
-                        },
-                        options: { cutout:'65%', responsive:true, maintainAspectRatio:false }
-                    });
-                    setSafeInner('textDetailTotal', cleanNum(rD[1][8]).toLocaleString('id-ID'), 'KG');
+                    if(rD[0] && rD[1]){
+                        let comb = rD[0].slice(0,8).map((l,i)=>({l, v:cleanNum(rD[1][i])}))
+                                    .filter(x=>x.l && x.l!=="")
+                                    .sort((a,b)=>b.v - a.v);
+                        
+                        if(charts['barProduct']) charts['barProduct'].destroy();
+                        charts['barProduct'] = new Chart(document.getElementById('barProductDetail'), {
+                            type:'bar', data:{ labels:comb.map(d=>d.l), datasets:[{data:comb.map(d=>d.v), backgroundColor:'#1e293b', borderRadius:4, barThickness:10}]},
+                            options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{datalabels:{display:true, anchor:'end', align:'right', font:{size:8}, formatter:v=>v.toLocaleString('id-ID')}}, scales:{x:{display:false, max:Math.max(...comb.map(d=>d.v))*1.4},y:{grid:{display:false}, ticks:{font:{size:7}}}} }
+                        });
+                        if(charts['pieDetail']) charts['pieDetail'].destroy();
+                        charts['pieDetail'] = new Chart(document.getElementById('pieDetailChart'), {
+                            type:'doughnut',
+                            data: { 
+                                labels: comb.map(d=>d.l), 
+                                datasets:[{ 
+                                    data: comb.map(d=>d.v), 
+                                    backgroundColor:["#ef4444","#3b82f6","#facc15","#10b981","#8b5cf6","#f97316","#06b6d4","#ec4899"], 
+                                    ...semi3DConfig 
+                                }]
+                            },
+                            options: { cutout:'65%', responsive:true, maintainAspectRatio:false }
+                        });
+                        setSafeInner('textDetailTotal', cleanNum(rD[1][8]).toLocaleString('id-ID'), 'KG');
+                    }
                 }
-            } catch(e) { console.error(e); }
+            } catch(e) { console.error("Error Top Charts:", e); }
         }
 
         async function fetchHalf() {
@@ -427,23 +430,26 @@
                 const csvT = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_HALF}&range=G1:K4&output=csv`);
                 if(csvT){
                     const fullT = parseCSV(csvT);
-                    document.getElementById('halfTableHeader').innerHTML = `<tr>${fullT[0].map(h=>`<th>${h}</th>`).join('')}</tr>`;
+                    if(fullT[0]) document.getElementById('halfTableHeader').innerHTML = `<tr>${fullT[0].map(h=>`<th>${h}</th>`).join('')}</tr>`;
                     document.getElementById('halfTableBody').innerHTML = fullT.slice(1).map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('');
                 }
-            } catch(e) { console.error(e); }
+            } catch(e) { console.error("Error Half Box:", e); }
         }
 
         async function fetchSmall() {
             try {
                 const csvP = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_SMALL_PIE}&range=A1:B3&output=csv`);
                 if(csvP){
-                    const rP = parseCSV(csvP); let val = cleanNum(rP[2][1]); setSafeInner('text1', Math.round(val), '%');
-                    if(charts['chart1']) charts['chart1'].destroy();
-                    charts['chart1'] = new Chart(document.getElementById('chart1'), {
-                        type:'doughnut', data:{ datasets:[{data:[val, 100-val], backgroundColor:['#f97316','#1e293b'], ...semi3DConfig }]},
-                        options:{cutout:'65%', responsive:true, maintainAspectRatio:false}
-                    });
-                    document.getElementById('legend1').innerHTML = `<div class="flex justify-between font-bold"><span>${rP[0][0]}</span><span>${rP[0][1]}</span></div><div class="flex justify-between"><span>${rP[1][0]}</span><span>${rP[1][1]}</span></div>`;
+                    const rP = parseCSV(csvP); 
+                    if(rP[2]){
+                        let val = cleanNum(rP[2][1]); setSafeInner('text1', Math.round(val), '%');
+                        if(charts['chart1']) charts['chart1'].destroy();
+                        charts['chart1'] = new Chart(document.getElementById('chart1'), {
+                            type:'doughnut', data:{ datasets:[{data:[val, 100-val], backgroundColor:['#f97316','#1e293b'], ...semi3DConfig }]},
+                            options:{cutout:'65%', responsive:true, maintainAspectRatio:false}
+                        });
+                        document.getElementById('legend1').innerHTML = `<div class="flex justify-between font-bold"><span>${rP[0][0]}</span><span>${rP[0][1]}</span></div><div class="flex justify-between"><span>${rP[1][0]}</span><span>${rP[1][1]}</span></div>`;
+                    }
                 }
                 const csvB = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_SMALL_BAR}&range=A2:B7&output=csv`);
                 if(csvB){
@@ -457,20 +463,23 @@
                         options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{datalabels:{display:true, anchor:'end', align:'right', font:{size:8}, formatter:v=>v.toLocaleString('id-ID')+' MT'}}, scales:{x:{display:false, max:Math.max(...dataB.map(d=>d.v))*1.5},y:{grid:{display:false}, ticks:{font:{size:7}}}} }
                     });
                 }
-            } catch(e) { console.error(e); }
+            } catch(e) { console.error("Error Small Fish:", e); }
         }
 
         async function fetchPageOccupancy() {
             try {
                 const csvP = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OCCUPANCY}&range=A1:B3&output=csv`);
                 if(csvP){
-                    const rP = parseCSV(csvP); let val = cleanNum(rP[2][1]); setSafeInner('text3', Math.round(val), '%');
-                    if(charts['chart3']) charts['chart3'].destroy();
-                    charts['chart3'] = new Chart(document.getElementById('chart3'), {
-                        type:'doughnut', data:{ datasets:[{data:[val, 100-val], backgroundColor:['#10b981','#1e293b'], ...semi3DConfig }]},
-                        options:{cutout:'65%', responsive:true, maintainAspectRatio:false}
-                    });
-                    document.getElementById('legend3').innerHTML = `<div class="flex justify-between font-bold"><span>${rP[0][0]}</span><span>${rP[0][1]}</span></div><div class="flex justify-between"><span>${rP[1][0]}</span><span>${rP[1][1]}</span></div>`;
+                    const rP = parseCSV(csvP); 
+                    if(rP[2]){
+                        let val = cleanNum(rP[2][1]); setSafeInner('text3', Math.round(val), '%');
+                        if(charts['chart3']) charts['chart3'].destroy();
+                        charts['chart3'] = new Chart(document.getElementById('chart3'), {
+                            type:'doughnut', data:{ datasets:[{data:[val, 100-val], backgroundColor:['#10b981','#1e293b'], ...semi3DConfig }]},
+                            options:{cutout:'65%', responsive:true, maintainAspectRatio:false}
+                        });
+                        document.getElementById('legend3').innerHTML = `<div class="flex justify-between font-bold"><span>${rP[0][0]}</span><span>${rP[0][1]}</span></div><div class="flex justify-between"><span>${rP[1][0]}</span><span>${rP[1][1]}</span></div>`;
+                    }
                 }
                 const csvL = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OCCUPANCY}&range=E2:E7&output=csv`);
                 if(csvL){
@@ -481,24 +490,27 @@
                         options:{responsive:true, maintainAspectRatio:false, plugins:{tooltip:{enabled:true}}, scales:{x:{display:false},y:{display:false}}}
                     });
                 }
-            } catch(e) { console.error(e); }
+            } catch(e) { console.error("Error Occupancy:", e); }
         }
 
         async function fetchOld() {
             try {
                 const csvD = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OLD}&range=A1:B3&output=csv`);
                 if(csvD){
-                    const rD = parseCSV(csvD); let val = cleanNum(rD[2][1]); setSafeInner('text2', Math.round(val), '%');
-                    if(charts['chart2']) charts['chart2'].destroy();
-                    charts['chart2'] = new Chart(document.getElementById('chart2'), {
-                        type:'doughnut', data:{ datasets:[{data:[val, 100-val], backgroundColor:['#3b82f6','#1e293b'], ...semi3DConfig }]},
-                        options:{cutout:'65%', responsive:true, maintainAspectRatio:false}
-                    });
-                    document.getElementById('legend2').innerHTML = `<div class="flex justify-between font-bold"><span>${rD[0][0]}</span><span>${rD[0][1]}</span></div><div class="flex justify-between"><span>${rD[1][0]}</span><span>${rD[1][1]}</span></div>`;
+                    const rD = parseCSV(csvD); 
+                    if(rD[2]){
+                        let val = cleanNum(rD[2][1]); setSafeInner('text2', Math.round(val), '%');
+                        if(charts['chart2']) charts['chart2'].destroy();
+                        charts['chart2'] = new Chart(document.getElementById('chart2'), {
+                            type:'doughnut', data:{ datasets:[{data:[val, 100-val], backgroundColor:['#3b82f6','#1e293b'], ...semi3DConfig }]},
+                            options:{cutout:'65%', responsive:true, maintainAspectRatio:false}
+                        });
+                        document.getElementById('legend2').innerHTML = `<div class="flex justify-between font-bold"><span>${rD[0][0]}</span><span>${rD[0][1]}</span></div><div class="flex justify-between"><span>${rD[1][0]}</span><span>${rD[1][1]}</span></div>`;
+                    }
                 }
                 const csvT2 = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_OLD}&range=H2:J5&output=csv`);
                 if(csvT2) document.getElementById('oldTableBody').innerHTML = parseCSV(csvT2).map(c=>`<tr><td>${c[0]}</td><td>${c[1]}</td><td>${c[2]}</td></tr>`).join('');
-            } catch(e) { console.error(e); }
+            } catch(e) { console.error("Error Old Stock:", e); }
         }
 
         async function fetchKapasitasRuang() {
@@ -535,10 +547,10 @@
                     });
                     const csvT = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_KAPASITAS}&range=A1:G9&output=csv`);
                     const rowsT = parseCSV(csvT);
-                    document.getElementById('kapasitasTableHeader').innerHTML = `<tr>${rowsT[0].map(h => `<th>${h}</th>`).join('')}</tr>`;
+                    if(rowsT[0]) document.getElementById('kapasitasTableHeader').innerHTML = `<tr>${rowsT[0].map(h => `<th>${h}</th>`).join('')}</tr>`;
                     document.getElementById('kapasitasTableBody').innerHTML = rowsT.slice(1).map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
                 }
-            } catch(e) { console.error(e); }
+            } catch(e) { console.error("Error Kapasitas Ruang:", e); }
         }
 
         async function fetchAlokasiRuang() {
@@ -579,10 +591,10 @@
                 const csvT = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_ALOKASI}&range=A1:F9&output=csv`);
                 if (csvT) {
                     const rowsT = parseCSV(csvT);
-                    document.getElementById('alokasiTableHeader').innerHTML = `<tr>${rowsT[0].map(h => `<th>${h}</th>`).join('')}</tr>`;
+                    if(rowsT[0]) document.getElementById('alokasiTableHeader').innerHTML = `<tr>${rowsT[0].map(h => `<th>${h}</th>`).join('')}</tr>`;
                     document.getElementById('alokasiTableBody').innerHTML = rowsT.slice(1).map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
                 }
-            } catch(e) { console.error(e); }
+            } catch(e) { console.error("Error Alokasi Ruang:", e); }
         }
 
         async function fetchBottom() {
@@ -604,7 +616,7 @@
                     document.getElementById('tableHeader').innerHTML = '<th class="border-r">Cat</th>' + labels.map(l=>`<th>${l}</th>`).join('');
                     document.getElementById('tableBody').innerHTML = datasets.map(s => `<tr><td class="text-left font-bold border-r px-1"><span class="legend-box" style="background:${s.c}"></span>${s.l}</td>${s.d.map(v=>`<td>${v.toLocaleString('id-ID')}</td>`).join('')}</tr>`).join('');
                 }
-            } catch(e) { console.error(e); }
+            } catch(e) { console.error("Error Bottom Charts:", e); }
         }
 
         async function fetchIncomingTable() {
@@ -612,10 +624,10 @@
                 const csv = await fetchWithRetry(`https://docs.google.com/spreadsheets/d/e/${ID_GSHEET}/pub?gid=${GID_INCOMING}&range=A1:K100&output=csv`);
                 if (csv) {
                     const rows = parseCSV(csv);
-                    document.getElementById('incomingHeader').innerHTML = `<tr>${rows[0].map(h => `<th>${h}</th>`).join('')}</tr>`;
+                    if(rows[0]) document.getElementById('incomingHeader').innerHTML = `<tr>${rows[0].map(h => `<th>${h}</th>`).join('')}</tr>`;
                     document.getElementById('incomingBody').innerHTML = rows.slice(1).filter(r => r[7] && r[7] !== "").map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
                 }
-            } catch(e) { console.error(e); }
+            } catch(e) { console.error("Error Incoming Table:", e); }
         }
 
         async function fetchQtyProduksiTrend() {
@@ -691,7 +703,7 @@
                         }
                     }
                 });
-            } catch(e) { console.error(e); }
+            } catch(e) { console.error("Error Qty Produksi:", e); }
         }
 
         function toggleSidebar() {
@@ -700,8 +712,9 @@
         }
 
         async function refreshAll() {
-            showLoader(true); // Memunculkan animasi tuna berenang
+            showLoader(true); // Langsung munculkan animasi ikan tuna berenang
             
+            // Eksekusi data secara paralel/terpisah agar jika salah satu gagal, yang lain tidak macet
             await fetchStatusText(); 
             await fetchIncomingTable(); 
             await fetchKapasitasRuang(); 
@@ -714,9 +727,11 @@
             await fetchBottom();
             await fetchQtyProduksiTrend(); 
             
-            document.getElementById('sheetFrame').src = `https://docs.google.com/spreadsheets/d/e/${ID_LAPORAN}/pubhtml?widget=true&headers=false`;
+            // Set src iframe laporan sheet
+            const frame = document.getElementById('sheetFrame');
+            if(frame) frame.src = `https://docs.google.com/spreadsheets/d/e/${ID_LAPORAN}/pubhtml?widget=true&headers=false`;
             
-            showLoader(false); // Menyembunyikan animasi setelah selesai dimuat
+            showLoader(false); // Selesai loading, sembunyikan animasi tuna secara halus
         }
 
         window.onload = refreshAll;
