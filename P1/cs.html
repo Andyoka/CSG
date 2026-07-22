@@ -245,10 +245,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-        // =========================================================================
-        // IMPORTANT: PASTE KREDENSIAL FIREBASE ASLI ANDA DARI INDEX.HTML DI SINI
-        // =========================================================================
-       // CONFIG FIREBASE ANDA (Sudah disamakan dengan index.html)
+        // CONFIG FIREBASE ANDA (Sudah disamakan dengan index.html)
         const firebaseConfig = {
             apiKey: "AIzaSyADjRxfQAPb2CxWrijGuEDooAy2h5JS_VY",
             authDomain: "dashboard-cs-d7081.firebaseapp.com",
@@ -258,6 +255,12 @@
             appId: "1:1000730141765:web:e1ea71a1cd0d295d8a2f2c",
             measurementId: "G-4692N7H79T"
         };
+
+        // ⚠️ DAFTAR EMAIL YANG DIBERI IZIN (Disamakan dengan index.html)
+        const ALLOWED_EMAILS = [
+            "operationalcsati2@gmail.com" // <-- Tambahkan email lain di sini jika ada, dipisah koma
+        ];
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
@@ -269,9 +272,10 @@
                 const result = await signInWithPopup(auth, provider);
                 const user = result.user;
                 
-                if (!user.email.endsWith('@bmj.co.id')) {
+                // Validasi berdasarkan daftar ALLOWED_EMAILS
+                if (!ALLOWED_EMAILS.includes(user.email.toLowerCase())) {
                     await signOut(auth);
-                    errEl.innerText = "Akses ditolak. Gunakan email resmi @bmj.co.id!";
+                    errEl.innerText = `Akses ditolak! Email ${user.email} tidak terdaftar.`;
                     errEl.classList.remove('hidden');
                 }
             } catch (error) {
@@ -286,6 +290,34 @@
                 await signOut(auth);
             } catch (error) {
                 console.error("Logout Error:", error);
+            }
+        };
+
+        // Pengecekan Status Login Otomatis
+        onAuthStateChanged(auth, (user) => {
+            if (user && ALLOWED_EMAILS.includes(user.email.toLowerCase())) {
+                document.getElementById('loginOverlay').classList.add('hidden');
+                document.getElementById('appContent').classList.remove('hidden');
+                
+                document.getElementById('userName').innerText = user.displayName || "User";
+                document.getElementById('userEmail').innerText = user.email || "";
+                if(user.photoURL) document.getElementById('userAvatar').src = user.photoURL;
+
+                if (typeof window.refreshAll === 'function') {
+                    window.refreshAll();
+                }
+            } else {
+                document.getElementById('loginOverlay').classList.remove('hidden');
+                document.getElementById('appContent').classList.add('hidden');
+            }
+        });
+    </script>
+
+        window.logoutGoogle = async () => {
+            try {
+                await signOut(auth);
+            } catch (error) {
+                console.erro<script type="module">r("Logout Error:", error);
             }
         };
 
