@@ -50,7 +50,7 @@
                 <span>Sign in with Google</span>
             </button>
             
-            <p id="loginError" class="text-red-500 text-xs mt-4 hidden font-medium"></p>
+            <p id="loginError" class="text-red-500 text-xs mt-4 hidden font-medium p-2 bg-red-50 rounded border border-red-200"></p>
         </div>
     </div>
 
@@ -243,9 +243,9 @@
     <!-- FIREBASE & DASHBOARD SCRIPTS -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-        // CONFIG FIREBASE ANDA (Sudah disamakan dengan index.html)
+        // CONFIG FIREBASE ANDA
         const firebaseConfig = {
             apiKey: "AIzaSyADjRxfQAPb2CxWrijGuEDooAy2h5JS_VY",
             authDomain: "dashboard-cs-d7081.firebaseapp.com",
@@ -256,7 +256,7 @@
             measurementId: "G-4692N7H79T"
         };
 
-        // DAFTAR EMAIL YANG DIBERI IZIN (Disamakan dengan index.html)
+        // DAFTAR EMAIL YANG DIBERI IZIN
         const ALLOWED_EMAILS = [
             "operationalcsati2@gmail.com",
             "csadm397@gmail.com"
@@ -266,9 +266,15 @@
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
 
+        // Paksa simpan sesi login di Local Storage
+        setPersistence(auth, browserLocalPersistence).catch((error) => {
+            console.error("Error persistence:", error);
+        });
+
         window.loginGoogle = async () => {
             const errEl = document.getElementById('loginError');
             errEl.classList.add('hidden');
+            errEl.innerText = "";
             try {
                 const result = await signInWithPopup(auth, provider);
                 const user = result.user;
