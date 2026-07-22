@@ -95,7 +95,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyADjRxfQAPb2CxWrijGuEDooAy2h5JS_VY",
@@ -116,11 +116,31 @@
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
 
-        // Paksa simpan sesi permanen di Local Storage
-        setPersistence(auth, browserLocalPersistence).catch(console.error);
+        // Atur daya tahan sesi ke Local Storage
+        setPersistence(auth, browserLocalPersistence).catch((err) => {
+            console.warn("Persistence error:", err);
+        });
 
-        window.loginGoogle = () => {
-            signInWithRedirect(auth, provider);
+        const showError = (msg) => {
+            const errEl = document.getElementById('loginError');
+            errEl.innerText = msg;
+            errEl.classList.remove('hidden');
+        };
+
+        window.loginGoogle = async () => {
+            try {
+                document.getElementById('loginError').classList.add('hidden');
+                const result = await signInWithPopup(auth, provider);
+                const user = result.user;
+                
+                if (!user || !user.email || !ALLOWED_EMAILS.includes(user.email.toLowerCase())) {
+                    await signOut(auth);
+                    showError(`Akses ditolak! Email ${user ? user.email : ''} tidak terdaftar.`);
+                }
+            } catch (error) {
+                console.error("Login Error:", error);
+                showError("Gagal login: " + (error.message || "Terjadi kesalahan."));
+            }
         };
 
         window.logoutGoogle = async () => {
@@ -128,20 +148,9 @@
             window.location.reload();
         };
 
-        getRedirectResult(auth).then((result) => {
-            if (result && result.user) {
-                if (!ALLOWED_EMAILS.includes(result.user.email.toLowerCase())) {
-                    signOut(auth);
-                    alert(`Akses ditolak! Email ${result.user.email} tidak terdaftar.`);
-                }
-            }
-        }).catch((err) => {
-            console.error("Redirect Error:", err);
-        });
-
-        // Deteksi status login
+        // Deteksi status login otomatis
         onAuthStateChanged(auth, (user) => {
-            if (user && ALLOWED_EMAILS.includes(user.email.toLowerCase())) {
+            if (user && user.email && ALLOWED_EMAILS.includes(user.email.toLowerCase())) {
                 document.getElementById('loginOverlay').classList.add('hidden');
                 document.getElementById('appContent').classList.remove('hidden');
                 
