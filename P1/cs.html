@@ -36,14 +36,14 @@
 </head>
 <body class="bg-slate-100 text-slate-800">
 
-    <!-- OVERLAY LOGIN FIREBASE (Tersembunyi secara default sampai pengecekan selesai) -->
+    <!-- OVERLAY LOGIN FIREBASE -->
     <div id="loginOverlay" class="hidden">
         <div class="bg-white p-8 rounded-xl shadow-2xl max-w-md w-full text-center border border-slate-100">
             <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
                 <i class="fa-solid fa-snowflake"></i>
             </div>
             <h2 class="text-2xl font-bold text-slate-800 mb-2">Cold Storage Status</h2>
-            <p class="text-slate-500 text-sm mb-6">Silakan login menggunakan akun Google internal (@bmj.co.id) untuk mengakses dashboard.</p>
+            <p class="text-slate-500 text-sm mb-6">Silakan login menggunakan akun Google terdaftar untuk mengakses dashboard.</p>
             
             <button id="btnLogin" onclick="loginGoogle()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-3 transition duration-200 shadow-md">
                 <i class="fa-brands fa-google text-lg"></i>
@@ -256,9 +256,9 @@
             measurementId: "G-4692N7H79T"
         };
 
-        // ⚠️ DAFTAR EMAIL YANG DIBERI IZIN (Disamakan dengan index.html)
+        // DAFTAR EMAIL YANG DIBERI IZIN (Disamakan dengan index.html)
         const ALLOWED_EMAILS = [
-            "operationalcsati2@gmail.com" // <-- Tambahkan email lain di sini jika ada, dipisah koma
+            "operationalcsati2@gmail.com"
         ];
 
         const app = initializeApp(firebaseConfig);
@@ -272,7 +272,6 @@
                 const result = await signInWithPopup(auth, provider);
                 const user = result.user;
                 
-                // Validasi berdasarkan daftar ALLOWED_EMAILS
                 if (!ALLOWED_EMAILS.includes(user.email.toLowerCase())) {
                     await signOut(auth);
                     errEl.innerText = `Akses ditolak! Email ${user.email} tidak terdaftar.`;
@@ -296,34 +295,6 @@
         // Pengecekan Status Login Otomatis
         onAuthStateChanged(auth, (user) => {
             if (user && ALLOWED_EMAILS.includes(user.email.toLowerCase())) {
-                document.getElementById('loginOverlay').classList.add('hidden');
-                document.getElementById('appContent').classList.remove('hidden');
-                
-                document.getElementById('userName').innerText = user.displayName || "User";
-                document.getElementById('userEmail').innerText = user.email || "";
-                if(user.photoURL) document.getElementById('userAvatar').src = user.photoURL;
-
-                if (typeof window.refreshAll === 'function') {
-                    window.refreshAll();
-                }
-            } else {
-                document.getElementById('loginOverlay').classList.remove('hidden');
-                document.getElementById('appContent').classList.add('hidden');
-            }
-        });
-    </script>
-
-        window.logoutGoogle = async () => {
-            try {
-                await signOut(auth);
-            } catch (error) {
-                console.erro<script type="module">r("Logout Error:", error);
-            }
-        };
-
-        // Pengecekan Status Login Otomatis
-        onAuthStateChanged(auth, (user) => {
-            if (user && user.email.endsWith('@bmj.co.id')) {
                 document.getElementById('loginOverlay').classList.add('hidden');
                 document.getElementById('appContent').classList.remove('hidden');
                 
