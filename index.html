@@ -98,14 +98,14 @@
         import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
-            apiKey: "AIzaSyADjRxfQAPb2CxWrijGuEDooAy2h5JS_VY",
-            authDomain: "dashboard-cs-d7081.firebaseapp.com",
-            projectId: "dashboard-cs-d7081",
-            storageBucket: "dashboard-cs-d7081.firebasestorage.app",
-            messagingSenderId: "1000730141765",
-            appId: "1:1000730141765:web:e1ea71a1cd0d295d8a2f2c",
-            measurementId: "G-4692N7H79T"
-        };
+    apiKey: "AIzaSyADjRxfQAPb2CxWrijGuEDooAy2h5JS_VY",
+    authDomain: "p1-phi-indol.vercel.app", // <-- UBAH KE DOMAIN VERCEL INI
+    projectId: "dashboard-cs-d7081",
+    storageBucket: "dashboard-cs-d7081.firebasestorage.app",
+    messagingSenderId: "1000730141765",
+    appId: "1:1000730141765:web:e1ea71a1cd0d295d8a2f2c",
+    measurementId: "G-4692N7H79T"
+};
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
