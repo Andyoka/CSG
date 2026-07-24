@@ -95,21 +95,30 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
-    apiKey: "AIzaSyADjRxfQAPb2CxWrijGuEDooAy2h5JS_VY",
-    authDomain: "p1-phi-indol.vercel.app", // <-- UBAH KE DOMAIN VERCEL INI
-    projectId: "dashboard-cs-d7081",
-    storageBucket: "dashboard-cs-d7081.firebasestorage.app",
-    messagingSenderId: "1000730141765",
-    appId: "1:1000730141765:web:e1ea71a1cd0d295d8a2f2c",
-    measurementId: "G-4692N7H79T"
-};
+            apiKey: "AIzaSyADjRxfQAPb2CxWrijGuEDooAy2h5JS_VY",
+            authDomain: "dashboard-cs-d7081.firebaseapp.com",
+            projectId: "dashboard-cs-d7081",
+            storageBucket: "dashboard-cs-d7081.firebasestorage.app",
+            messagingSenderId: "1000730141765",
+            appId: "1:1000730141765:web:e1ea71a1cd0d295d8a2f2c",
+            measurementId: "G-4692N7H79T"
+        };
+
+        const ALLOWED_EMAILS = [
+            "operationalcsati2@gmail.com",
+            "csadm397@gmail.com"
+        ];
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
+
+        setPersistence(auth, browserLocalPersistence).catch((err) => {
+            console.warn("Persistence error:", err);
+        });
 
         const showError = (msg) => {
             const errEl = document.getElementById('loginError');
@@ -117,19 +126,20 @@
             errEl.classList.remove('hidden');
         };
 
-        // Tangkap hasil redirect setelah login
-        getRedirectResult(auth).then((result) => {
-            if (result && result.user) {
-                console.log("Login Redirect Berhasil:", result.user);
+        window.loginGoogle = async () => {
+            try {
+                document.getElementById('loginError').classList.add('hidden');
+                const result = await signInWithPopup(auth, provider);
+                const user = result.user;
+                
+                if (!user || !user.email || !ALLOWED_EMAILS.includes(user.email.toLowerCase())) {
+                    await signOut(auth);
+                    showError(`Akses ditolak! Email ${user ? user.email : ''} tidak terdaftar.`);
+                }
+            } catch (error) {
+                console.error("Login Error:", error);
+                showError("Gagal login: " + (error.message || "Terjadi kesalahan."));
             }
-        }).catch((error) => {
-            console.error("Redirect Error:", error);
-            showError("Gagal login: " + error.message);
-        });
-
-        window.loginGoogle = () => {
-            document.getElementById('loginError').classList.add('hidden');
-            signInWithRedirect(auth, provider);
         };
 
         window.logoutGoogle = async () => {
@@ -138,7 +148,7 @@
         };
 
         onAuthStateChanged(auth, (user) => {
-            if (user) {
+            if (user && user.email && ALLOWED_EMAILS.includes(user.email.toLowerCase())) {
                 document.getElementById('loginOverlay').classList.add('hidden');
                 document.getElementById('appContent').classList.remove('hidden');
                 
