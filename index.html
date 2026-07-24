@@ -95,7 +95,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, signInWithRedirect, GoogleAuthProvider, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyADjRxfQAPb2CxWrijGuEDooAy2h5JS_VY",
@@ -129,13 +129,7 @@
         window.loginGoogle = async () => {
             try {
                 document.getElementById('loginError').classList.add('hidden');
-                const result = await signInWithPopup(auth, provider);
-                const user = result.user;
-                
-                if (!user || !user.email || !ALLOWED_EMAILS.includes(user.email.toLowerCase())) {
-                    await signOut(auth);
-                    showError(`Akses ditolak! Email ${user ? user.email : ''} tidak terdaftar.`);
-                }
+                await signInWithRedirect(auth, provider);
             } catch (error) {
                 console.error("Login Error:", error);
                 showError("Gagal login: " + (error.message || "Terjadi kesalahan."));
@@ -156,6 +150,10 @@
                 document.getElementById('userEmail').innerText = user.email || "";
                 if(user.photoURL) document.getElementById('userAvatar').src = user.photoURL;
             } else {
+                if (user && user.email && !ALLOWED_EMAILS.includes(user.email.toLowerCase())) {
+                    signOut(auth);
+                    showError(`Akses ditolak! Email ${user.email} tidak terdaftar.`);
+                }
                 document.getElementById('loginOverlay').classList.remove('hidden');
                 document.getElementById('appContent').classList.add('hidden');
             }
